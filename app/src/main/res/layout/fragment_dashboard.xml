@@ -125,7 +125,7 @@
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardReports"
+                android:id="@+id/cardCatalog"
                 style="@style/Widget.Material3.CardView.Elevated"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
@@ -142,7 +142,7 @@
                     android:layout_height="match_parent"
                     android:gravity="center"
                     android:lineSpacingExtra="8dp"
-                    android:text="📊\nОТЧЕТЫ"
+                    android:text="📖\nКАТАЛОГ"
                     android:textAlignment="center"
                     android:textColor="#004D40"
                     android:textSize="20sp"
