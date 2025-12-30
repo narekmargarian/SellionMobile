@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/action_filter_date"
+        android:title="Выбрать дату" />
+    <item
+        android:id="@+id/action_filter_all"
+        android:title="Все заказы" />
+    <item
+        android:id="@+id/action_filter_paid"
+        android:title="Только оплаченные" />
+</menu>

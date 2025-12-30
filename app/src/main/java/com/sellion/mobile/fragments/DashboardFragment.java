@@ -1,16 +1,14 @@
 package com.sellion.mobile.fragments;
 
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
 
 import com.google.android.material.card.MaterialCardView;
 import com.sellion.mobile.R;
@@ -28,15 +26,45 @@ public class DashboardFragment extends Fragment {
 
         TextView title = view.findViewById(R.id.managerTitle);
 
-        // Получаем ID, который мы передали в Шаге 3
+        // 1. Находим обе карточки
+        MaterialCardView cardClients = view.findViewById(R.id.cardClients);
+        MaterialCardView cardOrders = view.findViewById(R.id.cardOrders); // ДОБАВЛЕНО
+
+        MaterialCardView cardDebts = view.findViewById(R.id.cardDebts);
+
+        cardDebts.setOnClickListener(v -> {
+            getParentFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, new DebtsFragment())
+                    .addToBackStack(null)
+                    .commit();
+        });
+        // Получаем ID менеджера
         if (getArguments() != null) {
             String managerId = getArguments().getString("MANAGER_ID");
             title.setText("Менеджер: " + managerId);
         }
 
-        // Инициализируй свои карточки (cardOrders, cardSync и т.д.) здесь
-        // ...
+        // 2. Обработка нажатия на КЛИЕНТЫ
+        cardClients.setOnClickListener(v -> {
+            getParentFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, new ClientsFragment())
+                    .addToBackStack(null)
+                    .commit();
+        });
+
+        // 3. Обработка нажатия на ЗАКАЗЫ (ДОБАВЛЕНО)
+        cardOrders.setOnClickListener(v -> {
+            getParentFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, new OrdersFragment()) // Переходим в список заказов
+                    .addToBackStack(null)
+                    .commit();
+        });
 
         return view;
+
+
+
+
     }
+
 }

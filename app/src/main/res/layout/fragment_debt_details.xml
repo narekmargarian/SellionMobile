@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="schemas.android.com"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="#FFFFFF">
+
+    <ImageButton
+        android:id="@+id/btnBackToDebtsList"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_back" />
+
+    <TextView
+        android:id="@+id/tvDetailShopName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#1B1B1F"
+        android:text="Название магазина"
+        android:layout_marginTop="16dp"/>
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        app:cardCornerRadius="16dp"
+        app:cardBackgroundColor="#F1F3F4">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Данные ИП:" android:textStyle="bold"/>
+            <TextView android:id="@+id/tvDetailOwnerName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Имя ИП: Армен Галстян" android:layout_marginTop="4dp"/>
+            <TextView android:id="@+id/tvDetailINN" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="ИНН/ИП: 12345678" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#D1D1D1" android:layout_marginVertical="12dp"/>
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Адрес:" android:textStyle="bold"/>
+            <TextView android:id="@+id/tvDetailAddress" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ереван, ул. Абовяна 10" android:layout_marginTop="4dp"/>
+
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#D1D1D1" android:layout_marginVertical="12dp"/>
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Сумма долга:" android:textColor="#B00020" android:textStyle="bold"/>
+            <TextView android:id="@+id/tvDetailAmount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="50,000 Драм" android:textSize="22sp" android:textColor="#B00020" android:textStyle="bold" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+</LinearLayout>
