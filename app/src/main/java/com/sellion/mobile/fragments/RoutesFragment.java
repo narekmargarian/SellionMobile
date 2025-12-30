@@ -17,10 +17,16 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.sellion.mobile.R;
+import com.sellion.mobile.adapters.DebtsAdapter;
+import com.sellion.mobile.entity.DebtModel;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class RoutesFragment extends Fragment {
 
     private TextView tvCurrentDay;
+    private RecyclerView recyclerView; // Сделали глобальной
     private final String[] daysOfWeek = {"Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"};
 
     @Nullable
@@ -30,14 +36,14 @@ public class RoutesFragment extends Fragment {
 
         tvCurrentDay = view.findViewById(R.id.tvCurrentDay);
         LinearLayout layoutSelectDay = view.findViewById(R.id.layoutSelectDay);
-        RecyclerView recyclerView = view.findViewById(R.id.recyclerRoutes);
 
+        // Находим RecyclerView СРАЗУ
+        recyclerView = view.findViewById(R.id.recyclerRoutes);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         // Кнопка назад
         view.findViewById(R.id.btnBackRoutes).setOnClickListener(v -> getParentFragmentManager().popBackStack());
 
-        // Нажатие на день недели по центру
         layoutSelectDay.setOnClickListener(v -> {
             new AlertDialog.Builder(getContext())
                     .setTitle("Выберите день недели")
@@ -49,7 +55,7 @@ public class RoutesFragment extends Fragment {
                     .show();
         });
 
-        // По умолчанию загружаем магазины для текущего дня (сегодня вторник, 30 дек 2025)
+        // Теперь вызов сработает, так как recyclerView уже найден выше
         tvCurrentDay.setText("Вторник");
         loadStoresForDay("Вторник");
 
@@ -57,10 +63,60 @@ public class RoutesFragment extends Fragment {
     }
 
     private void loadStoresForDay(String day) {
-        // Здесь будет логика фильтрации списка из базы
-        Toast.makeText(getContext(), "Загрузка магазинов на: " + day, Toast.LENGTH_SHORT).show();
+        List<DebtModel> filteredList = new ArrayList<>();
 
-        // Например:
-        // if(day.equals("Вторник")) { показать Магазин Ани, Магазин Ашот... }
+        switch (day) {
+            case "Понедельник":
+                filteredList.add(new DebtModel("ZOVQ Arshakunyac", "ИП Акопян", "1122", "Комитаса 15", 0));
+                filteredList.add(new DebtModel("ZOVQ Bagratunyac", "ИП Нарине", "3344", "Маштоца 20", 15000));
+                filteredList.add(new DebtModel("ZOVQ 2", "ИП Нарине", "3344", "Маштоца 20", 15000));
+                filteredList.add(new DebtModel("ZOVQ 3", "ИП Нарине", "3344", "Маштоца 20", 15000));
+                filteredList.add(new DebtModel("ZOVQ 4", "ИП Нарине", "3344", "Маштоца 20", 15000));
+                filteredList.add(new DebtModel("ZOVQ 5", "ИП Нарине", "3344", "Маштоца 20", 15000));
+                break;
+            case "Вторник":
+                filteredList.add(new DebtModel("ZOVQ Qajaznuni", "ИП Карапетян", "5566", "Ширакаци 5", 45000));
+                filteredList.add(new DebtModel("ZOVQ Gyurjyan", "ИП Саакян", "7788", "Абовяна 1", 0));
+                filteredList.add(new DebtModel("Evrika", "ИП Саакян", "7788", "Абовяна 1", 0));
+                filteredList.add(new DebtModel("Carrefour Gyurjyan", "ИП Саакян", "7788", "Абовяна 1", 0));
+                filteredList.add(new DebtModel("Carrefour Gyurjyan", "ИП Саакян", "7788", "Абовяна 1", 0));
+                filteredList.add(new DebtModel("MG Gyurjyan", "ИП Саакян", "7788", "Абовяна 1", 0));
+                break;
+            case "Среда":
+                filteredList.add(new DebtModel("Carrefour", "ООО Фуд", "9900", "Тиграна Меца 4", 120000));
+                filteredList.add(new DebtModel("Carrefour", "ООО Фуд", "9900", "Тиграна Меца 4", 120000));
+                filteredList.add(new DebtModel("Carrefour", "ООО Фуд", "9900", "Тиграна Меца 4", 120000));
+                filteredList.add(new DebtModel("Carrefour", "ООО Фуд", "9900", "Тиграна Меца 4", 120000));
+                filteredList.add(new DebtModel("Carrefour", "ООО Фуд", "9900", "Тиграна Меца 4", 120000));
+                break;
+            case "Четверг":
+                filteredList.add(new DebtModel("Evrika Улыбка", "ИП Варданян", "1212", "Пушкина 10", 5000));
+                filteredList.add(new DebtModel("Evrika Улыбка", "ИП Варданян", "1212", "Пушкина 10", 5000));
+                filteredList.add(new DebtModel("Evrika Улыбка", "ИП Варданян", "1212", "Пушкина 10", 5000));
+                filteredList.add(new DebtModel("Evrika Улыбка", "ИП Варданян", "1212", "Пушкина 10", 5000));
+                filteredList.add(new DebtModel("Evrika Улыбка", "ИП Варданян", "1212", "Пушкина 10", 5000));
+                break;
+            case "Пятница":
+                filteredList.add(new DebtModel("Evrika 24/7", "ИП Оганесян", "3434", "Баграмяна 2", 0));
+                filteredList.add(new DebtModel("Evrika 24/7", "ИП Оганесян", "3434", "Баграмяна 2", 0));
+                filteredList.add(new DebtModel("Evrika 24/7", "ИП Оганесян", "3434", "Баграмяна 2", 0));
+                filteredList.add(new DebtModel("Evrika 24/7", "ИП Оганесян", "3434", "Баграмяна 2", 0));
+                break;
+            case "Суббота":
+                filteredList.add(new DebtModel("MG Маркет", "ИП Григорян", "5656", "Аван, 4-й квартал", 25000));
+                filteredList.add(new DebtModel("MG Маркет", "ИП Григорян", "5656", "Аван, 4-й квартал", 25000));
+                filteredList.add(new DebtModel("MG Маркет", "ИП Григорян", "5656", "Аван, 4-й квартал", 25000));
+                filteredList.add(new DebtModel("MG Маркет", "ИП Григорян", "5656", "Аван, 4-й квартал", 25000));
+                break;
+        }
+
+        // ПРЯМОЕ ОБРАЩЕНИЕ К recyclerView
+        DebtsAdapter adapter = new DebtsAdapter(filteredList, store -> {
+            Toast.makeText(getContext(), "Выезд в: " + store.getShopName(), Toast.LENGTH_SHORT).show();
+        });
+
+        if (recyclerView != null) {
+            recyclerView.setAdapter(adapter);
+        }
     }
 }

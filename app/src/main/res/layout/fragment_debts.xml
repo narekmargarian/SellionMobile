@@ -29,6 +29,8 @@
         android:id="@+id/recyclerDebts"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:textColor="#000000"
+
         android:padding="8dp" />
 
 </LinearLayout>
