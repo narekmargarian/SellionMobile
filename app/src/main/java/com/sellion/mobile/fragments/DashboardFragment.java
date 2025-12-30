@@ -31,8 +31,14 @@ public class DashboardFragment extends Fragment {
         MaterialCardView cardOrders = view.findViewById(R.id.cardOrders);
         MaterialCardView cardDebts = view.findViewById(R.id.cardDebts);
         MaterialCardView cardSync =  view.findViewById(R.id.cardSync);
+        MaterialCardView cardRoutes = view.findViewById(R.id.cardRoutes);
 
-
+        cardRoutes.setOnClickListener(v -> {
+            getParentFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, new RoutesFragment())
+                    .addToBackStack(null)
+                    .commit();
+        });
         cardSync.setOnClickListener(v -> {
             getParentFragmentManager().beginTransaction()
                     .replace(R.id.fragment_container, new SyncFragment())
