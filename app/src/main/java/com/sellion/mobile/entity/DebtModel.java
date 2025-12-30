@@ -1,13 +1,13 @@
 package com.sellion.mobile.entity;
 
 public class DebtModel {
-    private String shopName;
-    private String ownerName;
-    private String inn;
-    private String address;
-    private double debtAmount;
+    private final String shopName;
+    private final String ownerName;
+    private final String inn;
+    private final String address;
+    private final double debtAmount;
 
-    // Конструктор: помогает легко создавать новые объекты DebtModel
+
     public DebtModel(String shopName, String ownerName, String inn, String address, double debtAmount) {
         this.shopName = shopName;
         this.ownerName = ownerName;
@@ -16,7 +16,7 @@ public class DebtModel {
         this.debtAmount = debtAmount;
     }
 
-    // Геттеры (методы для получения данных из объекта)
+
     public String getShopName() {
         return shopName;
     }

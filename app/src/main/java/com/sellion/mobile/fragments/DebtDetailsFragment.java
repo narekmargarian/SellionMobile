@@ -1,16 +1,15 @@
 package com.sellion.mobile.fragments;
 
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
 
 import com.sellion.mobile.R;
 
@@ -22,7 +21,6 @@ public class DebtDetailsFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_debt_details, container, false);
 
-        // Находим все TextView из твоего XML
         TextView tvName = view.findViewById(R.id.tvDetailShopName);
         TextView tvOwner = view.findViewById(R.id.tvDetailOwnerName);
         TextView tvInn = view.findViewById(R.id.tvDetailINN);

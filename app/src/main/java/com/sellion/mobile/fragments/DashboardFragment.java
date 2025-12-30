@@ -22,14 +22,13 @@ public class DashboardFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_dashboard, container, false);
 
+        View view = inflater.inflate(R.layout.fragment_dashboard, container, false);
         TextView title = view.findViewById(R.id.managerTitle);
 
-        // 1. Находим обе карточки
-        MaterialCardView cardClients = view.findViewById(R.id.cardClients);
-        MaterialCardView cardOrders = view.findViewById(R.id.cardOrders); // ДОБАВЛЕНО
 
+        MaterialCardView cardClients = view.findViewById(R.id.cardClients);
+        MaterialCardView cardOrders = view.findViewById(R.id.cardOrders);
         MaterialCardView cardDebts = view.findViewById(R.id.cardDebts);
 
         cardDebts.setOnClickListener(v -> {
@@ -38,7 +37,8 @@ public class DashboardFragment extends Fragment {
                     .addToBackStack(null)
                     .commit();
         });
-        // Получаем ID менеджера
+
+
         if (getArguments() != null) {
             String managerId = getArguments().getString("MANAGER_ID");
             title.setText("Менеджер: " + managerId);
@@ -61,8 +61,6 @@ public class DashboardFragment extends Fragment {
         });
 
         return view;
-
-
 
 
     }
