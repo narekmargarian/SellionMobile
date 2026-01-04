@@ -54,38 +54,32 @@ public class ProductFragment extends Fragment {
         switch (category) {
             case "Сладкое":
                 productList.add(new Product("Шоколад Аленка", 5060, 20, "46450123456701"));
-                productList.add(new Product("Конфеты 1", 2560, 10, "4601234567021"));
-                productList.add(new Product("Конфеты 2", 250, 10, "46012345612702"));
-                productList.add(new Product("Конфеты 3", 25060, 10, "4601234256702"));
+                productList.add(new Product("Шоколад 1", 2560, 10, "4601234567021"));
+                productList.add(new Product("Шоколад 2", 250, 10, "46012345612702"));
+                productList.add(new Product("Шоколад 3", 4853, 10, "4601234256702"));
                 productList.add(new Product("Конфеты Мишка", 2500, 10, "4601230456702"));
-                productList.add(new Product("Вафли Артек", 3503, 15, "4601234156703"));
+                productList.add(new Product("Вафли Артек", 254154, 15, "4601234156703"));
+                productList.add(new Product("Вафли 1", 1, 15, "4601234156703"));
+                productList.add(new Product("Вафли 2", 2, 15, "4601234156703"));
+                productList.add(new Product("Вафли 3", 5, 15, "4601234156703"));
                 break;
             case "Чипсы":
-                productList.add(new Product("Lays Сметана/3", 76, 3, "4601234856704"));
-                productList.add(new Product("Lays Сметана/2", 765, 3, "4601234456704"));
-                productList.add(new Product("Lays Сметана/1", 755, 3, "4601234456704"));
-                productList.add(new Product("Pringles 4", 589, 6, "4601234566705"));
-                productList.add(new Product("Pringles 7", 289, 6, "4601234856705"));
-                productList.add(new Product("Pringles 8", 389, 6, "460123689456705"));
-                productList.add(new Product("Pringles 9", 389, 6, "4601238456705"));
+                productList.add(new Product("Lays 1", 7566, 3, "4601234856704"));
+                productList.add(new Product("Lays 2", 4785, 3, "4601234456704"));
+                productList.add(new Product("Lays Сметана/Зелень", 755, 3, "4601234456704"));
+                productList.add(new Product("Pringles 1", 589, 6, "4601234566705"));
+                productList.add(new Product("Pringles 2", 289, 6, "4601234856705"));
+                productList.add(new Product("Pringles Оригинал", 389, 6, "460123689456705"));
                 break;
             case "Чай":
-                productList.add(new Product("Чай 9", 100, 12, "46012345686706"));
-                productList.add(new Product("Чай 6", 91200, 12, "4601234456706"));
-                productList.add(new Product("Чай 7", 5000, 12, "4601234566706"));
                 productList.add(new Product("Чай 3", 9010, 12, "44601234411556706"));
                 productList.add(new Product("Чай 2", 70, 12, "4604123456706"));
                 productList.add(new Product("Чай 1", 900, 12, "1460123456706"));
                 productList.add(new Product("Чай Ахмад", 1100, 12, "4601233456707"));
                 break;
             default:
-                productList.add(new Product("Пример 1", 54, 1, "54635963000000"));
-                productList.add(new Product("Пример 2", 78, 1, "5996535"));
-                productList.add(new Product("Пример 3", 87, 1, "0004878300000"));
-                productList.add(new Product("Пример 5", 4545, 1, "00003353100"));
-                productList.add(new Product("Пример 25", 11, 1, "00000008350"));
-                productList.add(new Product("Пример 45", 454545, 1, "000035000"));
-                productList.add(new Product("Пример 78", 14225, 1, "0000035000"));
+                productList.add(new Product("Пример ", 1, 1, "0000000000"));
+
                 break;
         }
 

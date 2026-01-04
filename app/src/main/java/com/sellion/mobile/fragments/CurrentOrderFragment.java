@@ -96,15 +96,39 @@ public class CurrentOrderFragment extends Fragment {
         switch (name) {
             case "Шоколад Аленка":
                 return 500;
+            case "Шоколад 1":
+                return 5574;
+            case "Шоколад 2":
+                return 45452;
+            case "Шоколад 3":
+                return 1212;
             case "Конфеты Мишка":
                 return 2500;
             case "Вафли Артек":
                 return 3500;
-            case "Lays Сметана/Зелень":
+            case "Вафли 1":
+                return 12560;
+            case "Вафли 2":
+                return 12121;
+            case "Вафли 3":
+                return 12;
+            case "Lays 1":
                 return 785;
+            case "Lays 2":
+                return 125;
+            case "Lays Сметана/Зелень":
+                return 10001;
             case "Pringles Оригинал":
                 return 789;
-            case "Чай Гринфилд":
+            case "Pringles 1":
+                return 123;
+            case "Pringles 2":
+                return 566;
+            case "Чай 1":
+                return 120;
+            case "Чай 2":
+                return 698;
+            case "Чай 3":
                 return 900;
             case "Чай Ахмад":
                 return 1100;
