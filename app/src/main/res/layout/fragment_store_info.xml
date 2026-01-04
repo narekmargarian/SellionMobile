@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="schemas.android.com"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Дата доставки (Нажимаемый заголовок) -->
+        <LinearLayout
+            android:id="@+id/layoutSelectDeliveryDate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingVertical="12dp"
+            android:background="?attr/selectableItemBackground">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="День доставки:"
+                android:textColor="#333333"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/tvDeliveryDate"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="Дата"
+                android:textColor="#000000"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_calendar"
+                app:tint="#000000" />
+
+        </LinearLayout>
+
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#EEEEEE"/>
+
+        <!-- Способ оплаты -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Способ оплаты:"
+            android:textColor="#000000"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <RadioGroup
+            android:id="@+id/radioGroupPaymentMethod"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp">
+
+            <RadioButton
+                android:id="@+id/radioCash"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="Наличный расчет"
+                android:textColor="#000000"
+                android:textSize="16sp"
+                app:buttonTint="#000000" />
+
+            <RadioButton
+                android:id="@+id/radioTransfer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Банковский перевод"
+                android:textColor="#000000"
+                android:textSize="16sp"
+                app:buttonTint="#000000" />
+        </RadioGroup>
+
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="24dp" android:background="#EEEEEE"/>
+
+        <!-- Отдельная фактура -->
+        <CheckBox
+            android:id="@+id/checkboxSeparateInvoice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Требуется отдельная фактура"
+            android:textColor="#000000"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:buttonTint="#000000" /> <!-- Сделал галочку черной (темной) -->
+
+    </LinearLayout>
+
+</ScrollView>

@@ -111,9 +111,24 @@ public class RoutesFragment extends Fragment {
         }
 
         // ПРЯМОЕ ОБРАЩЕНИЕ К recyclerView
-        DebtsAdapter adapter = new DebtsAdapter(filteredList, store -> {
-            Toast.makeText(getContext(), "Выезд в: " + store.getShopName(), Toast.LENGTH_SHORT).show();
-        });
+            DebtsAdapter adapter = new DebtsAdapter(filteredList, store -> {
+                // 1. Создаем фрагмент деталей магазина
+                StoreDetailsFragment fragment = new StoreDetailsFragment();
+
+                // 2. Передаем название магазина, чтобы оно отобразилось в шапке
+                Bundle args = new Bundle();
+                args.putString("store_name", store.getShopName());
+                fragment.setArguments(args);
+
+                // 3. Выполняем переход
+                if (getActivity() != null) {
+                    getParentFragmentManager().beginTransaction()
+                            .replace(R.id.fragment_container, fragment) // Убедись, что ID совпадает с MainActivity
+                            .addToBackStack(null)
+                            .commit();
+                }
+            });
+
 
         if (recyclerView != null) {
             recyclerView.setAdapter(adapter);

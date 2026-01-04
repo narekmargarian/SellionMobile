@@ -43,29 +43,48 @@ public class CatalogFragment extends Fragment {
         RecyclerView recyclerView = view.findViewById(R.id.recyclerViewCatalog);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
+        View toolbar = view.findViewById(R.id.btnBack); // ID твоего тулбара из прошлого шага
+        if (getParentFragment() instanceof StoreDetailsFragment) {
+            // Если мы внутри вкладок магазина — скрываем внутреннюю шапку
+            toolbar.setVisibility(View.GONE);
+
+        }
+
+
         // 4. Данные категорий
         List<String> categories = Arrays.asList("Сладкое", "Чай", "Чипсы", "Хлопья", "Весовые");
 
         // 5. Создаем ОДИН адаптер с логикой перехода
         CategoryAdapter adapter = new CategoryAdapter(categories, category -> {
-            // ЛОГИКА ПЕРЕХОДА
             ProductFragment fragment = new ProductFragment();
             Bundle args = new Bundle();
             args.putString("category_name", category);
             fragment.setArguments(args);
 
-            getParentFragmentManager().beginTransaction()
+            // ИСПРАВЛЕНО: ИспользуемFragmentManager АКТИВНОСТИ, а не родительского фрагмента
+            requireActivity().getSupportFragmentManager().beginTransaction()
                     .replace(R.id.fragment_container, fragment)
                     .addToBackStack(null)
                     .commit();
-
-            // Опционально: показываем сообщение
-            Toast.makeText(getContext(), "Открываем: " + category, Toast.LENGTH_SHORT).show();
         });
 
         // 6. Устанавливаем адаптер в список
         recyclerView.setAdapter(adapter);
 
         return view;
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        // Проверяем: если мы находимся внутри StoreDetailsFragment
+        if (getParentFragment() instanceof StoreDetailsFragment) {
+            // Находим заголовок каталога. Проверь ID (может быть btnBack или toolbar)
+            View catalogHeader = view.findViewById(R.id.btnBack);
+            if (catalogHeader != null) {
+                catalogHeader.setVisibility(View.GONE); // Скрываем шапку целиком
+            }
+        }
     }
 }

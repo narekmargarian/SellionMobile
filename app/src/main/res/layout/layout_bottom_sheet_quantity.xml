@@ -7,7 +7,6 @@
     android:orientation="vertical"
     android:padding="24dp">
 
-    <!-- Тонкая полоска сверху для красоты -->
     <View
         android:layout_width="40dp"
         android:layout_height="4dp"
@@ -24,17 +23,44 @@
         android:textSize="20sp"
         android:textStyle="bold" />
 
-    <EditText
-        android:id="@+id/etSheetQuantity"
+    <!-- Управление количеством -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:layout_marginTop="20dp"
-        android:background="@drawable/bg_edittext"
-        android:hint="Введите количество"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
         android:gravity="center"
-        android:inputType="number"
-        android:padding="12dp"
-        android:textColor="#000000" />
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnMinus"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:text="-"
+            android:textSize="24sp"
+            app:cornerRadius="30dp" />
+
+        <EditText
+            android:id="@+id/etSheetQuantity"
+            android:layout_width="120dp"
+            android:layout_height="60dp"
+            android:layout_marginHorizontal="16dp"
+            android:background="@drawable/bg_edittext"
+            android:gravity="center"
+            android:inputType="number"
+            android:text="1"
+            android:textColor="#000000"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPlus"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:text="+"
+            android:textSize="24sp"
+            app:cornerRadius="30dp" />
+    </LinearLayout>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnConfirm"
@@ -43,7 +69,17 @@
         android:layout_marginTop="24dp"
         android:text="Добавить в заказ"
         android:textAllCaps="false"
-        android:textSize="16sp"
         app:cornerRadius="12dp" />
+
+    <!-- Кнопка удаления, если товар уже в корзине -->
+    <TextView
+        android:id="@+id/btnDeleteFromCart"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="center"
+        android:text="Удалить из заказа"
+        android:textColor="#FF5252"
+        android:visibility="gone" />
 
 </LinearLayout>
