@@ -9,6 +9,11 @@ public class SessionManager {
         return instance;
     }
 
-    public void setManagerId(String id) { this.managerId = id; }
-    public String getManagerId() { return managerId; }
+    public void setManagerId(String id) {
+        this.managerId = id;
+    }
+
+    public String getManagerId() {
+        return managerId;
+    }
 }

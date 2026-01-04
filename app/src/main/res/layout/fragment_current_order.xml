@@ -1,37 +1,75 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
 
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFFFF"
-    android:orientation="vertical">
+    android:background="#FFFFFF">
 
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:text="Список выбранных товаров"
-        android:textColor="#757575"
-        android:textSize="14sp" />
-
-    <!-- Добавляем этот элемент, чтобы Java его нашла -->
-    <TextView
-        android:id="@+id/tvOrderDetails"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:textColor="#000000"
-        android:textSize="16sp"
-        android:text="В заказе пока ничего нет" />
-
-    <!-- RecyclerView пока оставляем внизу (пригодится позже) -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvCurrentOrder"
+    <!-- Основной контент (Список) -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="visible" />
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="Список выбранных товаров"
+            android:textColor="#757575"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tvOrderDetails"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:textColor="#000000"
+            android:textSize="16sp"
+            android:text="В заказе пока ничего нет"
+            android:visibility="gone" /> <!-- Скрываем, если используем список -->
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvCurrentOrder"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingBottom="80dp"
+            android:clipToPadding="false"
+            android:visibility="visible" />
+    </LinearLayout>
+
+    <!-- ИТОГОВАЯ СУММА (Внизу справа) -->
+    <LinearLayout
+        android:id="@+id/layoutTotalSum"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_margin="24dp"
+        android:background="@drawable/bg_total_sum"
+        android:elevation="8dp"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="right"
+            android:text="Итоговая сумма"
+            android:textColor="#757575"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tvTotalOrderSum"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0 ֏"
+            android:textColor="#2E7D32"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 
 
-</LinearLayout>
+</RelativeLayout>

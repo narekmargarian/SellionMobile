@@ -19,12 +19,17 @@ public class StorePagerAdapter extends FragmentStateAdapter {
     public Fragment createFragment(int position) {
         // 2026 стандарт: переключение между вкладками
         switch (position) {
-            case 0: return new CatalogFragment();      // Твой готовый каталог
-            case 1: return new CurrentOrderFragment(); // Список заказа
-            case 2: return new StoreInfoFragment();    // Инфо о магазине
-            default: return new CatalogFragment();
+            case 0:
+                return new CatalogFragment();      // Твой готовый каталог
+            case 1:
+                return new CurrentOrderFragment(); // Список заказа
+            case 2:
+                return new StoreInfoFragment();    // Инфо о магазине
+            default:
+                return new CatalogFragment();
         }
     }
+
 
     @Override
     public int getItemCount() {

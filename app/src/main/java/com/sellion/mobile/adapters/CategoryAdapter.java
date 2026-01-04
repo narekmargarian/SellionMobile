@@ -41,10 +41,13 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.ViewHo
     }
 
     @Override
-    public int getItemCount() { return mData.size(); }
+    public int getItemCount() {
+        return mData.size();
+    }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView textView;
+
         public ViewHolder(View itemView) {
             super(itemView);
             textView = itemView.findViewById(R.id.tvCategoryName);

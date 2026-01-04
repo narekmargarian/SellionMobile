@@ -44,6 +44,45 @@
             android:textColor="#2196F3" />
     </LinearLayout>
 
+    <!-- НОВЫЕ ПОЛЯ ДЛЯ ОТОБРАЖЕНИЯ ПАРАМЕТРОВ ЗАКАЗА -->
+    <TextView
+        android:id="@+id/tvViewOrderPaymentMethod"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:paddingTop="8dp"
+        android:text="Оплата: -"
+        android:textSize="14sp"
+        android:textColor="#4CAF50"/>
+
+
+
+    <TextView
+        android:id="@+id/tvViewOrderInvoiceStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:paddingBottom="8dp"
+        android:text="Раздельная фактура: -"
+        android:textSize="14sp"
+        android:textColor="#4CAF50"/>
+    <TextView
+        android:id="@+id/tvViewOrderTotalSum"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:text="Итоговая сумма: 0 ֏"
+        android:textColor="#2E7D32"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:gravity="right" />
+
+
+
+
+    <!-- Список товаров -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvViewOrderItems"
         android:layout_width="match_parent"

@@ -16,6 +16,7 @@ import com.sellion.mobile.R;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Locale;
 
 public class StoreInfoFragment extends Fragment {
@@ -25,6 +26,7 @@ public class StoreInfoFragment extends Fragment {
     private CheckBox checkboxSeparateInvoice;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy", new Locale("ru")); // Формат даты на русском
 
+    //
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_store_info, container, false);
@@ -34,12 +36,11 @@ public class StoreInfoFragment extends Fragment {
         checkboxSeparateInvoice = view.findViewById(R.id.checkboxSeparateInvoice);
         LinearLayout layoutSelectDeliveryDate = view.findViewById(R.id.layoutSelectDeliveryDate);
 
-        // Устанавливаем завтрашнюю дату по умолчанию
+        // 2026 стандарт: Устанавливаем завтрашнюю дату по умолчанию
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.DAY_OF_MONTH, 1);
         tvDeliveryDate.setText(dateFormat.format(calendar.getTime()));
 
-        // Обработка клика по дате доставки (открытие календаря)
         layoutSelectDeliveryDate.setOnClickListener(v -> showDatePicker());
 
         return view;
@@ -52,25 +53,26 @@ public class StoreInfoFragment extends Fragment {
                 .build();
 
         datePicker.addOnPositiveButtonClickListener(selection -> {
-            // Устанавливаем выбранную дату в TextView
-            tvDeliveryDate.setText(dateFormat.format(selection));
+            tvDeliveryDate.setText(dateFormat.format(new Date(selection)));
         });
 
-        datePicker.show(getParentFragmentManager(), "DELIVERY_DATE_PICKER");
+        datePicker.show(getChildFragmentManager(), "DELIVERY_DATE_PICKER");
     }
 
-    // Метод, который вернет данные о заказе (для сохранения)
-    public String getOrderDetails() {
-        String paymentMethod;
-        if (radioGroupPaymentMethod.getCheckedRadioButtonId() == R.id.radioCash) {
-            paymentMethod = "Наличный расчет";
-        } else {
-            paymentMethod = "Банковский перевод";
-        }
+    // Геттеры для получения данных во время сохранения заказа
+    public String getSelectedPaymentMethod() {
+        int checkedId = radioGroupPaymentMethod.getCheckedRadioButtonId();
+        if (checkedId == R.id.radioCash) return "Наличный расчет";
+        return "Банковский перевод";
+    }
 
-        boolean needsInvoice = checkboxSeparateInvoice.isChecked();
-        String deliveryDate = tvDeliveryDate.getText().toString();
+    public boolean isSeparateInvoiceRequired() {
+        return checkboxSeparateInvoice.isChecked();
+    }
 
-        return String.format("Дата: %s, Оплата: %s, Фактура: %b", deliveryDate, paymentMethod, needsInvoice);
+    public String getDeliveryDate() {
+        return tvDeliveryDate.getText().toString();
     }
 }
+
+

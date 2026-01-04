@@ -17,6 +17,7 @@ public class CartManager {
         if (quantity > 0) cartItems.put(productName, quantity);
         else cartItems.remove(productName);
     }
+
     public void setQuantityDirectly(String productName, int quantity) {
         if (quantity > 0) {
             cartItems.put(productName, quantity);

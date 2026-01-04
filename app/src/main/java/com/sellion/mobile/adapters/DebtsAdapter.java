@@ -18,6 +18,10 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.DebtViewHold
 
     private List<DebtModel> debtList;
     private OnShopClickListener listener;
+    // --- ДОБАВЛЕНО ---
+    // Флаг, который определяет, нужно ли показывать детали долга.
+    // По умолчанию true (показываем).
+    private boolean showDebtDetails = true;
 
     // Интерфейс для обработки нажатий
     public interface OnShopClickListener {
@@ -29,10 +33,16 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.DebtViewHold
         this.listener = listener;
     }
 
+    // --- ДОБАВЛЕНО: Публичный метод для установки режима отображения ---
+    public void setShowDebtDetails(boolean showDetails) {
+        this.showDebtDetails = showDetails;
+    }
+    // ----------------------------------------------------------------
+
+
     @NonNull
     @Override
     public DebtViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // Подключаем наш новый файл разметки item_debt.xml
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_debt, parent, false);
         return new DebtViewHolder(view);
     }
@@ -41,21 +51,30 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.DebtViewHold
     public void onBindViewHolder(@NonNull DebtViewHolder holder, int position) {
         DebtModel debt = debtList.get(position);
 
-        // 1. Устанавливаем название магазина (Будет крупным и черным из XML)
+        // 1. Всегда устанавливаем название магазина
         holder.textName.setText(debt.getShopName());
 
-        // 2. Логика отображения долга
-        if (debt.getDebtAmount() > 0) {
-            // Если есть долг — пишем сумму КРАСНЫМ цветом
-            holder.textDetails.setText(String.format("Долг: %,.0f ֏", debt.getDebtAmount()));
-            holder.textDetails.setTextColor(Color.parseColor("#B00020")); // Насыщенный красный
+        // 2. ПРОВЕРКА ФЛАГА: Показывать долг или нет?
+        if (showDebtDetails) {
+            // РЕЖИМ "ДОЛГИ": Показываем поле и раскрашиваем его
+            holder.textDetails.setVisibility(View.VISIBLE);
+
+            if (debt.getDebtAmount() > 0) {
+                // Если есть долг — КРАСНЫЙ цвет
+                holder.textDetails.setText(String.format("Долг: %,.0f ֏", debt.getDebtAmount()));
+                holder.textDetails.setTextColor(Color.parseColor("#B00020"));
+            } else {
+                // Если долга нет — ЗЕЛЕНЫЙ цвет
+                holder.textDetails.setText("Задолженности нет");
+                holder.textDetails.setTextColor(Color.parseColor("#388E3C"));
+            }
         } else {
-            // Если долга нет — пишем ЗЕЛЕНЫМ
-            holder.textDetails.setText("Задолженности нет");
-            holder.textDetails.setTextColor(Color.parseColor("#388E3C")); // Темно-зеленый
+            // РЕЖИМ "МАРШРУТ": Полностью скрываем поле с долгом
+            // Это уберет и текст, и красную/зеленую надпись
+            holder.textDetails.setVisibility(View.GONE);
         }
 
-        // 3. Обрабатываем нажатие на всю область строки
+        // 3. Обработка нажатия
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
                 listener.onShopClick(debt);
@@ -73,7 +92,6 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.DebtViewHold
 
         DebtViewHolder(View v) {
             super(v);
-            // Привязываем переменные к ID из item_debt.xml
             textName = v.findViewById(R.id.tvShopName);
             textDetails = v.findViewById(R.id.tvShopDetails);
         }

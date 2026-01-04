@@ -4,19 +4,18 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.ItemTouchHelper;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.CartAdapter;
@@ -30,39 +29,88 @@ import java.util.Map;
 public class CurrentOrderFragment extends Fragment {
     private RecyclerView rv;
     private CartAdapter adapter;
-    private List<Product> selectedProducts = new ArrayList<>(); // Храним список здесь
+    private TextView tvTotalSum;
+    private TextView tvEmptyOrder;
+    private List<Product> selectedProducts = new ArrayList<>();
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_current_order, container, false);
+
         rv = view.findViewById(R.id.rvCurrentOrder);
+        tvTotalSum = view.findViewById(R.id.tvTotalOrderSum);
+        tvEmptyOrder = view.findViewById(R.id.tvOrderDetails); // Текст "Пусто"
+
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        View oldTv = view.findViewById(R.id.tvOrderDetails);
-        if (oldTv != null) oldTv.setVisibility(View.GONE);
-
-        // Инициализируем свайп ОДИН РАЗ при создании экрана
+        // Инициализируем свайп один раз
         initSwipeToDelete();
 
-        updateUI();
         return view;
     }
 
+    // Метод для обновления данных
     private void updateUI() {
+        if (getContext() == null) return;
+
         Map<String, Integer> cartData = CartManager.getInstance().getCartItems();
         selectedProducts.clear();
+        double totalAmount = 0;
 
-        for (String name : cartData.keySet()) {
-            // ИСПРАВЛЕНО: передаем 0 для цены и 0 для штук в коробке,
-            // так как в корзине нам нужно только имя для связи с CartManager
-            selectedProducts.add(new Product(name, 0, 0));
+        // Если корзина пуста
+        if (cartData.isEmpty()) {
+            if (tvTotalSum != null) tvTotalSum.setText("0 ֏");
+            if (tvEmptyOrder != null) {
+                tvEmptyOrder.setVisibility(View.VISIBLE);
+                tvEmptyOrder.setText("В заказе пока ничего нет");
+            }
+            adapter = new CartAdapter(selectedProducts, this::showEditDialog);
+            rv.setAdapter(adapter);
+            return;
         }
 
-        adapter = new CartAdapter(selectedProducts, product -> {
-            showEditDialog(product);
-        });
+        // Если товары есть
+        if (tvEmptyOrder != null) tvEmptyOrder.setVisibility(View.GONE);
 
+        for (Map.Entry<String, Integer> entry : cartData.entrySet()) {
+            String name = entry.getKey();
+            int qty = entry.getValue();
+            int price = getPriceForProduct(name);
+
+            totalAmount += (price * qty);
+            selectedProducts.add(new Product(name, price, 0, ""));
+        }
+
+        // Обновляем общую сумму
+        if (tvTotalSum != null) {
+            tvTotalSum.setText(String.format("%,.0f ֏", totalAmount));
+        }
+
+        // Пересоздаем адаптер для гарантии отрисовки
+        adapter = new CartAdapter(selectedProducts, this::showEditDialog);
         rv.setAdapter(adapter);
+    }
+
+    private int getPriceForProduct(String name) {
+        if (name == null) return 0;
+        switch (name) {
+            case "Шоколад Аленка":
+                return 500;
+            case "Конфеты Мишка":
+                return 2500;
+            case "Вафли Артек":
+                return 3500;
+            case "Lays Сметана/Зелень":
+                return 785;
+            case "Pringles Оригинал":
+                return 789;
+            case "Чай Гринфилд":
+                return 900;
+            case "Чай Ахмад":
+                return 1100;
+            default:
+                return 0;
+        }
     }
 
     private void initSwipeToDelete() {
@@ -75,19 +123,16 @@ public class CurrentOrderFragment extends Fragment {
             @Override
             public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
                 int position = viewHolder.getAdapterPosition();
-                Product productToDelete = selectedProducts.get(position);
-
-                // Удаляем из памяти
-                CartManager.getInstance().addProduct(productToDelete.getName(), 0);
-
-                // Обновляем UI
-                updateUI();
-                Toast.makeText(getContext(), "Удалено: " + productToDelete.getName(), Toast.LENGTH_SHORT).show();
+                if (position != RecyclerView.NO_POSITION) {
+                    Product productToDelete = selectedProducts.get(position);
+                    CartManager.getInstance().addProduct(productToDelete.getName(), 0);
+                    updateUI(); // Сразу пересчитываем сумму
+                    Toast.makeText(getContext(), "Удалено: " + productToDelete.getName(), Toast.LENGTH_SHORT).show();
+                }
             }
 
             @Override
             public void onChildDraw(@NonNull Canvas c, @NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
-                // Рисуем красный фон при свайпе влево
                 if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE && dX < 0) {
                     View itemView = viewHolder.itemView;
                     Paint p = new Paint();
@@ -97,9 +142,7 @@ public class CurrentOrderFragment extends Fragment {
                 super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
             }
         };
-
-        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleItemTouchCallback);
-        itemTouchHelper.attachToRecyclerView(rv);
+        new ItemTouchHelper(simpleItemTouchCallback).attachToRecyclerView(rv);
     }
 
     private void showEditDialog(Product product) {
@@ -117,8 +160,8 @@ public class CurrentOrderFragment extends Fragment {
         tvTitle.setText(product.getName());
         btnDelete.setVisibility(View.VISIBLE);
 
-        int currentQty = CartManager.getInstance().getCartItems().get(product.getName());
-        etQuantity.setText(String.valueOf(currentQty));
+        Integer currentQty = CartManager.getInstance().getCartItems().get(product.getName());
+        etQuantity.setText(String.valueOf(currentQty != null ? currentQty : 1));
 
         btnPlus.setOnClickListener(v -> {
             int val = Integer.parseInt(etQuantity.getText().toString());
@@ -144,13 +187,22 @@ public class CurrentOrderFragment extends Fragment {
                 dialog.dismiss();
             }
         });
-
         dialog.show();
     }
 
+    // 2026 СТАНДАРТ: Обновление при каждом появлении вкладки
     @Override
     public void onResume() {
         super.onResume();
         updateUI();
+    }
+
+    // Дополнительная проверка для ViewPager2
+    @Override
+    public void setUserVisibleHint(boolean isVisibleToUser) {
+        super.setUserVisibleHint(isVisibleToUser);
+        if (isVisibleToUser && isResumed()) {
+            updateUI();
+        }
     }
 }

@@ -3,16 +3,22 @@ package com.sellion.mobile.entity;
 import java.util.Map;
 
 public class OrderModel {
-    public enum Status { PENDING, SENT, COMPLETED } // Ожидает, Отправлен, Завершен
+    public enum Status {PENDING, SENT, COMPLETED}
 
     public String shopName;
     public Status status;
-    public Map<String, Integer> items; // Товары и количество
+    public Map<String, Integer> items;
 
-    public OrderModel(String shopName, Map<String, Integer> items) {
+    // Новые поля
+    public String paymentMethod;
+    public boolean needsSeparateInvoice;
+
+    public OrderModel(String shopName, Map<String, Integer> items, String paymentMethod, boolean needsSeparateInvoice) {
         this.shopName = shopName;
         this.items = items;
-        this.status = Status.PENDING; // По умолчанию новый заказ ожидает отправки
+        this.paymentMethod = paymentMethod;
+        this.needsSeparateInvoice = needsSeparateInvoice;
+        this.status = Status.PENDING;
     }
 }
 

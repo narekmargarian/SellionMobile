@@ -38,14 +38,21 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Product product = selectedProducts.get(position);
 
-        // ИСПРАВЛЕНИЕ ОШИБКИ: Получаем Integer (объект), а не int (примитив)
+        // 1. Получаем количество из менеджера корзины
         Integer qty = CartManager.getInstance().getCartItems().get(product.getName());
+        int currentQty = (qty != null) ? qty : 0;
 
-        // Проверяем на null перед тем как превратить в текст
-        // Если qty == null (товара нет в памяти), пишем "0"
-        String quantityText = (qty != null) ? String.valueOf(qty) : "0";
+        // 2. Считаем сумму для текущей строки (Цена * Количество)
+        // В 2026 году важно показывать менеджеру, сколько стоит каждая позиция
+        double itemTotal = product.getPrice() * currentQty;
 
-        holder.tvName.setText(product.getName() + " — " + quantityText + " шт.");
+        // 3. Форматируем числа (добавляем разделители тысяч для Драма)
+        String quantityText = String.valueOf(currentQty);
+        String priceText = String.format("%,.0f", itemTotal);
+
+        // 4. Устанавливаем итоговый текст
+        // Пример: Шоколад Аленка — 3 шт. (1,500 ֏)
+        holder.tvName.setText(product.getName() + " — " + quantityText + " шт. (" + priceText + " ֏)");
 
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onItemClick(product);
@@ -59,6 +66,7 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvName;
+
         public ViewHolder(View itemView) {
             super(itemView);
             tvName = itemView.findViewById(R.id.tvCategoryName);

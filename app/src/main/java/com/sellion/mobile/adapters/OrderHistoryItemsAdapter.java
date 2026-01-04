@@ -23,18 +23,41 @@ public class OrderHistoryItemsAdapter extends RecyclerView.Adapter<OrderHistoryI
         this.names = new ArrayList<>(items.keySet());
     }
 
-    @NonNull
-    @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_category, parent, false);
-        return new ViewHolder(view);
-    }
-
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         String name = names.get(position);
         Integer qty = items.get(name);
-        holder.tvName.setText(name + " — " + (qty != null ? qty : 0) + " шт.");
+        int currentQty = (qty != null) ? qty : 0;
+
+        // Расчет суммы для конкретной строки
+        int price = getPriceForProduct(name);
+        double rowTotal = price * currentQty;
+
+        // Формат: Товар — 5 шт. (2,500 ֏)
+        String info = String.format("%s — %d шт. (%,.0f ֏)", name, currentQty, rowTotal);
+        holder.tvName.setText(info);
+    }
+
+    private int getPriceForProduct(String name) {
+        if (name == null) return 0;
+        switch (name) {
+            case "Шоколад Аленка":
+                return 500;
+            case "Конфеты Мишка":
+                return 2500;
+            case "Вафли Артек":
+                return 3500;
+            case "Lays Сметана/Зелень":
+                return 785;
+            case "Pringles Оригинал":
+                return 789;
+            case "Чай Гринфилд":
+                return 900;
+            case "Чай Ахмад":
+                return 1100;
+            default:
+                return 0;
+        }
     }
 
     @Override
@@ -42,8 +65,16 @@ public class OrderHistoryItemsAdapter extends RecyclerView.Adapter<OrderHistoryI
         return names.size();
     }
 
+    @NonNull
+    @Override
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_category, parent, false);
+        return new ViewHolder(view);
+    }
+
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvName;
+
         public ViewHolder(View itemView) {
             super(itemView);
             tvName = itemView.findViewById(R.id.tvCategoryName);

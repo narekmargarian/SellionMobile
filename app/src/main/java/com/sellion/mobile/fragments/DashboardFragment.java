@@ -30,7 +30,7 @@ public class DashboardFragment extends Fragment {
         MaterialCardView cardClients = view.findViewById(R.id.cardClients);
         MaterialCardView cardOrders = view.findViewById(R.id.cardOrders);
         MaterialCardView cardDebts = view.findViewById(R.id.cardDebts);
-        MaterialCardView cardSync =  view.findViewById(R.id.cardSync);
+        MaterialCardView cardSync = view.findViewById(R.id.cardSync);
         MaterialCardView cardRoutes = view.findViewById(R.id.cardRoutes);
         MaterialCardView cardCatalog = view.findViewById(R.id.cardCatalog);
 

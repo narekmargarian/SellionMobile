@@ -5,7 +5,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -51,8 +50,14 @@ public class CreateOrderFragment extends Fragment {
                 if (tab.getPosition() == 0) loadRoute();
                 else loadAllClients();
             }
-            @Override public void onTabUnselected(TabLayout.Tab tab) {}
-            @Override public void onTabReselected(TabLayout.Tab tab) {}
+
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {
+            }
+
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {
+            }
         });
 
         loadRoute(); // Загружаем при старте
@@ -63,6 +68,9 @@ public class CreateOrderFragment extends Fragment {
         // Создаем список магазинов на сегодня
         List<DebtModel> routeList = new ArrayList<>();
         routeList.add(new DebtModel("ZOVQ Arshakunyac", "ИП Акопян", "1122", "Комитаса 15", 0));
+        routeList.add(new DebtModel("ZOVQ 1", "ИП Акопян", "1122", "Комитаса 15", 0));
+        routeList.add(new DebtModel("ZOVQ 2", "ИП Акопян", "1122", "Комитаса 15", 0));
+        routeList.add(new DebtModel("ZOVQ 3", "ИП Акопян", "1122", "Комитаса 15", 0));
         routeList.add(new DebtModel("ZOVQ Bagratunyac", "ИП Нарине", "3344", "Маштоца 20", 15000));
 
         // Настраиваем адаптер с переходом в детали магазина

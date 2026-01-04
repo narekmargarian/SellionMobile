@@ -10,29 +10,25 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.sellion.mobile.R;
-import com.sellion.mobile.adapters.DebtsAdapter;
 import com.sellion.mobile.adapters.OrderAdapter;
-import com.sellion.mobile.entity.DebtModel;
 import com.sellion.mobile.entity.OrderModel;
 import com.sellion.mobile.managers.OrderHistoryManager;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class OrdersFragment extends Fragment {
 
     private RecyclerView recyclerView;
     private OrderAdapter adapter; // Тип изменен на OrderAdapter
 
-    public OrdersFragment() {}
+    public OrdersFragment() {
+    }
 
     @Nullable
     @Override
@@ -94,22 +90,22 @@ public class OrdersFragment extends Fragment {
         recyclerView.setAdapter(adapter);
     }
 
-//
-private void onOrderClick(OrderModel order) {
-    // 1. Создаем фрагмент детального просмотра (вместо AlertDialog)
-    OrderDetailsViewFragment fragment = new OrderDetailsViewFragment();
+    //
+    private void onOrderClick(OrderModel order) {
+        // 1. Создаем фрагмент детального просмотра (вместо AlertDialog)
+        OrderDetailsViewFragment fragment = new OrderDetailsViewFragment();
 
-    // 2. Передаем данные о заказе
-    Bundle args = new Bundle();
-    args.putString("order_shop_name", order.shopName);
-    fragment.setArguments(args);
+        // 2. Передаем данные о заказе
+        Bundle args = new Bundle();
+        args.putString("order_shop_name", order.shopName);
+        fragment.setArguments(args);
 
-    // 3. Совершаем переход на полный экран
-    getParentFragmentManager().beginTransaction()
-            .replace(R.id.fragment_container, fragment)
-            .addToBackStack(null) // Чтобы кнопка "Назад" вернула нас к списку заказов
-            .commit();
-}
+        // 3. Совершаем переход на полный экран
+        getParentFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null) // Чтобы кнопка "Назад" вернула нас к списку заказов
+                .commit();
+    }
 
     private void showDatePicker() {
         MaterialDatePicker<Long> datePicker = MaterialDatePicker.Builder.datePicker()
