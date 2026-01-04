@@ -1,5 +1,6 @@
 package com.sellion.mobile.fragments;
 
+import android.graphics.Color;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -17,6 +18,7 @@ import android.widget.Toast;
 
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.CartAdapter;
+import com.sellion.mobile.adapters.OrderHistoryItemsAdapter;
 import com.sellion.mobile.entity.CartManager;
 import com.sellion.mobile.entity.OrderModel;
 import com.sellion.mobile.entity.Product;
@@ -39,7 +41,7 @@ public class OrderDetailsViewFragment extends Fragment {
         RecyclerView rv = view.findViewById(R.id.rvViewOrderItems);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // Поиск заказа в истории
+        // Поиск заказа в истории по имени магазина
         OrderModel currentOrder = null;
         for (OrderModel o : OrderHistoryManager.getInstance().getSavedOrders()) {
             if (o.shopName.equals(shopName)) {
@@ -49,28 +51,27 @@ public class OrderDetailsViewFragment extends Fragment {
         }
 
         if (currentOrder != null) {
-            // Список товаров для отображения
-            List<Product> products = new ArrayList<>();
-            for (String name : currentOrder.items.keySet()) {
-                products.add(new Product(name, ""));
-            }
-
-            // Используем CartAdapter, чтобы видеть названия и количество
-            CartAdapter adapter = new CartAdapter(products, product -> {
-                // Здесь при клике можно тоже открывать BottomSheet для правки, если нужно
-            });
+            // Используем специальный адаптер для истории, чтобы видеть реальное кол-во
+            OrderHistoryItemsAdapter adapter = new OrderHistoryItemsAdapter(currentOrder.items);
             rv.setAdapter(adapter);
 
-            // Кнопка ИЗМЕНИТЬ
-            OrderModel finalOrder = currentOrder;
             Button btnEdit = view.findViewById(R.id.btnEditThisOrder);
-            btnEdit.setOnClickListener(v -> {
-                if (finalOrder.status == OrderModel.Status.PENDING) {
-                    // Загружаем данные обратно в корзину
+            OrderModel finalOrder = currentOrder;
+
+            // ЛОГИКА БЛОКИРОВКИ: Если заказ отправлен, менять его нельзя
+            if (finalOrder.status == OrderModel.Status.SENT) {
+                btnEdit.setEnabled(false);
+                btnEdit.setText("изменение запрещено)");
+                btnEdit.setBackgroundColor(Color.GRAY);
+                btnEdit.setTextColor(Color.WHITE);
+            } else {
+                // Если статус PENDING - разрешаем редактировать
+                btnEdit.setOnClickListener(v -> {
+                    // 1. Загружаем данные обратно в корзину
                     CartManager.getInstance().clearCart();
                     CartManager.getInstance().getCartItems().putAll(finalOrder.items);
 
-                    // Переход в режим сбора заказа
+                    // 2. Переходим в экран сбора заказа (StoreDetailsFragment)
                     StoreDetailsFragment storeFrag = new StoreDetailsFragment();
                     Bundle b = new Bundle();
                     b.putString("store_name", shopName);
@@ -80,10 +81,8 @@ public class OrderDetailsViewFragment extends Fragment {
                             .replace(R.id.fragment_container, storeFrag)
                             .addToBackStack(null)
                             .commit();
-                } else {
-                    Toast.makeText(getContext(), "Заказ уже отправлен в офис!", Toast.LENGTH_SHORT).show();
-                }
-            });
+                });
+            }
         }
 
         view.findViewById(R.id.btnBackFromView).setOnClickListener(v -> getParentFragmentManager().popBackStack());

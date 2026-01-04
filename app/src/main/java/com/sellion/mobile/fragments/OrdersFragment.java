@@ -129,5 +129,8 @@ private void onOrderClick(OrderModel order) {
         super.onResume();
         // Обновляем список каждый раз, когда возвращаемся на экран
         updateOrdersList();
+        if (adapter != null) {
+            adapter.notifyDataSetChanged();
+        }
     }
 }

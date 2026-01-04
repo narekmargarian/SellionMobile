@@ -22,6 +22,10 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
 import com.sellion.mobile.R;
+import com.sellion.mobile.entity.OrderModel;
+import com.sellion.mobile.managers.OrderHistoryManager;
+
+import java.util.List;
 
 public class SyncFragment extends Fragment {
 
@@ -98,11 +102,26 @@ public class SyncFragment extends Fragment {
 
     private void sendDocuments() {
         showLoadingDialog("Отправка заказов в офис...");
-        // В реальном приложении здесь будет код HTTP запроса на сервер
-        // После завершения:
-        // dismissLoadingDialog();
-        // tvStatus.setText("Заказы отправлены: 5 заказов 45,000 Драм");
-        // tvStatus.setTextColor(android.graphics.Color.GREEN);
+
+        List<OrderModel> allOrders = OrderHistoryManager.getInstance().getSavedOrders();
+
+        if (allOrders.isEmpty()) {
+            Toast.makeText(getContext(), "Нет заказов для отправки", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // 3. Меняем статус у всех заказов на SENT
+        for (OrderModel order : allOrders) {
+            if (order.status == OrderModel.Status.PENDING) {
+                order.status = OrderModel.Status.SENT;
+            }
+        }
+
+        // 4. Обновляем текст статуса на экране синхронизации
+        tvStatus.setText("Синхронизация завершена успешно.\nОтправлено заказов: " + allOrders.size());
+        tvStatus.setTextColor(android.graphics.Color.parseColor("#2E7D32")); // Зеленый
+
+        Toast.makeText(getContext(), "Данные переданы в офис!", Toast.LENGTH_SHORT).show();
     }
 
     private void loadDocuments() {

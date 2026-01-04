@@ -9,6 +9,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -17,6 +18,8 @@ import com.google.android.material.tabs.TabLayout;
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.DebtsAdapter;
 import com.sellion.mobile.entity.DebtModel;
+import com.sellion.mobile.entity.OrderModel;
+import com.sellion.mobile.managers.OrderHistoryManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -80,18 +83,31 @@ public class CreateOrderFragment extends Fragment {
     }
 
     private void openStoreDetails(String storeName) {
-        // Создаем экземпляр фрагмента
-        StoreDetailsFragment fragment = new StoreDetailsFragment();
+        // 1. Проверяем, есть ли уже ПРЕДЫДУЩИЙ неотправленный заказ для этого магазина
+        boolean hasPendingOrder = false;
+        for (OrderModel order : OrderHistoryManager.getInstance().getSavedOrders()) {
+            if (order.shopName.equals(storeName) && order.status == OrderModel.Status.PENDING) {
+                hasPendingOrder = true;
+                break;
+            }
+        }
 
-        // Передаем данные
-        Bundle args = new Bundle();
-        args.putString("store_name", storeName);
-        fragment.setArguments(args);
+        if (hasPendingOrder) {
+            // Если нашли неотправленный заказ — не даем создать новый
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Внимание")
+                    .setMessage("Для магазина '" + storeName + "' уже есть активный заказ, который не был отправлен в офис. Отредактируйте его в истории или отправьте документы.")
+                    .setPositiveButton("Понятно", null)
+                    .show();
+        } else {
+            // Если неотправленных заказов нет (или все уже SENT), разрешаем открыть новый
+            StoreDetailsFragment fragment = new StoreDetailsFragment();
+            Bundle args = new Bundle();
+            args.putString("store_name", storeName);
+            fragment.setArguments(args);
 
-        // ВАЖНО: Используем транзакцию правильно
-        if (isAdded() && getActivity() != null) { // Проверка, что фрагмент "жив"
             getParentFragmentManager().beginTransaction()
-                    .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out) // Добавим анимацию для плавности
+                    .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
                     .replace(R.id.fragment_container, fragment)
                     .addToBackStack(null)
                     .commit();

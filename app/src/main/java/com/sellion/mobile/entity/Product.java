@@ -1,16 +1,17 @@
 package com.sellion.mobile.entity;
 
 public class Product {
-    public String name;
-    public String price;
+    private String name;
+    private int price;
+    private int itemsPerBox; // Новое поле
 
-    public Product(String name, String price) {
+    public Product(String name, int price, int itemsPerBox) {
         this.name = name;
         this.price = price;
+        this.itemsPerBox = itemsPerBox;
     }
 
-    // Либо (более правильный подход) добавь геттеры:
     public String getName() { return name; }
-    public String getPrice() { return price; }
+    public int getPrice() { return price; }
+    public int getItemsPerBox() { return itemsPerBox; }
 }
-

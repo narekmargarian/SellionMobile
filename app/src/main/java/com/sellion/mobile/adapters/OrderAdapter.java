@@ -19,7 +19,6 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.ViewHolder> 
     private List<OrderModel> ordersList;
     private OnOrderClickListener listener;
 
-    // Интерфейс для клика по заказу
     public interface OnOrderClickListener {
         void onOrderClick(OrderModel order);
     }
@@ -32,7 +31,7 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.ViewHolder> 
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // Используем твою стандартную разметку элемента списка
+        // Используем вашу стандартную разметку item_category
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_category, parent, false);
         return new ViewHolder(view);
     }
@@ -40,13 +39,19 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.ViewHolder> 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         OrderModel order = ordersList.get(position);
+
+        // Устанавливаем название магазина
         holder.tvName.setText(order.shopName);
 
-        // ЛОГИКА ЦВЕТА 2026:
-        if (order.status == OrderModel.Status.PENDING) {
-            holder.tvName.setTextColor(Color.BLUE); // Синий - не отправлен
-        } else if (order.status == OrderModel.Status.SENT) {
-            holder.tvName.setTextColor(Color.parseColor("#2E7D32")); // Зеленый - отправлен
+        // ЛОГИКА ЦВЕТА СТАТУСА:
+        if (order.status == OrderModel.Status.SENT) {
+            // Зеленый цвет для отправленных заказов
+            holder.tvName.setTextColor(Color.parseColor("#2E7D32"));
+            holder.tvName.setText(order.shopName + " (Отправлен)");
+        } else {
+            // Синий цвет для тех, что сохранены локально (PENDING)
+            holder.tvName.setTextColor(Color.BLUE);
+            holder.tvName.setText(order.shopName + " (Ожидает)");
         }
 
         holder.itemView.setOnClickListener(v -> {

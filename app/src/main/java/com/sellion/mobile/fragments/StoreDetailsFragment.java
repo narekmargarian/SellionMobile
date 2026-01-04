@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.tabs.TabLayout;
@@ -19,7 +20,10 @@ import com.google.android.material.tabs.TabLayoutMediator;
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.StorePagerAdapter;
 import com.sellion.mobile.entity.CartManager;
+import com.sellion.mobile.entity.Product;
 import com.sellion.mobile.managers.OrderHistoryManager;
+
+import java.util.List;
 
 
 public class StoreDetailsFragment extends Fragment {
@@ -35,7 +39,6 @@ public class StoreDetailsFragment extends Fragment {
         ImageButton btnBack = view.findViewById(R.id.btnBackToRoute);
         View btnSave = view.findViewById(R.id.btnSaveFullOrder);
 
-        // 2. ИНИЦИАЛИЗИРУЕМ (без слова TextView впереди)
         tvStoreName = view.findViewById(R.id.tvStoreName);
 
         if (getArguments() != null) {
@@ -45,6 +48,7 @@ public class StoreDetailsFragment extends Fragment {
         StorePagerAdapter adapter = new StorePagerAdapter(this);
         viewPager.setAdapter(adapter);
 
+        // Кнопка сохранить внизу экрана
         btnSave.setOnClickListener(v -> {
             if (!checkItemsInBasket()) {
                 new AlertDialog.Builder(requireContext())
@@ -65,6 +69,7 @@ public class StoreDetailsFragment extends Fragment {
             }
         }).attach();
 
+        // Кнопка "Назад" в тулбаре
         btnBack.setOnClickListener(v -> showSaveOrderDialog());
 
         return view;
@@ -77,37 +82,53 @@ public class StoreDetailsFragment extends Fragment {
                 .setPositiveButton("Да, сохранить", (dialog, which) -> saveOrderToDatabase())
                 .setNegativeButton("Нет", (dialog, which) -> {
                     CartManager.getInstance().clearCart();
-                    getParentFragmentManager().popBackStack();
+                    returnToDashboard(); // Возврат на главную без сохранения
                 })
                 .setNeutralButton("Отмена", null)
                 .show();
     }
 
     private void saveOrderToDatabase() {
-        // 1. Получаем название магазина
         String storeName = tvStoreName.getText().toString();
 
-        // 2. Получаем текущие товары из корзины (делаем копию мапы)
+        // 1. Сохраняем данные
         java.util.Map<String, Integer> currentItems = new java.util.HashMap<>(
                 com.sellion.mobile.entity.CartManager.getInstance().getCartItems()
         );
-
-        // 3. Создаем объект OrderModel (теперь типы совпадают)
         com.sellion.mobile.entity.OrderModel newOrder = new com.sellion.mobile.entity.OrderModel(storeName, currentItems);
-
-        // 4. Сохраняем ОБЪЕКТ в историю
         com.sellion.mobile.managers.OrderHistoryManager.getInstance().addOrder(newOrder);
 
-        // 5. Очищаем текущую корзину
+        // 2. Очищаем корзину
         com.sellion.mobile.entity.CartManager.getInstance().clearCart();
 
         Toast.makeText(getContext(), "Заказ успешно сохранен!", Toast.LENGTH_SHORT).show();
 
         if (getActivity() != null) {
-            // Очищаем стек и возвращаемся на главный экран
-            getParentFragmentManager().popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE);
+            // 1. Стираем историю сбора заказа (чтобы нельзя было вернуться в пустой шаблон)
+            getParentFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+
+            // 2. Ставим Dashboard в основу (он увидит ID из SessionManager)
             getParentFragmentManager().beginTransaction()
-                    .replace(R.id.fragment_container, new com.sellion.mobile.fragments.OrdersFragment())
+                    .replace(R.id.fragment_container, new DashboardFragment())
+                    .commit();
+
+            // 3. Открываем список заказов поверх
+            getParentFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, new OrdersFragment())
+                    .addToBackStack(null)
+                    .commit();
+        }
+    }
+
+    // Метод для полной очистки стека и возврата на Dashboard
+    private void returnToDashboard() {
+        if (getActivity() != null) {
+            // Очищаем весь BackStack, чтобы кнопка "назад" не возвращала в пустой заказ
+            getParentFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+
+            // Заменяем текущий фрагмент на Dashboard (Главную страницу)
+            getParentFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, new DashboardFragment())
                     .commit();
         }
     }

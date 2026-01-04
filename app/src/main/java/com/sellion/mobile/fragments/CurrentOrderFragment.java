@@ -50,10 +50,12 @@ public class CurrentOrderFragment extends Fragment {
 
     private void updateUI() {
         Map<String, Integer> cartData = CartManager.getInstance().getCartItems();
-        selectedProducts.clear(); // Очищаем старый список
+        selectedProducts.clear();
 
         for (String name : cartData.keySet()) {
-            selectedProducts.add(new Product(name, ""));
+            // ИСПРАВЛЕНО: передаем 0 для цены и 0 для штук в коробке,
+            // так как в корзине нам нужно только имя для связи с CartManager
+            selectedProducts.add(new Product(name, 0, 0));
         }
 
         adapter = new CartAdapter(selectedProducts, product -> {
