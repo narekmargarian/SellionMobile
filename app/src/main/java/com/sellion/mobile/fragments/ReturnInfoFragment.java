@@ -32,6 +32,7 @@ public class ReturnInfoFragment extends BaseFragment {
     private TextView tvDate;
     private TextView tvReasonValue;
     private ReturnReason selectedReason = ReturnReason.EXPIRED;
+
     private SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy", new Locale("ru"));
 
     @Nullable
@@ -97,5 +98,14 @@ public class ReturnInfoFragment extends BaseFragment {
         MaterialDatePicker<Long> picker = MaterialDatePicker.Builder.datePicker().build();
         picker.addOnPositiveButtonClickListener(s -> tvDate.setText(dateFormat.format(new Date(s))));
         picker.show(getChildFragmentManager(), "DATE");
+    }
+
+
+
+    public String getSelectedReason() {
+        if (tvReasonValue != null) {
+            return tvReasonValue.getText().toString();
+        }
+        return selectedReason.getTitle();
     }
 }

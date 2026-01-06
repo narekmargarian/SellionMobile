@@ -4,6 +4,7 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
@@ -20,7 +21,12 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.sellion.mobile.R;
 import com.sellion.mobile.entity.CartManager;
+import com.sellion.mobile.entity.OrderModel;
 import com.sellion.mobile.handler.BackPressHandler;
+import com.sellion.mobile.managers.OrderHistoryManager;
+
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class ReturnDetailsFragment extends BaseFragment implements BackPressHandler {
@@ -85,17 +91,43 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
     }
 
     private void saveReturnToDatabase() {
-        // Здесь ваша логика сохранения возврата
-        Toast.makeText(getContext(), "Возврат для " + tvStoreName.getText() + " сохранен!", Toast.LENGTH_LONG).show();
+        String storeName = tvStoreName.getText().toString();
+        Map<String, Integer> currentItems = new HashMap<>(CartManager.getInstance().getCartItems());
+
+        if (currentItems.isEmpty()) {
+            Toast.makeText(getContext(), "Невозможно сохранить пустой возврат!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String reason = "Не указана";
+        // Получаем фрагмент с причиной (индекс вкладки 2)
+        Fragment infoFrag = getChildFragmentManager().findFragmentByTag("f" + viewPager.getId() + ":" + 2);
+        if (infoFrag instanceof ReturnInfoFragment) {
+            reason = ((ReturnInfoFragment) infoFrag).getSelectedReason();
+        }
+
+        // Создаем модель: в paymentMethod кладем причину, в конце передаем true (это возврат)
+        OrderModel newReturn = new OrderModel(storeName, currentItems, reason, false, true);
+
+        OrderHistoryManager.getInstance().addOrder(newReturn);
         CartManager.getInstance().clearCart();
-        getParentFragmentManager().popBackStack();
+
+        Toast.makeText(getContext(), "Возврат оформлен!", Toast.LENGTH_SHORT).show();
+
+        // ПЕРЕХОД в список возвратов 2026
+        if (getActivity() != null) {
+            getParentFragmentManager().popBackStack(); // Закрыть оформление
+            getParentFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, new ReturnsHistoryFragment())
+                    .addToBackStack(null)
+                    .commit();
+        }
     }
 
     @Override
     public void onBackPressedHandled() {
-        // Логика как в StoreDetailsFragment
-        CartManager.getInstance().clearCart();
-        getParentFragmentManager().popBackStack();
+        showSaveReturnDialog();
+
     }
 
     // Адаптер вкладок специально для возврата
@@ -109,6 +141,27 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
                 case 2: return new ReturnInfoFragment();  // НОВЫЙ фрагмент с причинами (Enum)
                 default: return new CatalogFragment();
             }
+        }
+    }
+
+
+
+    // Логика диалога сохранения (как в заказе)
+    protected void showSaveReturnDialog() {
+        if (!CartManager.getInstance().getCartItems().isEmpty()) {
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Завершение возврата")
+                    .setMessage("Сохранить возврат перед выходом?")
+                    .setPositiveButton("Да, сохранить", (dialog, which) -> saveReturnToDatabase())
+                    .setNegativeButton("Нет", (dialog, which) -> {
+                        CartManager.getInstance().clearCart();
+                        getParentFragmentManager().popBackStack();
+                    })
+                    .setNeutralButton("Отмена", null)
+                    .show();
+        } else {
+            CartManager.getInstance().clearCart();
+            getParentFragmentManager().popBackStack();
         }
     }
 

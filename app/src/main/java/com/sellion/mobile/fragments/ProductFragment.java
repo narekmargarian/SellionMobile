@@ -30,6 +30,7 @@ import java.util.List;
 public class ProductFragment extends BaseFragment {
     private ProductAdapter adapter;
     private boolean isOrderMode = false;
+    private boolean isActuallyReturn = false; // Поле для хранения режима
 
     @Nullable
     @Override
@@ -38,6 +39,8 @@ public class ProductFragment extends BaseFragment {
 
         if (getArguments() != null) {
             isOrderMode = getArguments().getBoolean("is_order_mode", false);
+            // ПОЛУЧАЕМ ФЛАГ ИЗ АРГУМЕНТОВ
+            isActuallyReturn = getArguments().getBoolean("is_actually_return", false);
         }
         String category = getArguments() != null ? getArguments().getString("category_name") : "Товары";
 
@@ -64,39 +67,7 @@ public class ProductFragment extends BaseFragment {
         return view;
     }
 
-    private List<Product> getProductsByCategory(String category) {
-        List<Product> productList = new ArrayList<>();
-        switch (category) {
-            case "Сладкое":
-                productList.add(new Product("Шоколад Аленка", 5060, 20, "46450123456701"));
-                productList.add(new Product("Шоколад 1", 2560, 10, "4601234567021"));
-                productList.add(new Product("Шоколад 2", 250, 10, "46012345612702"));
-                productList.add(new Product("Шоколад 3", 4853, 10, "4601234256702"));
-                productList.add(new Product("Конфеты Мишка", 2500, 10, "4601230456702"));
-                productList.add(new Product("Вафли Артек", 254154, 15, "4601234156703"));
-                productList.add(new Product("Вафли 1", 1, 15, "4601234156703"));
-                productList.add(new Product("Вафли 2", 2, 15, "4601234156703"));
-                productList.add(new Product("Вафли 3", 5, 15, "4601234156703"));
-                break;
-            case "Чипсы":
-                productList.add(new Product("Lays 1", 7566, 3, "4601234856704"));
-                productList.add(new Product("Lays 2", 4785, 3, "4601234456704"));
-                productList.add(new Product("Lays Сметана/Зелень", 755, 3, "4601234456704"));
-                productList.add(new Product("Pringles 1", 589, 6, "4601234566705"));
-                productList.add(new Product("Pringles 2", 289, 6, "4601234856705"));
-                productList.add(new Product("Pringles Оригинал", 389, 6, "460123689456705"));
-                break;
-            case "Чай":
-                productList.add(new Product("Чай 3", 9010, 12, "44601234411556706"));
-                productList.add(new Product("Чай 2", 70, 12, "4604123456706"));
-                productList.add(new Product("Чай 1", 900, 12, "1460123456706"));
-                productList.add(new Product("Чай Ахмад", 1100, 12, "4601233456707"));
-                break;
-            default:
-                productList.add(new Product("Пример", 1, 1, "0000000000"));
-        }
-        return productList;
-    }
+    // ... метод getProductsByCategory остается без изменений ...
 
     private void showProductInfo(Product product) {
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
@@ -124,11 +95,10 @@ public class ProductFragment extends BaseFragment {
     private void showQuantityDialog(Product product) {
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
 
-        // ПРОВЕРКА РОДИТЕЛЯ: выбираем какой XML загрузить
-        int layoutId = R.layout.layout_bottom_sheet_quantity; // Стандарт: Заказ
-        if (isInsideReturnProcess()) {
-            layoutId = R.layout.layout_bottom_sheet_return; // Новый: Возврат
-        }
+        // ИСПОЛЬЗУЕМ ФЛАГ ИЗ АРГУМЕНТОВ ДЛЯ ВЫБОРА XML
+        int layoutId = isActuallyReturn ?
+                R.layout.layout_bottom_sheet_return :
+                R.layout.layout_bottom_sheet_quantity;
 
         View view = getLayoutInflater().inflate(layoutId, null);
         dialog.setContentView(view);
@@ -146,7 +116,9 @@ public class ProductFragment extends BaseFragment {
             Integer currentQty = CartManager.getInstance().getCartItems().get(product.getName());
             etQuantity.setText(String.valueOf(currentQty != null ? currentQty : 1));
             if (btnDelete != null) btnDelete.setVisibility(View.VISIBLE);
-            btnConfirm.setText("Изменить");
+
+            // Динамический текст кнопки подтверждения
+            btnConfirm.setText(isActuallyReturn ? "Изменить возврат" : "Изменить заказ");
         }
 
         btnPlus.setOnClickListener(v -> {
@@ -182,30 +154,63 @@ public class ProductFragment extends BaseFragment {
         dialog.show();
     }
 
-    // Рекурсивная проверка для ViewPager2 (стандарт 2026)
-    private boolean isInsideReturnProcess() {
-        Fragment parent = getParentFragment();
-        while (parent != null) {
-            if (parent instanceof ReturnDetailsFragment) return true;
-            parent = parent.getParentFragment();
+
+    private List<Product> getProductsByCategory(String category) {
+        List<Product> productList = new ArrayList<>();
+
+        // В 2026 году используем switch для фильтрации товаров по категориям
+        switch (category) {
+            case "Сладкое":
+                productList.add(new Product("Шоколад Аленка", 5060, 20, "46450123456701"));
+                productList.add(new Product("Шоколад 1", 2560, 10, "4601234567021"));
+                productList.add(new Product("Шоколад 2", 250, 10, "46012345612702"));
+                productList.add(new Product("Шоколад 3", 4853, 10, "4601234256702"));
+                productList.add(new Product("Конфеты Мишка", 2500, 10, "4601230456702"));
+                productList.add(new Product("Вафли Артек", 254154, 15, "4601234156703"));
+                productList.add(new Product("Вафли 1", 1, 15, "4601234156703"));
+                productList.add(new Product("Вафли 2", 2, 15, "4601234156703"));
+                productList.add(new Product("Вафли 3", 5, 15, "4601234156703"));
+                break;
+
+            case "Чипсы":
+                productList.add(new Product("Lays 1", 7566, 3, "4601234856704"));
+                productList.add(new Product("Lays 2", 4785, 3, "4601234456704"));
+                productList.add(new Product("Lays Сметана/Зелень", 755, 3, "4601234456704"));
+                productList.add(new Product("Pringles 1", 589, 6, "4601234566705"));
+                productList.add(new Product("Pringles 2", 289, 6, "4601234856705"));
+                productList.add(new Product("Pringles Оригинал", 389, 6, "460123689456705"));
+                break;
+
+            case "Чай":
+                productList.add(new Product("Чай 3", 9010, 12, "44601234411556706"));
+                productList.add(new Product("Чай 2", 70, 12, "4604123456706"));
+                productList.add(new Product("Чай 1", 900, 12, "1460123456706"));
+                productList.add(new Product("Чай Ахмад", 1100, 12, "4601233456707"));
+                break;
+
+            default:
+                // Если категория не найдена, возвращаем пустой список или тестовый товар
+                productList.add(new Product("Тестовый товар", 0, 0, "0000000000000"));
+                break;
         }
-        return false;
+        return productList;
     }
+
 
     private void notifyParentRefresh() {
         Fragment parent = getParentFragment();
-        // Пытаемся найти родительский контейнер (Store или Return)
         while (parent != null) {
             ViewPager2 vp = null;
             if (parent instanceof StoreDetailsFragment) {
                 vp = ((StoreDetailsFragment) parent).getViewPager();
             } else if (parent instanceof ReturnDetailsFragment) {
-                // В ReturnDetailsFragment метод getViewPager должен быть public или найден через findViewById
-                vp = parent.getView().findViewById(R.id.storeViewPager);
+                // Прямой поиск ViewPager2 в макете возврата
+                if (parent.getView() != null) {
+                    vp = parent.getView().findViewById(R.id.storeViewPager);
+                }
             }
 
             if (vp != null) {
-                // Вкладка 1 всегда "Выбрано" (Заказ или Возврат)
                 Fragment tab = parent.getChildFragmentManager().findFragmentByTag("f" + vp.getId() + ":1");
                 if (tab instanceof OrderTabFragmentInterface) {
                     ((OrderTabFragmentInterface) tab).refreshOrderList();

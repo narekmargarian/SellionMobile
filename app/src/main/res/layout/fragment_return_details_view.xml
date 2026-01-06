@@ -49,30 +49,9 @@
             android:textStyle="bold"/>
     </LinearLayout>
 
-    <!-- НОВЫЕ ПОЛЯ ДЛЯ ОТОБРАЖЕНИЯ ПАРАМЕТРОВ ЗАКАЗА -->
-    <TextView
-        android:id="@+id/RtvViewOrderPaymentMethod"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:paddingTop="8dp"
-        android:text="Оплата: -"
-        android:textSize="14sp"
-        android:textColor="#4CAF50"/>
 
 
 
-    <TextView
-        android:id="@+id/RtvViewOrderInvoiceStatus"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:paddingBottom="8dp"
-        android:text="Раздельная фактура: -"
-        android:textSize="14sp"
-        android:textColor="#4CAF50"/>
     <TextView
         android:id="@+id/RtvViewOrderTotalSum"
         android:layout_width="match_parent"

@@ -25,7 +25,7 @@ public class ReturnDetailsViewFragment extends BaseFragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         // Используем ваш XML fragment_order_details_view
-        View view = inflater.inflate(R.layout.fragment_order_details_view, container, false);
+        View view = inflater.inflate(R.layout.fragment_return_details_view, container, false);
 
         String shopName = getArguments() != null ? getArguments().getString("order_shop_name") : "Магазин";
 

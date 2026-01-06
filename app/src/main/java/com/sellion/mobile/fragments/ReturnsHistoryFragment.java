@@ -73,16 +73,16 @@ public class ReturnsHistoryFragment extends BaseFragment {
     }
 
     private void updateReturnsList() {
-        // Здесь получаем заказы и фильтруем (нужно добавить поле isReturn в OrderModel)
         List<OrderModel> allOrders = OrderHistoryManager.getInstance().getSavedOrders();
-        List<OrderModel> returnsOnly = new ArrayList<>();
+        List<OrderModel> onlyReturns = new ArrayList<>();
 
-        for (OrderModel o : allOrders) {
-            // Для теста берем все, но в идеале: if (o.isReturn)
-            returnsOnly.add(o);
+        for (OrderModel order : allOrders) {
+            if (order.isReturn) { // Проверка флага из вашей модели
+                onlyReturns.add(order);
+            }
         }
 
-        adapter = new ReturnAdapter(returnsOnly, order -> openReturnDetailsView(order));
+        adapter = new ReturnAdapter(onlyReturns, order -> openReturnDetailsView(order));
         recyclerView.setAdapter(adapter);
     }
 

@@ -20,38 +20,38 @@ import java.util.List;
 
 
 public class CatalogFragment extends BaseFragment {
+
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_catalog, container, false);
 
-        // 1. Кнопка "Назад"
         ImageButton btnBack = view.findViewById(R.id.btnBack);
         setupBackButton(btnBack, false);
 
-        // 2. Настройка списка категорий
         RecyclerView recyclerView = view.findViewById(R.id.recyclerViewCatalog);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // 3. ПРОВЕРКА: Находимся ли мы внутри процесса оформления (Заказ ИЛИ Возврат)
+        // Проверяем, находимся ли мы в любом процессе оформления
         boolean orderMode = isInsideAnyProcess();
+        // Определяем конкретно, это Возврат или нет
+        boolean isReturn = isInsideReturnProcess();
 
-        // Если мы внутри вкладок (Заказ или Возврат) — скрываем кнопку "Назад" в каталоге
         if (orderMode) {
             btnBack.setVisibility(View.GONE);
         }
 
-        // 4. Данные категорий
         List<String> categories = Arrays.asList("Сладкое", "Чай", "Чипсы", "Хлопья", "Весовые");
 
-        // 5. Адаптер
         CategoryAdapter adapter = new CategoryAdapter(categories, category -> {
             ProductFragment fragment = new ProductFragment();
             Bundle args = new Bundle();
 
             args.putString("category_name", category);
-            // Передаем true, если это или заказ, или возврат, чтобы ProductFragment открыл выбор количества
             args.putBoolean("is_order_mode", orderMode);
+            // ПЕРЕДАЕМ ФЛАГ ВОЗВРАТА ПРЯМО В АРГУМЕНТЫ
+            args.putBoolean("is_actually_return", isReturn);
 
             fragment.setArguments(args);
 
@@ -65,15 +65,21 @@ public class CatalogFragment extends BaseFragment {
         return view;
     }
 
-    /**
-     * ОБНОВЛЕННЫЙ МЕТОД: Проверяет наличие любого родителя-контейнера.
-     * Это позволяет каталогу понять, что он открыт внутри оформления.
-     */
     private boolean isInsideAnyProcess() {
         Fragment parent = getParentFragment();
         while (parent != null) {
-            // Проверяем на Заказ ИЛИ на Возврат
             if (parent instanceof StoreDetailsFragment || parent instanceof ReturnDetailsFragment) {
+                return true;
+            }
+            parent = parent.getParentFragment();
+        }
+        return false;
+    }
+
+    private boolean isInsideReturnProcess() {
+        Fragment parent = getParentFragment();
+        while (parent != null) {
+            if (parent instanceof ReturnDetailsFragment) {
                 return true;
             }
             parent = parent.getParentFragment();
@@ -84,7 +90,6 @@ public class CatalogFragment extends BaseFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        // Дополнительная проверка для надежности в ViewPager2 на 2026 год
         if (isInsideAnyProcess()) {
             View header = view.findViewById(R.id.btnBack);
             if (header != null) header.setVisibility(View.GONE);

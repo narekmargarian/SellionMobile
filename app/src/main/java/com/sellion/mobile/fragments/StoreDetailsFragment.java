@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.tabs.TabLayout;
@@ -36,8 +37,27 @@ public class StoreDetailsFragment extends BaseFragment implements BackPressHandl
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
 
+        // 1. Сначала инфлейтим макет
+        View view = inflater.inflate(R.layout.fragment_store_details, container, false);
 
+        // 2. Инициализируем View (находим ID)
+        TabLayout tabLayout = view.findViewById(R.id.storeTabLayout);
+        viewPager = view.findViewById(R.id.storeViewPager);
+        ImageButton btnBack = view.findViewById(R.id.btnBackToRoute);
+        View btnSave = view.findViewById(R.id.btnSaveFullOrder);
+        tvStoreName = view.findViewById(R.id.tvStoreName);
 
+        // 3. Установка данных из аргументов
+        if (getArguments() != null) {
+            tvStoreName.setText(getArguments().getString("store_name"));
+        }
+
+        // 4. Настройка адаптера
+        StorePagerAdapter adapter = new StorePagerAdapter(this);
+        viewPager.setAdapter(adapter);
+        viewPager.setOffscreenPageLimit(2);
+
+        // 5. ТЕПЕРЬ настраиваем колбэк (теперь viewPager НЕ null)
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
@@ -52,24 +72,7 @@ public class StoreDetailsFragment extends BaseFragment implements BackPressHandl
             }
         });
 
-
-
-        View view = inflater.inflate(R.layout.fragment_store_details, container, false);
-
-        TabLayout tabLayout = view.findViewById(R.id.storeTabLayout);
-        viewPager = view.findViewById(R.id.storeViewPager);
-        ImageButton btnBack = view.findViewById(R.id.btnBackToRoute);
-        View btnSave = view.findViewById(R.id.btnSaveFullOrder);
-        tvStoreName = view.findViewById(R.id.tvStoreName);
-
-        if (getArguments() != null) {
-            tvStoreName.setText(getArguments().getString("store_name"));
-        }
-
-        StorePagerAdapter adapter = new StorePagerAdapter(this);
-        viewPager.setAdapter(adapter);
-        viewPager.setOffscreenPageLimit(2);
-
+        // 6. Кнопка сохранить
         btnSave.setOnClickListener(v -> {
             if (!checkItemsInBasket()) {
                 new AlertDialog.Builder(requireContext())
@@ -82,25 +85,17 @@ public class StoreDetailsFragment extends BaseFragment implements BackPressHandl
             }
         });
 
+        // 7. Настройка табов
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             switch (position) {
-                case 0:
-                    tab.setText("Товары");
-                    break;
-                case 1:
-                    tab.setText("Заказ");
-                    break;
-                case 2:
-                    tab.setText("О заказе");
-                    break;
+                case 0: tab.setText("Товары"); break;
+                case 1: tab.setText("Заказ"); break;
+                case 2: tab.setText("О заказе"); break;
             }
         }).attach();
 
-        setupBackButton(btnBack, false); // UI кнопка «назад»
-
-
-
-
+        // 8. Настройка кнопки назад
+        setupBackButton(btnBack, false);
 
         return view;
     }
@@ -113,7 +108,6 @@ public class StoreDetailsFragment extends BaseFragment implements BackPressHandl
 
     @Override
     public void onBackPressedHandled() {
-        // При нажатии кнопки назад телефона или UI-кнопки
         showSaveOrderDialog();
     }
 
@@ -154,7 +148,8 @@ public class StoreDetailsFragment extends BaseFragment implements BackPressHandl
             needsInvoice = details.isSeparateInvoiceRequired();
         }
 
-        OrderModel newOrder = new OrderModel(storeName, currentItems, payment, needsInvoice);
+        // ВАЖНО: 5-й параметр false означает, что это ПРОДАЖА, а не возврат
+        OrderModel newOrder = new OrderModel(storeName, currentItems, payment, needsInvoice, false);
         OrderHistoryManager.getInstance().addOrder(newOrder);
 
         CartManager.getInstance().clearCart();
@@ -173,6 +168,21 @@ public class StoreDetailsFragment extends BaseFragment implements BackPressHandl
         return viewPager;
     }
 
-
+    // Внутренний адаптер страниц
+    private static class StorePagerAdapter extends FragmentStateAdapter {
+        public StorePagerAdapter(@NonNull Fragment fragment) {
+            super(fragment);
+        }
+        @NonNull
+        @Override
+        public Fragment createFragment(int position) {
+            if (position == 0) return new CatalogFragment();
+            if (position == 1) return new CurrentOrderFragment();
+            return new StoreInfoFragment();
+        }
+        @Override
+        public int getItemCount() {
+            return 3;
+        }
+    }
 }
-
