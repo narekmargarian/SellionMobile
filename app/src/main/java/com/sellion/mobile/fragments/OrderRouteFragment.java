@@ -55,10 +55,16 @@ public class OrderRouteFragment extends Fragment {
         int end = Math.min(start + 5, allClients.size());
         List<String> dayClients = allClients.subList(start, end);
 
-        // Используем onClientSelected родителя
-        ClientAdapter adapter = new ClientAdapter(dayClients, clientName -> {
-            if (getParentFragment() instanceof CreateOrderFragment) {
-                ((CreateOrderFragment) getParentFragment()).onClientSelected(clientName);
+        ClientAdapter adapter = new ClientAdapter(dayClients, name -> {
+            // Получаем родителя фрагмента (это будет CreateOrderFragment или CreateReturnFragment)
+            Fragment parent = getParentFragment();
+
+            if (parent instanceof CreateOrderFragment) {
+                // Если открыли через "Заказ"
+                ((CreateOrderFragment) parent).onClientSelected(name);
+            } else if (parent instanceof CreateReturnFragment) {
+                // Если открыли через "Возврат"
+                ((CreateReturnFragment) parent).onClientSelected(name);
             }
         });
         recyclerView.setAdapter(adapter);

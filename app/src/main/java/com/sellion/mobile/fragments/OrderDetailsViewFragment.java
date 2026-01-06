@@ -26,7 +26,6 @@ public class OrderDetailsViewFragment extends BaseFragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_order_details_view, container, false);
-
         String shopName = getArguments() != null ? getArguments().getString("order_shop_name") : "";
 
         TextView tvTitle = view.findViewById(R.id.tvViewOrderTitle);

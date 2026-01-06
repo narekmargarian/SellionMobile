@@ -36,6 +36,24 @@ public class StoreDetailsFragment extends BaseFragment implements BackPressHandl
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
 
+
+
+        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                // Если перешли на вкладку корзины (позиция 1)
+                if (position == 1) {
+                    Fragment currentFragment = getChildFragmentManager().findFragmentByTag("f" + viewPager.getId() + ":" + position);
+                    if (currentFragment instanceof CurrentOrderFragment) {
+                        ((CurrentOrderFragment) currentFragment).updateUI();
+                    }
+                }
+            }
+        });
+
+
+
         View view = inflater.inflate(R.layout.fragment_store_details, container, false);
 
         TabLayout tabLayout = view.findViewById(R.id.storeTabLayout);
@@ -79,6 +97,10 @@ public class StoreDetailsFragment extends BaseFragment implements BackPressHandl
         }).attach();
 
         setupBackButton(btnBack, false); // UI кнопка «назад»
+
+
+
+
 
         return view;
     }
@@ -150,5 +172,7 @@ public class StoreDetailsFragment extends BaseFragment implements BackPressHandl
     public ViewPager2 getViewPager() {
         return viewPager;
     }
+
+
 }
 

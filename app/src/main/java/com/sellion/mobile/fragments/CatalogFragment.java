@@ -33,10 +33,10 @@ public class CatalogFragment extends BaseFragment {
         RecyclerView recyclerView = view.findViewById(R.id.recyclerViewCatalog);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // 3. Проверка контекста (Сбор заказа или Просмотр) для 2026 года
-        boolean orderMode = isInsideStoreProcess();
+        // 3. ПРОВЕРКА: Находимся ли мы внутри процесса оформления (Заказ ИЛИ Возврат)
+        boolean orderMode = isInsideAnyProcess();
 
-        // Если мы внутри вкладок магазина — скрываем шапку (btnBack)
+        // Если мы внутри вкладок (Заказ или Возврат) — скрываем кнопку "Назад" в каталоге
         if (orderMode) {
             btnBack.setVisibility(View.GONE);
         }
@@ -44,20 +44,17 @@ public class CatalogFragment extends BaseFragment {
         // 4. Данные категорий
         List<String> categories = Arrays.asList("Сладкое", "Чай", "Чипсы", "Хлопья", "Весовые");
 
-        // 5. Адаптер с логикой перехода и передачей режима
+        // 5. Адаптер
         CategoryAdapter adapter = new CategoryAdapter(categories, category -> {
             ProductFragment fragment = new ProductFragment();
             Bundle args = new Bundle();
 
-            // Передаем название категории
             args.putString("category_name", category);
-
-            // ПЕРЕДАЕМ РЕЖИМ (Важно для разделения Инфо/Заказ)
+            // Передаем true, если это или заказ, или возврат, чтобы ProductFragment открыл выбор количества
             args.putBoolean("is_order_mode", orderMode);
 
             fragment.setArguments(args);
 
-            // Используем транзакцию через Activity для корректной навигации
             requireActivity().getSupportFragmentManager().beginTransaction()
                     .replace(R.id.fragment_container, fragment)
                     .addToBackStack(null)
@@ -65,18 +62,18 @@ public class CatalogFragment extends BaseFragment {
         });
 
         recyclerView.setAdapter(adapter);
-
         return view;
     }
 
     /**
-     * Надежный метод проверки нахождения внутри StoreDetailsFragment.
-     * В 2026 году внутри ViewPager2 обычный instanceof getParentFragment() может вернуть null.
+     * ОБНОВЛЕННЫЙ МЕТОД: Проверяет наличие любого родителя-контейнера.
+     * Это позволяет каталогу понять, что он открыт внутри оформления.
      */
-    private boolean isInsideStoreProcess() {
+    private boolean isInsideAnyProcess() {
         Fragment parent = getParentFragment();
         while (parent != null) {
-            if (parent instanceof StoreDetailsFragment) {
+            // Проверяем на Заказ ИЛИ на Возврат
+            if (parent instanceof StoreDetailsFragment || parent instanceof ReturnDetailsFragment) {
                 return true;
             }
             parent = parent.getParentFragment();
@@ -87,12 +84,10 @@ public class CatalogFragment extends BaseFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        // Дополнительная проверка видимости при создании View
-        if (isInsideStoreProcess()) {
+        // Дополнительная проверка для надежности в ViewPager2 на 2026 год
+        if (isInsideAnyProcess()) {
             View header = view.findViewById(R.id.btnBack);
             if (header != null) header.setVisibility(View.GONE);
         }
     }
-
-
 }

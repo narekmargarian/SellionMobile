@@ -27,10 +27,16 @@ public class OrderClientFragment extends Fragment {
 
         List<String> clients = ClientManager.getInstance().getStoreNames();
 
-        // Используем onClientSelected родителя
         ClientAdapter adapter = new ClientAdapter(clients, name -> {
-            if (getParentFragment() instanceof CreateOrderFragment) {
-                ((CreateOrderFragment) getParentFragment()).onClientSelected(name);
+            // Получаем родителя фрагмента (это будет CreateOrderFragment или CreateReturnFragment)
+            Fragment parent = getParentFragment();
+
+            if (parent instanceof CreateOrderFragment) {
+                // Если открыли через "Заказ"
+                ((CreateOrderFragment) parent).onClientSelected(name);
+            } else if (parent instanceof CreateReturnFragment) {
+                // Если открыли через "Возврат"
+                ((CreateReturnFragment) parent).onClientSelected(name);
             }
         });
 

@@ -67,7 +67,7 @@
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardRoutes"
+                android:id="@+id/cardReturn"
                 style="@style/Widget.Material3.CardView.Elevated"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
@@ -84,7 +84,7 @@
                     android:layout_height="match_parent"
                     android:gravity="center"
                     android:lineSpacingExtra="8dp"
-                    android:text="📍\nМАРШРУТЫ"
+                    android:text="📍\nВОЗВРАТЫ"
                     android:textAlignment="center"
                     android:textColor="#001D36"
                     android:textSize="20sp"

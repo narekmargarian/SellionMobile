@@ -36,7 +36,6 @@ public class ProductFragment extends BaseFragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_product, container, false);
 
-        // 1. Получаем режим (Заказ или Просмотр) и категорию
         if (getArguments() != null) {
             isOrderMode = getArguments().getBoolean("is_order_mode", false);
         }
@@ -53,12 +52,11 @@ public class ProductFragment extends BaseFragment {
 
         List<Product> productList = getProductsByCategory(category);
 
-        // 2. Инициализация адаптера
         adapter = new ProductAdapter(productList, product -> {
             if (isOrderMode) {
-                showQuantityDialog(product); // Режим ЗАКАЗА (Без штрих-кода)
+                showQuantityDialog(product);
             } else {
-                showProductInfo(product);    // Режим КАТАЛОГА (Со штрих-кодом)
+                showProductInfo(product);
             }
         });
 
@@ -100,7 +98,6 @@ public class ProductFragment extends BaseFragment {
         return productList;
     }
 
-    // ПРОСМОТР товара (информация + штрих-код)
     private void showProductInfo(Product product) {
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
         View view = getLayoutInflater().inflate(R.layout.layout_bottom_sheet_quantity, null);
@@ -121,14 +118,19 @@ public class ProductFragment extends BaseFragment {
         tvTitle.setText(info);
         btnConfirm.setText("Закрыть");
         btnConfirm.setOnClickListener(v -> dialog.dismiss());
-
         dialog.show();
     }
 
-    // ЗАКАЗ товара (обновление CartManager)
     private void showQuantityDialog(Product product) {
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
-        View view = getLayoutInflater().inflate(R.layout.layout_bottom_sheet_quantity, null);
+
+        // ПРОВЕРКА РОДИТЕЛЯ: выбираем какой XML загрузить
+        int layoutId = R.layout.layout_bottom_sheet_quantity; // Стандарт: Заказ
+        if (isInsideReturnProcess()) {
+            layoutId = R.layout.layout_bottom_sheet_return; // Новый: Возврат
+        }
+
+        View view = getLayoutInflater().inflate(layoutId, null);
         dialog.setContentView(view);
 
         TextView tvTitle = view.findViewById(R.id.tvSheetTitle);
@@ -140,7 +142,6 @@ public class ProductFragment extends BaseFragment {
 
         tvTitle.setText(product.getName());
 
-        // Если товар уже есть в корзине
         if (CartManager.getInstance().hasProduct(product.getName())) {
             Integer currentQty = CartManager.getInstance().getCartItems().get(product.getName());
             etQuantity.setText(String.valueOf(currentQty != null ? currentQty : 1));
@@ -164,7 +165,7 @@ public class ProductFragment extends BaseFragment {
             btnDelete.setOnClickListener(v -> {
                 CartManager.getInstance().addProduct(product.getName(), 0);
                 adapter.notifyDataSetChanged();
-                notifyParentOrderFragment();
+                notifyParentRefresh();
                 dialog.dismiss();
             });
         }
@@ -172,33 +173,49 @@ public class ProductFragment extends BaseFragment {
         btnConfirm.setOnClickListener(v -> {
             String qtyS = etQuantity.getText().toString();
             int qty = qtyS.isEmpty() ? 0 : Integer.parseInt(qtyS);
-            if (qty > 0) {
-                CartManager.getInstance().addProduct(product.getName(), qty);
-            } else {
-                CartManager.getInstance().addProduct(product.getName(), 0);
-            }
+            CartManager.getInstance().addProduct(product.getName(), qty);
             adapter.notifyDataSetChanged();
-            notifyParentOrderFragment();
+            notifyParentRefresh();
             dialog.dismiss();
         });
 
         dialog.show();
     }
 
-    // Метод для уведомления родительского фрагмента (StoreDetails) о изменениях корзины
-    private void notifyParentOrderFragment() {
+    // Рекурсивная проверка для ViewPager2 (стандарт 2026)
+    private boolean isInsideReturnProcess() {
         Fragment parent = getParentFragment();
-        if (parent instanceof StoreDetailsFragment) {
-            // Перерисовываем вкладку "Заказ" если она активна
-            ViewPager2 vp = ((StoreDetailsFragment) parent).getViewPager();
-            Fragment orderTab = parent.getChildFragmentManager().findFragmentByTag("f" + vp.getId() + ":1"); // вкладка 1 = Заказ
-            if (orderTab != null && orderTab instanceof OrderTabFragmentInterface) {
-                ((OrderTabFragmentInterface) orderTab).refreshOrderList();
+        while (parent != null) {
+            if (parent instanceof ReturnDetailsFragment) return true;
+            parent = parent.getParentFragment();
+        }
+        return false;
+    }
+
+    private void notifyParentRefresh() {
+        Fragment parent = getParentFragment();
+        // Пытаемся найти родительский контейнер (Store или Return)
+        while (parent != null) {
+            ViewPager2 vp = null;
+            if (parent instanceof StoreDetailsFragment) {
+                vp = ((StoreDetailsFragment) parent).getViewPager();
+            } else if (parent instanceof ReturnDetailsFragment) {
+                // В ReturnDetailsFragment метод getViewPager должен быть public или найден через findViewById
+                vp = parent.getView().findViewById(R.id.storeViewPager);
             }
+
+            if (vp != null) {
+                // Вкладка 1 всегда "Выбрано" (Заказ или Возврат)
+                Fragment tab = parent.getChildFragmentManager().findFragmentByTag("f" + vp.getId() + ":1");
+                if (tab instanceof OrderTabFragmentInterface) {
+                    ((OrderTabFragmentInterface) tab).refreshOrderList();
+                }
+                break;
+            }
+            parent = parent.getParentFragment();
         }
     }
 
-    // Интерфейс для вкладки "Заказ"
     public interface OrderTabFragmentInterface {
         void refreshOrderList();
     }

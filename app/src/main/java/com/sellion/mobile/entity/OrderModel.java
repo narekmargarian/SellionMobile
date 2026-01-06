@@ -8,6 +8,7 @@ public class OrderModel {
     public String shopName;
     public Status status;
     public Map<String, Integer> items;
+    public boolean isReturn;
 
     // Новые поля
     public String paymentMethod;

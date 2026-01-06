@@ -49,7 +49,7 @@ public class CurrentOrderFragment extends BaseFragment {
     }
 
     // Метод для обновления данных
-    private void updateUI() {
+    protected void updateUI() {
         if (getContext() == null) return;
 
         Map<String, Integer> cartData = CartManager.getInstance().getCartItems();
@@ -221,11 +221,5 @@ public class CurrentOrderFragment extends BaseFragment {
     }
 
     // Дополнительная проверка для ViewPager2
-    @Override
-    public void setUserVisibleHint(boolean isVisibleToUser) {
-        super.setUserVisibleHint(isVisibleToUser);
-        if (isVisibleToUser && isResumed()) {
-            updateUI();
-        }
-    }
+
 }

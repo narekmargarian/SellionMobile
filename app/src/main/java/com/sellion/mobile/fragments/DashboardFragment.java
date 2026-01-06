@@ -30,7 +30,7 @@ public class DashboardFragment extends BaseFragment {
         MaterialCardView cardOrders = view.findViewById(R.id.cardOrders);
         MaterialCardView cardDebts = view.findViewById(R.id.cardDebts);
         MaterialCardView cardSync = view.findViewById(R.id.cardSync);
-        MaterialCardView cardRoutes = view.findViewById(R.id.cardRoutes); // теперь "Возврат"
+        MaterialCardView cardReturn = view.findViewById(R.id.cardReturn); // теперь "Возврат"
         MaterialCardView cardCatalog = view.findViewById(R.id.cardCatalog);
 
         String managerId = SessionManager.getInstance().getManagerId();
@@ -44,10 +44,11 @@ public class DashboardFragment extends BaseFragment {
         cardSync.setOnClickListener(v -> openFragment(new SyncFragment()));
         cardCatalog.setOnClickListener(v -> openFragment(new CatalogFragment()));
 
-        // Карточка "Маршруты" теперь открывает "Возврат" или другую логику
-        cardRoutes.setOnClickListener(v -> {
-            // Заглушка: позже можно реализовать возврат
-            Toast.makeText(getContext(), "Возврат пока не реализован", Toast.LENGTH_SHORT).show();
+        cardReturn.setOnClickListener(v -> {
+            getParentFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, new ReturnsHistoryFragment())
+                    .addToBackStack(null)
+                    .commit();
         });
 
         return view;
