@@ -15,13 +15,9 @@ public class HostActivity extends AppCompatActivity {
         setContentView(R.layout.activity_host);
 
         String managerId = getIntent().getStringExtra("MANAGER_ID");
-
-        // СОХРАНЯЕМ В СЕССИЮ, чтобы данные были доступны везде
         com.sellion.mobile.managers.SessionManager.getInstance().setManagerId(managerId);
 
         if (savedInstanceState == null) {
-            // Теперь не обязательно передавать Bundle,
-            // так как Dashboard сам возьмет ID из сессии
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.fragment_container, new DashboardFragment())
                     .commit();

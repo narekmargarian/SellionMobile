@@ -19,7 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 
 
-public class CatalogFragment extends Fragment {
+public class CatalogFragment extends BaseFragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -27,7 +27,7 @@ public class CatalogFragment extends Fragment {
 
         // 1. Кнопка "Назад"
         ImageButton btnBack = view.findViewById(R.id.btnBack);
-        btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
+        setupBackButton(btnBack, false);
 
         // 2. Настройка списка категорий
         RecyclerView recyclerView = view.findViewById(R.id.recyclerViewCatalog);
@@ -93,4 +93,6 @@ public class CatalogFragment extends Fragment {
             if (header != null) header.setVisibility(View.GONE);
         }
     }
+
+
 }

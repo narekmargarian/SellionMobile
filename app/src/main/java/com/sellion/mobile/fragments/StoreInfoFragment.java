@@ -9,7 +9,8 @@ import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
-import androidx.fragment.app.Fragment;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.sellion.mobile.R;
@@ -19,16 +20,16 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
-public class StoreInfoFragment extends Fragment {
+public class StoreInfoFragment extends BaseFragment {
 
     private TextView tvDeliveryDate;
     private RadioGroup radioGroupPaymentMethod;
     private CheckBox checkboxSeparateInvoice;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy", new Locale("ru")); // Формат даты на русском
 
-    //
+    @Nullable
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_store_info, container, false);
 
         tvDeliveryDate = view.findViewById(R.id.tvDeliveryDate);
@@ -36,7 +37,7 @@ public class StoreInfoFragment extends Fragment {
         checkboxSeparateInvoice = view.findViewById(R.id.checkboxSeparateInvoice);
         LinearLayout layoutSelectDeliveryDate = view.findViewById(R.id.layoutSelectDeliveryDate);
 
-        // 2026 стандарт: Устанавливаем завтрашнюю дату по умолчанию
+        // Устанавливаем завтрашнюю дату по умолчанию
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.DAY_OF_MONTH, 1);
         tvDeliveryDate.setText(dateFormat.format(calendar.getTime()));
@@ -74,5 +75,3 @@ public class StoreInfoFragment extends Fragment {
         return tvDeliveryDate.getText().toString();
     }
 }
-
-

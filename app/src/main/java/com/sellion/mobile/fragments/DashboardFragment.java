@@ -15,7 +15,7 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.managers.SessionManager;
 
 
-public class DashboardFragment extends Fragment {
+public class DashboardFragment extends BaseFragment {
 
     public DashboardFragment() {
     }

@@ -12,7 +12,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -26,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class CurrentOrderFragment extends Fragment {
+public class CurrentOrderFragment extends BaseFragment {
     private RecyclerView rv;
     private CartAdapter adapter;
     private TextView tvTotalSum;

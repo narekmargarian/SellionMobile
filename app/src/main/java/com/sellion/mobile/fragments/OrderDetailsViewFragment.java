@@ -21,7 +21,7 @@ import com.sellion.mobile.managers.OrderHistoryManager;
 
 import java.util.Map;
 
-public class OrderDetailsViewFragment extends Fragment {
+public class OrderDetailsViewFragment extends BaseFragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -91,7 +91,7 @@ public class OrderDetailsViewFragment extends Fragment {
             }
         }
 
-        view.findViewById(R.id.btnBackFromView).setOnClickListener(v -> getParentFragmentManager().popBackStack());
+        view.findViewById(R.id.btnBackFromView).setOnClickListener(v -> setupBackButton(v, false));
         return view;
     }
 

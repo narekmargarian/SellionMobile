@@ -22,7 +22,7 @@ import com.sellion.mobile.managers.OrderHistoryManager;
 
 import java.util.List;
 
-public class OrdersFragment extends Fragment {
+public class OrdersFragment extends BaseFragment {
 
     private RecyclerView recyclerView;
     private OrderAdapter adapter; // Тип изменен на OrderAdapter
@@ -47,7 +47,7 @@ public class OrdersFragment extends Fragment {
         // Загружаем список заказов при открытии
         updateOrdersList();
 
-        btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
+        setupBackButton(btnBack, true);
 
         btnAddOrder.setOnClickListener(v -> {
             getParentFragmentManager().beginTransaction()

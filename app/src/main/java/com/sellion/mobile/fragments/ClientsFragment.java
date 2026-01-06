@@ -11,12 +11,11 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 
 import com.sellion.mobile.R;
 
 
-public class ClientsFragment extends Fragment {
+public class ClientsFragment extends BaseFragment {
 
     @Nullable
     @Override
@@ -27,9 +26,7 @@ public class ClientsFragment extends Fragment {
         ImageButton btnAdd = view.findViewById(R.id.btnAddClient);
 
 
-        btnBack.setOnClickListener(v -> {
-            getParentFragmentManager().popBackStack();
-        });
+        setupBackButton(btnBack, false);
 
         btnAdd.setOnClickListener(v -> {
             View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_add_client, null);

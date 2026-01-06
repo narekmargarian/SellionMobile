@@ -21,7 +21,7 @@ import com.sellion.mobile.entity.DebtModel;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RoutesFragment extends Fragment {
+public class RoutesFragment extends BaseFragment {
 
     private TextView tvCurrentDay;
     private RecyclerView recyclerView;
@@ -39,7 +39,8 @@ public class RoutesFragment extends Fragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         // Кнопка назад
-        view.findViewById(R.id.btnBackRoutes).setOnClickListener(v -> getParentFragmentManager().popBackStack());
+        view.findViewById(R.id.btnBackRoutes).setOnClickListener(v -> setupBackButton(v, false));
+
 
         layoutSelectDay.setOnClickListener(v -> {
             new AlertDialog.Builder(requireContext())

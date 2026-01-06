@@ -3,6 +3,7 @@ package com.sellion.mobile.fragments;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.LayoutInflater;
@@ -19,7 +20,6 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.fragment.app.Fragment;
 
 import com.sellion.mobile.R;
 import com.sellion.mobile.entity.OrderModel;
@@ -27,7 +27,7 @@ import com.sellion.mobile.managers.OrderHistoryManager;
 
 import java.util.List;
 
-public class SyncFragment extends Fragment {
+public class SyncFragment extends BaseFragment {
 
     private TextView tvStatus;
     private ImageView ivPreview; // Для показа сделанного фото
@@ -47,29 +47,18 @@ public class SyncFragment extends Fragment {
         Button btnVersion = view.findViewById(R.id.btnVersion);
         tvStatus = view.findViewById(R.id.tvSyncStatus);
 
+        // UI-кнопка назад
+        setupBackButton(btnBack, false);
 
-        btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
-
-        // 1. Отправить Документы
         btnSend.setOnClickListener(v -> sendDocuments());
-
-        // 2. Загрузить Документы
         btnLoad.setOnClickListener(v -> loadDocuments());
-
-        // 3. Очистить данные
         btnClear.setOnClickListener(v -> clearData());
-
-        // 4. Фото Отчеты (Пока заглушка для камеры)
         btnPhoto.setOnClickListener(v -> takePhotoReport());
-
-        // 5. Новая версия
         btnVersion.setOnClickListener(v -> Toast.makeText(getContext(), "У вас установлена последняя версия приложения 2025.12.30", Toast.LENGTH_SHORT).show());
-
 
         ivPreview = view.findViewById(R.id.ivPhotoPreview);
         btnUploadPhoto = view.findViewById(R.id.btnUploadPhoto);
 
-        // Логика кнопки "Отправить"
         btnUploadPhoto.setOnClickListener(v -> {
             Toast.makeText(getContext(), "Фото успешно отправлено в офис!", Toast.LENGTH_SHORT).show();
             ivPreview.setVisibility(View.GONE);
@@ -82,16 +71,14 @@ public class SyncFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Регистрируем обработчик результата камеры
+
+        // Регистрируем ActivityResultLauncher для камеры
         cameraLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                        // Получаем фото из камеры
                         Bundle extras = result.getData().getExtras();
                         Bitmap imageBitmap = (Bitmap) extras.get("data");
-
-                        // Показываем фото и кнопку отправки
                         ivPreview.setImageBitmap(imageBitmap);
                         ivPreview.setVisibility(View.VISIBLE);
                         btnUploadPhoto.setVisibility(View.VISIBLE);
@@ -110,40 +97,32 @@ public class SyncFragment extends Fragment {
             return;
         }
 
-        // 3. Меняем статус у всех заказов на SENT
         for (OrderModel order : allOrders) {
             if (order.status == OrderModel.Status.PENDING) {
                 order.status = OrderModel.Status.SENT;
             }
         }
 
-        // 4. Обновляем текст статуса на экране синхронизации
         tvStatus.setText("Синхронизация завершена успешно.\nОтправлено заказов: " + allOrders.size());
-        tvStatus.setTextColor(android.graphics.Color.parseColor("#2E7D32")); // Зеленый
-
+        tvStatus.setTextColor(Color.parseColor("#2E7D32")); // Зеленый
         Toast.makeText(getContext(), "Данные переданы в офис!", Toast.LENGTH_SHORT).show();
     }
 
     private void loadDocuments() {
         showLoadingDialog("Загрузка новых клиентов и товаров...");
-        // В реальном приложении здесь будет код HTTP запроса на сервер
-        // После завершения:
-        // dismissLoadingDialog();
-        // tvStatus.setText("Данные обновлены. Добавлено 10 новых клиентов и чипсы со вкусом манго.");
+        // Здесь будет HTTP-запрос на сервер
     }
 
     private void clearData() {
-        // Просто сообщение
         new AlertDialog.Builder(getContext())
                 .setTitle("Внимание")
                 .setMessage("Все локальные данные удалены (заказы, маршруты). Необходимо выполнить полную синхронизацию.")
                 .setPositiveButton("ОК", null)
                 .show();
         tvStatus.setText("Данные очищены");
-        tvStatus.setTextColor(android.graphics.Color.RED);
+        tvStatus.setTextColor(Color.RED);
     }
 
-    // Пока просто Toast, для камеры нужен Permission и Activity Result
     private void takePhotoReport() {
         Toast.makeText(getContext(), "Открываем камеру...", Toast.LENGTH_SHORT).show();
         Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
@@ -154,9 +133,9 @@ public class SyncFragment extends Fragment {
         }
     }
 
-
     private void showLoadingDialog(String message) {
-        // Пока просто Toast, для окна прогресса нужен AlertDialog с ProgressBar
         Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
     }
+
+
 }

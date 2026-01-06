@@ -7,12 +7,14 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
@@ -25,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class ProductFragment extends Fragment {
+public class ProductFragment extends BaseFragment {
     private ProductAdapter adapter;
     private boolean isOrderMode = false;
 
@@ -44,13 +46,28 @@ public class ProductFragment extends Fragment {
         tvTitle.setText(category);
 
         ImageButton btnBack = view.findViewById(R.id.btnBackProducts);
-        btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
+        setupBackButton(btnBack, false);
 
         RecyclerView rv = view.findViewById(R.id.recyclerViewProducts);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 
+        List<Product> productList = getProductsByCategory(category);
+
+        // 2. Инициализация адаптера
+        adapter = new ProductAdapter(productList, product -> {
+            if (isOrderMode) {
+                showQuantityDialog(product); // Режим ЗАКАЗА (Без штрих-кода)
+            } else {
+                showProductInfo(product);    // Режим КАТАЛОГА (Со штрих-кодом)
+            }
+        });
+
+        rv.setAdapter(adapter);
+        return view;
+    }
+
+    private List<Product> getProductsByCategory(String category) {
         List<Product> productList = new ArrayList<>();
-        // Наполнение данными (Имя, Цена, Коробка, Штрих-код)
         switch (category) {
             case "Сладкое":
                 productList.add(new Product("Шоколад Аленка", 5060, 20, "46450123456701"));
@@ -78,31 +95,17 @@ public class ProductFragment extends Fragment {
                 productList.add(new Product("Чай Ахмад", 1100, 12, "4601233456707"));
                 break;
             default:
-                productList.add(new Product("Пример ", 1, 1, "0000000000"));
-
-                break;
+                productList.add(new Product("Пример", 1, 1, "0000000000"));
         }
-
-        // 2. Инициализация адаптера
-        adapter = new ProductAdapter(productList, product -> {
-            if (isOrderMode) {
-                showQuantityDialog(product); // Режим ЗАКАЗА (Без штрих-кода)
-            } else {
-                showProductInfo(product);    // Режим КАТАЛОГА (Со штрих-кодом)
-            }
-        });
-
-        rv.setAdapter(adapter);
-        return view;
+        return productList;
     }
 
-    // КАРТОЧКА 1: ПРОСМОТР (ИНФОРМАЦИЯ + ШТРИХ-КОД)
+    // ПРОСМОТР товара (информация + штрих-код)
     private void showProductInfo(Product product) {
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
         View view = getLayoutInflater().inflate(R.layout.layout_bottom_sheet_quantity, null);
         dialog.setContentView(view);
 
-        // Прячем кнопки заказа
         view.findViewById(R.id.btnPlus).setVisibility(View.GONE);
         view.findViewById(R.id.btnMinus).setVisibility(View.GONE);
         view.findViewById(R.id.etSheetQuantity).setVisibility(View.GONE);
@@ -110,7 +113,6 @@ public class ProductFragment extends Fragment {
         TextView tvTitle = view.findViewById(R.id.tvSheetTitle);
         MaterialButton btnConfirm = view.findViewById(R.id.btnConfirm);
 
-        // Формируем текст: здесь штрих-код НУЖЕН
         String info = product.getName() +
                 "\n\nШтрих-код: " + product.getBarcode() +
                 "\nЦена: " + product.getPrice() + " ֏" +
@@ -123,7 +125,7 @@ public class ProductFragment extends Fragment {
         dialog.show();
     }
 
-    // КАРТОЧКА 2: ЗАКАЗ (ТОЛЬКО НАЗВАНИЕ И КНОПКИ)
+    // ЗАКАЗ товара (обновление CartManager)
     private void showQuantityDialog(Product product) {
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
         View view = getLayoutInflater().inflate(R.layout.layout_bottom_sheet_quantity, null);
@@ -136,9 +138,9 @@ public class ProductFragment extends Fragment {
         MaterialButton btnConfirm = view.findViewById(R.id.btnConfirm);
         View btnDelete = view.findViewById(R.id.btnDeleteFromCart);
 
-        // УСТАНАВЛИВАЕМ ТОЛЬКО НАЗВАНИЕ (Штрих-код здесь не нужен)
         tvTitle.setText(product.getName());
 
+        // Если товар уже есть в корзине
         if (CartManager.getInstance().hasProduct(product.getName())) {
             Integer currentQty = CartManager.getInstance().getCartItems().get(product.getName());
             etQuantity.setText(String.valueOf(currentQty != null ? currentQty : 1));
@@ -162,19 +164,42 @@ public class ProductFragment extends Fragment {
             btnDelete.setOnClickListener(v -> {
                 CartManager.getInstance().addProduct(product.getName(), 0);
                 adapter.notifyDataSetChanged();
+                notifyParentOrderFragment();
                 dialog.dismiss();
             });
         }
 
         btnConfirm.setOnClickListener(v -> {
             String qtyS = etQuantity.getText().toString();
-            if (!qtyS.isEmpty() && !qtyS.equals("0")) {
-                CartManager.getInstance().addProduct(product.getName(), Integer.parseInt(qtyS));
-                adapter.notifyDataSetChanged();
-                dialog.dismiss();
+            int qty = qtyS.isEmpty() ? 0 : Integer.parseInt(qtyS);
+            if (qty > 0) {
+                CartManager.getInstance().addProduct(product.getName(), qty);
+            } else {
+                CartManager.getInstance().addProduct(product.getName(), 0);
             }
+            adapter.notifyDataSetChanged();
+            notifyParentOrderFragment();
+            dialog.dismiss();
         });
 
         dialog.show();
+    }
+
+    // Метод для уведомления родительского фрагмента (StoreDetails) о изменениях корзины
+    private void notifyParentOrderFragment() {
+        Fragment parent = getParentFragment();
+        if (parent instanceof StoreDetailsFragment) {
+            // Перерисовываем вкладку "Заказ" если она активна
+            ViewPager2 vp = ((StoreDetailsFragment) parent).getViewPager();
+            Fragment orderTab = parent.getChildFragmentManager().findFragmentByTag("f" + vp.getId() + ":1"); // вкладка 1 = Заказ
+            if (orderTab != null && orderTab instanceof OrderTabFragmentInterface) {
+                ((OrderTabFragmentInterface) orderTab).refreshOrderList();
+            }
+        }
+    }
+
+    // Интерфейс для вкладки "Заказ"
+    public interface OrderTabFragmentInterface {
+        void refreshOrderList();
     }
 }

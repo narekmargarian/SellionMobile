@@ -9,12 +9,11 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 
 import com.sellion.mobile.R;
 
 
-public class DebtDetailsFragment extends Fragment {
+public class DebtDetailsFragment extends BaseFragment {
 
     @Nullable
     @Override
@@ -40,7 +39,7 @@ public class DebtDetailsFragment extends Fragment {
         }
 
         // Кнопка назад к списку долгов
-        btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
+        setupBackButton(btnBack, false);
 
         return view;
     }

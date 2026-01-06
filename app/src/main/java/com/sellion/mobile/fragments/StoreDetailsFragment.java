@@ -20,26 +20,28 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.StorePagerAdapter;
 import com.sellion.mobile.entity.CartManager;
 import com.sellion.mobile.entity.OrderModel;
+import com.sellion.mobile.managers.BackPressHandler;
 import com.sellion.mobile.managers.OrderHistoryManager;
 
 import java.util.HashMap;
 import java.util.Map;
 
 
-public class StoreDetailsFragment extends Fragment {
+public class StoreDetailsFragment extends BaseFragment implements BackPressHandler {
     private TextView tvStoreName;
     private ViewPager2 viewPager;
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+
         View view = inflater.inflate(R.layout.fragment_store_details, container, false);
 
         TabLayout tabLayout = view.findViewById(R.id.storeTabLayout);
         viewPager = view.findViewById(R.id.storeViewPager);
         ImageButton btnBack = view.findViewById(R.id.btnBackToRoute);
         View btnSave = view.findViewById(R.id.btnSaveFullOrder);
-
         tvStoreName = view.findViewById(R.id.tvStoreName);
 
         if (getArguments() != null) {
@@ -48,8 +50,6 @@ public class StoreDetailsFragment extends Fragment {
 
         StorePagerAdapter adapter = new StorePagerAdapter(this);
         viewPager.setAdapter(adapter);
-
-        // Гарантирует актуальность корзины при переключении вкладок в 2026 году
         viewPager.setOffscreenPageLimit(2);
 
         btnSave.setOnClickListener(v -> {
@@ -78,19 +78,53 @@ public class StoreDetailsFragment extends Fragment {
             }
         }).attach();
 
-        btnBack.setOnClickListener(v -> showSaveOrderDialog());
+        setupBackButton(btnBack, false); // UI кнопка «назад»
 
         return view;
+    }
+
+    private boolean checkItemsInBasket() {
+        CartManager.getInstance().getCartItems()
+                .entrySet().removeIf(entry -> entry.getValue() == null || entry.getValue() <= 0);
+        return !CartManager.getInstance().getCartItems().isEmpty();
+    }
+
+    @Override
+    public void onBackPressedHandled() {
+        // При нажатии кнопки назад телефона или UI-кнопки
+        showSaveOrderDialog();
+    }
+
+    protected void showSaveOrderDialog() {
+        if (checkItemsInBasket()) {
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Завершение заказа")
+                    .setMessage("Сохранить заказ перед выходом?")
+                    .setPositiveButton("Да, сохранить", (dialog, which) -> saveOrderToDatabase())
+                    .setNegativeButton("Нет", (dialog, which) -> {
+                        CartManager.getInstance().clearCart();
+                        getParentFragmentManager().popBackStack();
+                    })
+                    .setNeutralButton("Отмена", null)
+                    .show();
+        } else {
+            CartManager.getInstance().clearCart();
+            getParentFragmentManager().popBackStack();
+        }
     }
 
     private void saveOrderToDatabase() {
         String storeName = tvStoreName.getText().toString();
         Map<String, Integer> currentItems = new HashMap<>(CartManager.getInstance().getCartItems());
 
+        if (currentItems.isEmpty()) {
+            Toast.makeText(getContext(), "Невозможно сохранить пустой заказ!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         String payment = "Наличные";
         boolean needsInvoice = false;
 
-        // Поиск фрагмента инфо для получения данных об оплате
         Fragment infoFrag = getChildFragmentManager().findFragmentByTag("f" + viewPager.getId() + ":" + 2);
         if (infoFrag instanceof StoreInfoFragment) {
             StoreInfoFragment details = (StoreInfoFragment) infoFrag;
@@ -104,12 +138,8 @@ public class StoreDetailsFragment extends Fragment {
         CartManager.getInstance().clearCart();
         Toast.makeText(getContext(), "Заказ сохранен!", Toast.LENGTH_SHORT).show();
 
-        // ИСПРАВЛЕНИЕ: Переход в список заказов вместо Dashboard
         if (getActivity() != null) {
-            // Закрываем текущий экран (сбор заказа)
             getParentFragmentManager().popBackStack();
-
-            // Открываем историю заказов
             getParentFragmentManager().beginTransaction()
                     .replace(R.id.fragment_container, new OrdersFragment())
                     .addToBackStack(null)
@@ -117,21 +147,8 @@ public class StoreDetailsFragment extends Fragment {
         }
     }
 
-    private void showSaveOrderDialog() {
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Завершение заказа")
-                .setMessage("Сохранить заказ перед выходом?")
-                .setPositiveButton("Да, сохранить", (dialog, which) -> saveOrderToDatabase())
-                .setNegativeButton("Нет", (dialog, which) -> {
-                    CartManager.getInstance().clearCart();
-                    // ИСПРАВЛЕНИЕ: Возвращаемся на экран маршрута/клиентов
-                    getParentFragmentManager().popBackStack();
-                })
-                .setNeutralButton("Отмена", null)
-                .show();
-    }
-
-    private boolean checkItemsInBasket() {
-        return !CartManager.getInstance().getCartItems().isEmpty();
+    public ViewPager2 getViewPager() {
+        return viewPager;
     }
 }
+

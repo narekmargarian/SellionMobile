@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class DebtsFragment extends Fragment {
+public class DebtsFragment extends BaseFragment {
 
     @Nullable
     @Override
@@ -30,7 +30,7 @@ public class DebtsFragment extends Fragment {
         ImageButton btnBack = view.findViewById(R.id.btnBackDebts);
         RecyclerView recyclerView = view.findViewById(R.id.recyclerDebts);
 
-        btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
+        setupBackButton(btnBack, false);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
 
