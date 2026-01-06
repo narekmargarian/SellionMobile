@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="?attr/selectableItemBackground">
+
+    <TextView
+        android:id="@+id/tvClientName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Название магазина"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#1B1B1F"/>
+
+    <TextView
+        android:id="@+id/tvClientAddress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Адрес"
+        android:textSize="14sp"
+        android:textColor="#555555"/>
+
+</LinearLayout>
