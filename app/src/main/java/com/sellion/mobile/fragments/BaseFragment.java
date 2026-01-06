@@ -7,12 +7,17 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
 import com.sellion.mobile.R;
-import com.sellion.mobile.managers.BackPressHandler;
+import com.sellion.mobile.handler.BackPressHandler;
 
 public abstract class BaseFragment extends Fragment {
 
     protected void setupBackButton(View btnBack, boolean returnToRoot) {
-        btnBack.setOnClickListener(v -> handleBack(returnToRoot));
+
+        if (btnBack!=null){
+            btnBack.setOnClickListener(v -> handleBack(returnToRoot));
+        }
+
+
     }
 
     // Универсальная логика кнопки назад

@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -17,8 +18,7 @@ import com.sellion.mobile.managers.SessionManager;
 
 public class DashboardFragment extends BaseFragment {
 
-    public DashboardFragment() {
-    }
+    public DashboardFragment() { }
 
     @Nullable
     @Override
@@ -26,33 +26,33 @@ public class DashboardFragment extends BaseFragment {
         View view = inflater.inflate(R.layout.fragment_dashboard, container, false);
         TextView title = view.findViewById(R.id.managerTitle);
 
-        // КАРТОЧКИ
         MaterialCardView cardClients = view.findViewById(R.id.cardClients);
         MaterialCardView cardOrders = view.findViewById(R.id.cardOrders);
         MaterialCardView cardDebts = view.findViewById(R.id.cardDebts);
         MaterialCardView cardSync = view.findViewById(R.id.cardSync);
-        MaterialCardView cardRoutes = view.findViewById(R.id.cardRoutes);
+        MaterialCardView cardRoutes = view.findViewById(R.id.cardRoutes); // теперь "Возврат"
         MaterialCardView cardCatalog = view.findViewById(R.id.cardCatalog);
 
-        // ЛОГИКА ОТОБРАЖЕНИЯ ID МЕНЕДЖЕРА (ИСПРАВЛЕНО)
-        // Теперь мы берем ID из сессии, он не пропадет при переходах
         String managerId = SessionManager.getInstance().getManagerId();
         if (managerId != null) {
             title.setText("Менеджер: " + managerId);
         }
 
-        // НАВИГАЦИЯ
-        cardCatalog.setOnClickListener(v -> openFragment(new CatalogFragment()));
-        cardRoutes.setOnClickListener(v -> openFragment(new RoutesFragment()));
-        cardSync.setOnClickListener(v -> openFragment(new SyncFragment()));
-        cardDebts.setOnClickListener(v -> openFragment(new DebtsFragment()));
         cardClients.setOnClickListener(v -> openFragment(new ClientsFragment()));
         cardOrders.setOnClickListener(v -> openFragment(new OrdersFragment()));
+        cardDebts.setOnClickListener(v -> openFragment(new DebtsFragment()));
+        cardSync.setOnClickListener(v -> openFragment(new SyncFragment()));
+        cardCatalog.setOnClickListener(v -> openFragment(new CatalogFragment()));
+
+        // Карточка "Маршруты" теперь открывает "Возврат" или другую логику
+        cardRoutes.setOnClickListener(v -> {
+            // Заглушка: позже можно реализовать возврат
+            Toast.makeText(getContext(), "Возврат пока не реализован", Toast.LENGTH_SHORT).show();
+        });
 
         return view;
     }
 
-    // Вспомогательный метод для чистоты кода
     private void openFragment(Fragment fragment) {
         getParentFragmentManager().beginTransaction()
                 .replace(R.id.fragment_container, fragment)

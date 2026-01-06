@@ -1,60 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-
+    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="#F8F9FA">
 
-    <!-- 1. Шапка с кнопкой назад -->
+    <!-- Верхняя панель с кнопкой назад -->
     <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbarCreateOrder"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="#FFFFFF"
         android:elevation="4dp">
-        <ImageButton
-            android:id="@+id/btnBackToOrdersList"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_back" />
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Новый заказ: Выбор магазина"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:layout_gravity="center" />
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <ImageButton
+                android:id="@+id/btnBackCreateOrder"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_back" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:text="Новый заказ"
+                android:textColor="#1B1B1F"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+        </RelativeLayout>
     </androidx.appcompat.widget.Toolbar>
 
-    <!-- 2. ПЕРЕКЛЮЧАТЕЛЬ (TabLayout) -->
+    <!-- TabLayout -->
     <com.google.android.material.tabs.TabLayout
-        android:id="@+id/tabLayoutOrder"
+        android:id="@+id/createOrderTabLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        app:tabIndicatorColor="#6200EE"
+        app:tabSelectedTextColor="#6200EE"
+        app:tabTextColor="#7A7A7A"
         android:background="#FFFFFF"
-        app:tabIndicatorColor="#001D36"
-        app:tabSelectedTextColor="#001D36"
-        app:tabTextColor="#757575">
+        app:tabIndicatorHeight="3dp"/>
 
-        <com.google.android.material.tabs.TabItem
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Маршрут" />
-
-        <com.google.android.material.tabs.TabItem
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Клиенты" />
-    </com.google.android.material.tabs.TabLayout>
-
-    <!-- 3. СПИСОК (RecyclerView) -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerOrderSelection"
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/storeViewPager"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="8dp" />
+        android:background="#FFFFFF" />
+
+    <!-- ViewPager2 -->
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/createOrderViewPager"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
 
 </LinearLayout>

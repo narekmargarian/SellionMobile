@@ -22,7 +22,7 @@
             android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_back"
-            android:tint="#000000" />
+            app:tint="#000000" />
 
         <TextView
             android:id="@+id/tvStoreName"

@@ -20,7 +20,7 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.StorePagerAdapter;
 import com.sellion.mobile.entity.CartManager;
 import com.sellion.mobile.entity.OrderModel;
-import com.sellion.mobile.managers.BackPressHandler;
+import com.sellion.mobile.handler.BackPressHandler;
 import com.sellion.mobile.managers.OrderHistoryManager;
 
 import java.util.HashMap;

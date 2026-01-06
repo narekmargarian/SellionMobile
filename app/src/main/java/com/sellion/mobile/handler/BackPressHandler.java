@@ -1,4 +1,4 @@
-package com.sellion.mobile.managers;
+package com.sellion.mobile.handler;
 
 public interface BackPressHandler {
     void onBackPressedHandled();

@@ -5,92 +5,50 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
 import com.sellion.mobile.R;
-import com.sellion.mobile.adapters.DebtsAdapter;
-import com.sellion.mobile.entity.DebtModel;
+import com.sellion.mobile.adapters.CreateOrderPagerAdapter;
 import com.sellion.mobile.entity.OrderModel;
 import com.sellion.mobile.managers.OrderHistoryManager;
 
-import java.util.ArrayList;
-import java.util.List;
-
 
 public class CreateOrderFragment extends BaseFragment {
-    public CreateOrderFragment() {
-    }
-
-    private RecyclerView recyclerView; // Добавь переменную
+    private ViewPager2 viewPager;
+    private TabLayout tabLayout;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_create_order, container, false);
+        View view = inflater.inflate(R.layout.fragment_store_details, container, false);
 
-        ImageButton btnBack = view.findViewById(R.id.btnBackToOrdersList);
-        TabLayout tabLayout = view.findViewById(R.id.tabLayoutOrder);
-
-        // Находим RecyclerView
-        recyclerView = view.findViewById(R.id.recyclerOrderSelection);
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        viewPager = view.findViewById(R.id.storeViewPager);
+        tabLayout = view.findViewById(R.id.storeTabLayout);
+        ImageButton btnBack = view.findViewById(R.id.btnBackToRoute);
 
         setupBackButton(btnBack, false);
 
-        tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
-            @Override
-            public void onTabSelected(TabLayout.Tab tab) {
-                if (tab.getPosition() == 0) loadRoute();
-                else loadAllClients();
-            }
+        CreateOrderPagerAdapter adapter = new CreateOrderPagerAdapter(this);
+        viewPager.setAdapter(adapter);
 
-            @Override
-            public void onTabUnselected(TabLayout.Tab tab) {
-            }
+        new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
+            tab.setText(position == 0 ? "Маршрут" : "Клиенты");
+        }).attach();
 
-            @Override
-            public void onTabReselected(TabLayout.Tab tab) {
-            }
-        });
-
-        loadRoute(); // Загружаем при старте
         return view;
     }
 
-    private void loadRoute() {
-        // Создаем список магазинов на сегодня
-        List<DebtModel> routeList = new ArrayList<>();
-        routeList.add(new DebtModel("ZOVQ Arshakunyac", "ИП Акопян", "1122", "Комитаса 15", 0));
-        routeList.add(new DebtModel("ZOVQ 1", "ИП Акопян", "1122", "Комитаса 15", 0));
-        routeList.add(new DebtModel("ZOVQ 2", "ИП Акопян", "1122", "Комитаса 15", 0));
-        routeList.add(new DebtModel("ZOVQ 3", "ИП Акопян", "1122", "Комитаса 15", 0));
-        routeList.add(new DebtModel("ZOVQ Bagratunyac", "ИП Нарине", "3344", "Маштоца 20", 15000));
-
-        // Настраиваем адаптер с переходом в детали магазина
-        DebtsAdapter adapter = new DebtsAdapter(routeList, store -> {
-            // ПЕРЕХОД В ДЕТАЛИ МАГАЗИНА (Товары, Заказ, О заказе)
-            openStoreDetails(store.getShopName());
-        });
-        recyclerView.setAdapter(adapter);
-    }
-
-    private void loadAllClients() {
-        // Здесь можно добавить другой список (всех клиентов)
-        List<DebtModel> allClients = new ArrayList<>();
-        allClients.add(new DebtModel("Магазин Армения", "ООО Тест", "0000", "Ереван", 0));
-
-        DebtsAdapter adapter = new DebtsAdapter(allClients, store -> openStoreDetails(store.getShopName()));
-        recyclerView.setAdapter(adapter);
-    }
-
-    private void openStoreDetails(String storeName) {
-        // 1. Проверяем, есть ли уже ПРЕДЫДУЩИЙ неотправленный заказ для этого магазина
+    // Центральный метод обработки выбора клиента
+    public void onClientSelected(String storeName) {
+        // 1. Проверка на наличие неотправленного заказа
         boolean hasPendingOrder = false;
         for (OrderModel order : OrderHistoryManager.getInstance().getSavedOrders()) {
             if (order.shopName.equals(storeName) && order.status == OrderModel.Status.PENDING) {
@@ -100,24 +58,27 @@ public class CreateOrderFragment extends BaseFragment {
         }
 
         if (hasPendingOrder) {
-            // Если нашли неотправленный заказ — не даем создать новый
             new AlertDialog.Builder(requireContext())
                     .setTitle("Внимание")
-                    .setMessage("Для магазина '" + storeName + "' уже есть активный заказ, который не был отправлен в офис. Отредактируйте его в истории или отправьте документы.")
+                    .setMessage("Для магазина '" + storeName + "' уже есть активный заказ. Отредактируйте его в истории или отправьте текущий.")
                     .setPositiveButton("Понятно", null)
                     .show();
         } else {
-            // Если неотправленных заказов нет (или все уже SENT), разрешаем открыть новый
-            StoreDetailsFragment fragment = new StoreDetailsFragment();
-            Bundle args = new Bundle();
-            args.putString("store_name", storeName);
-            fragment.setArguments(args);
-
-            getParentFragmentManager().beginTransaction()
-                    .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
-                    .replace(R.id.fragment_container, fragment)
-                    .addToBackStack(null)
-                    .commit();
+            // 2. Если заказа нет — открываем детали
+            openStoreDetails(storeName);
         }
+    }
+
+    private void openStoreDetails(String storeName) {
+        StoreDetailsFragment fragment = new StoreDetailsFragment();
+        Bundle args = new Bundle();
+        args.putString("store_name", storeName);
+        fragment.setArguments(args);
+
+        getParentFragmentManager().beginTransaction()
+                .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit();
     }
 }

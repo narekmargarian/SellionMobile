@@ -15,5 +15,17 @@ public class ClientModel {
     public String toString() {
         return name; // Чтобы отображалось имя магазина в списках/диалогах
     }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public String getIp() {
+        return ip;
+    }
 }
 
