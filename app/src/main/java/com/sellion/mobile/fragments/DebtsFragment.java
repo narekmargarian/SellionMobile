@@ -8,7 +8,6 @@ import android.widget.ImageButton;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -42,9 +41,12 @@ public class DebtsFragment extends BaseFragment {
         ClientModel client2 = ClientManager.getInstance().getClientByName("Carrefour ТЦ Ереван Мол");
         ClientModel client3 = ClientManager.getInstance().getClientByName("MG Маркет Аван");
 
-        if (client1 != null) debtList.add(new DebtModel(client1.getName(), client1.getIp(), "0254871", client1.getAddress(), 45000));
-        if (client2 != null) debtList.add(new DebtModel(client2.getName(), client2.getIp(), "0312457", client2.getAddress(), 125000));
-        if (client3 != null) debtList.add(new DebtModel(client3.getName(), client3.getIp(), "0125478", client3.getAddress(), 0));
+        if (client1 != null)
+            debtList.add(new DebtModel(client1.getName(), client1.getIp(), "0254871", client1.getAddress(), 45000));
+        if (client2 != null)
+            debtList.add(new DebtModel(client2.getName(), client2.getIp(), "0312457", client2.getAddress(), 125000));
+        if (client3 != null)
+            debtList.add(new DebtModel(client3.getName(), client3.getIp(), "0125478", client3.getAddress(), 0));
 
         DebtsAdapter adapter = new DebtsAdapter(debtList, this::openDetails);
         recyclerView.setAdapter(adapter);

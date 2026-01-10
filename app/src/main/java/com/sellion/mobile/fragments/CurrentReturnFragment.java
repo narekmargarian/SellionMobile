@@ -96,41 +96,41 @@ public class CurrentReturnFragment extends BaseFragment {
             case "Шоколад Аленка":
                 return 500;
             case "Шоколад 1":
-                return 5574;
+                return 1000;
             case "Шоколад 2":
-                return 45452;
+                return 1500;
             case "Шоколад 3":
-                return 1212;
+                return 1250;
             case "Конфеты Мишка":
-                return 2500;
+                return 1790;
             case "Вафли Артек":
-                return 3500;
+                return 960;
             case "Вафли 1":
-                return 12560;
+                return 630;
             case "Вафли 2":
-                return 12121;
+                return 2560;
             case "Вафли 3":
-                return 12;
+                return 2430;
             case "Lays 1":
-                return 785;
+                return 1020;
             case "Lays 2":
-                return 125;
+                return 4450;
             case "Lays Сметана/Зелень":
-                return 10001;
+                return 440;
             case "Pringles Оригинал":
-                return 789;
+                return 750;
             case "Pringles 1":
-                return 123;
+                return 3390;
             case "Pringles 2":
-                return 566;
+                return 890;
             case "Чай 1":
-                return 120;
+                return 220;
             case "Чай 2":
-                return 698;
+                return 9530;
             case "Чай 3":
-                return 900;
+                return 1990;
             case "Чай Ахмад":
-                return 1100;
+                return 50000000;
             default:
                 return 0;
         }
@@ -143,16 +143,6 @@ public class CurrentReturnFragment extends BaseFragment {
                 return false;
             }
 
-            //            @Override
-//            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-//                int position = viewHolder.getAdapterPosition();
-//                if (position != RecyclerView.NO_POSITION) {
-//                    Product productToDelete = selectedProducts.get(position);
-//                    CartManager.getInstance().addProduct(productToDelete.getName(), 0);
-//                    updateUI(); // Сразу пересчитываем сумму
-//                    Toast.makeText(getContext(), "Удалено: " + productToDelete.getName(), Toast.LENGTH_SHORT).show();
-//                }
-//            }
             @Override
             public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
                 int position = viewHolder.getBindingAdapterPosition();

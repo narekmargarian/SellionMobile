@@ -1,12 +1,6 @@
 package com.sellion.mobile.fragments;
 
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,11 +8,15 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.OrderHistoryItemsAdapter;
 import com.sellion.mobile.entity.CartManager;
 import com.sellion.mobile.entity.ReturnModel;
-import com.sellion.mobile.helper.NavigationHelper;
 import com.sellion.mobile.managers.ReturnHistoryManager;
 import com.sellion.mobile.managers.ReturnManager;
 
@@ -111,26 +109,46 @@ public class ReturnDetailsViewFragment extends BaseFragment {
     private int getPriceForProduct(String name) {
         if (name == null) return 0;
         switch (name) {
-            case "Шоколад Аленка": return 500;
-            case "Шоколад 1": return 5574;
-            case "Шоколад 2": return 45452;
-            case "Шоколад 3": return 1212;
-            case "Конфеты Мишка": return 2500;
-            case "Вафли Артек": return 3500;
-            case "Вафли 1": return 12560;
-            case "Вафли 2": return 12121;
-            case "Вафли 3": return 12;
-            case "Lays 1": return 785;
-            case "Lays 2": return 125;
-            case "Lays Сметана/Зелень": return 10001;
-            case "Pringles Оригинал": return 789;
-            case "Pringles 1": return 123;
-            case "Pringles 2": return 566;
-            case "Чай 1": return 120;
-            case "Чай 2": return 698;
-            case "Чай 3": return 900;
-            case "Чай Ахмад": return 1100;
-            default: return 0;
+            case "Шоколад Аленка":
+                return 500;
+            case "Шоколад 1":
+                return 1000;
+            case "Шоколад 2":
+                return 1500;
+            case "Шоколад 3":
+                return 1250;
+            case "Конфеты Мишка":
+                return 1790;
+            case "Вафли Артек":
+                return 960;
+            case "Вафли 1":
+                return 630;
+            case "Вафли 2":
+                return 2560;
+            case "Вафли 3":
+                return 2430;
+            case "Lays 1":
+                return 1020;
+            case "Lays 2":
+                return 4450;
+            case "Lays Сметана/Зелень":
+                return 440;
+            case "Pringles Оригинал":
+                return 750;
+            case "Pringles 1":
+                return 3390;
+            case "Pringles 2":
+                return 890;
+            case "Чай 1":
+                return 220;
+            case "Чай 2":
+                return 9530;
+            case "Чай 3":
+                return 1990;
+            case "Чай Ахмад":
+                return 50000000;
+            default:
+                return 0;
         }
     }
 }

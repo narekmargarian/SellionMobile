@@ -12,7 +12,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
@@ -95,42 +94,6 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
         setupBackButton(btnBack, false);
         return view;
     }
-
-//    private void saveOrderToDatabase() {
-//        String storeName = tvStoreName.getText().toString();
-//        Map<String, Integer> currentItems = new HashMap<>(CartManager.getInstance().getCartItems());
-//
-//        String dateStr = CartManager.getInstance().getDeliveryDate();
-//        String payMethod = CartManager.getInstance().getPaymentMethod();
-//        boolean isInvoice = CartManager.getInstance().isSeparateInvoice();
-//
-//        // Создаем модель заказа
-//        OrderModel om = new OrderModel(
-//                storeName,
-//                currentItems,
-//                payMethod,
-//                dateStr,
-//                isInvoice);
-//
-//        // 1. Сохраняем в историю
-//        OrderHistoryManager.getInstance().addOrder(om);
-//
-//        // 2. Очищаем корзину
-//        CartManager.getInstance().clearCart();
-//
-//        Toast.makeText(getContext(), "Заказ оформлен!", Toast.LENGTH_SHORT).show();
-//
-//        getParentFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);        // 3. ПЕРЕХОД В СПИСОК ЗАКАЗОВ
-//        // Мы очищаем стек, чтобы пользователь не вернулся назад в пустую корзину
-//        if (getActivity() != null) {
-//            getParentFragmentManager().beginTransaction()
-//                    .replace(R.id.fragment_container, new OrdersFragment()) // замените на ваше имя класса
-//                    .addToBackStack(null)
-//                    .commit();
-//        }
-//
-//    }
-
 
 
     private void saveOrderToDatabase() {

@@ -70,8 +70,8 @@ public class OrderRouteFragment extends Fragment {
     private void loadClientsForDay(int dayIndex) {
         // ... (остальной код метода без изменений) ...
         List<String> allClients = ClientManager.getInstance().getStoreNames();
-        int start = Math.min(dayIndex * 5, allClients.size());
-        int end = Math.min(start + 5, allClients.size());
+        int start = Math.min(dayIndex * 8, allClients.size());
+        int end = Math.min(start + 8, allClients.size());
         List<String> dayClients = allClients.subList(start, end);
 
         ClientAdapter adapter = new ClientAdapter(dayClients, name -> {

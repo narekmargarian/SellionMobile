@@ -9,7 +9,8 @@ public class ReturnHistoryManager {
     private static ReturnHistoryManager instance;
     private final List<ReturnModel> returns = new ArrayList<>();
 
-    private ReturnHistoryManager() {}
+    private ReturnHistoryManager() {
+    }
 
     public static synchronized ReturnHistoryManager getInstance() {
         if (instance == null) instance = new ReturnHistoryManager();

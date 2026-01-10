@@ -43,18 +43,42 @@ public class OrderHistoryItemsAdapter extends RecyclerView.Adapter<OrderHistoryI
         switch (name) {
             case "Шоколад Аленка":
                 return 500;
+            case "Шоколад 1":
+                return 1000;
+            case "Шоколад 2":
+                return 1500;
+            case "Шоколад 3":
+                return 1250;
             case "Конфеты Мишка":
-                return 2500;
+                return 1790;
             case "Вафли Артек":
-                return 3500;
+                return 960;
+            case "Вафли 1":
+                return 630;
+            case "Вафли 2":
+                return 2560;
+            case "Вафли 3":
+                return 2430;
+            case "Lays 1":
+                return 1020;
+            case "Lays 2":
+                return 4450;
             case "Lays Сметана/Зелень":
-                return 785;
+                return 440;
             case "Pringles Оригинал":
-                return 789;
-            case "Чай Гринфилд":
-                return 900;
+                return 750;
+            case "Pringles 1":
+                return 3390;
+            case "Pringles 2":
+                return 890;
+            case "Чай 1":
+                return 220;
+            case "Чай 2":
+                return 9530;
+            case "Чай 3":
+                return 1990;
             case "Чай Ахмад":
-                return 1100;
+                return 50000000;
             default:
                 return 0;
         }

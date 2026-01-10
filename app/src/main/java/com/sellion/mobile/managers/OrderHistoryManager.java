@@ -9,7 +9,8 @@ public class OrderHistoryManager {
     private static OrderHistoryManager instance;
     private final List<OrderModel> orders = new ArrayList<>();
 
-    private OrderHistoryManager() {}
+    private OrderHistoryManager() {
+    }
 
     public static synchronized OrderHistoryManager getInstance() {
         if (instance == null) instance = new OrderHistoryManager();

@@ -88,9 +88,15 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
         // Настройка вкладок
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             switch (position) {
-                case 0: tab.setText("Товары"); break;
-                case 1: tab.setText("Возврат"); break;
-                case 2: tab.setText("Причина"); break;
+                case 0:
+                    tab.setText("Товары");
+                    break;
+                case 1:
+                    tab.setText("Возврат");
+                    break;
+                case 2:
+                    tab.setText("Причина");
+                    break;
             }
         }).attach();
 
@@ -178,10 +184,14 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
         @Override
         public Fragment createFragment(int position) {
             switch (position) {
-                case 0: return new CatalogFragment();      // Вкладка с каталогом товаров
-                case 1: return new CurrentReturnFragment(); // Вкладка со списком выбранного
-                case 2: return new ReturnInfoFragment();   // Вкладка с выбором причины и даты
-                default: return new CatalogFragment();
+                case 0:
+                    return new CatalogFragment();      // Вкладка с каталогом товаров
+                case 1:
+                    return new CurrentReturnFragment(); // Вкладка со списком выбранного
+                case 2:
+                    return new ReturnInfoFragment();   // Вкладка с выбором причины и даты
+                default:
+                    return new CatalogFragment();
             }
         }
     }

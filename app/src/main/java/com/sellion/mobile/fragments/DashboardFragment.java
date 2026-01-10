@@ -8,7 +8,6 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 
 import com.google.android.material.card.MaterialCardView;
 import com.sellion.mobile.R;
@@ -18,7 +17,8 @@ import com.sellion.mobile.managers.SessionManager;
 
 public class DashboardFragment extends BaseFragment {
 
-    public DashboardFragment() { }
+    public DashboardFragment() {
+    }
 
     @Nullable
     @Override

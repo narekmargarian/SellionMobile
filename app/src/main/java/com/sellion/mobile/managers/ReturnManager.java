@@ -15,8 +15,13 @@ public class ReturnManager {
         return instance;
     }
 
-    public String getReturnReason() { return reason; }
-    public void setReturnReason(String r) { this.reason = r; }
+    public String getReturnReason() {
+        return reason;
+    }
+
+    public void setReturnReason(String r) {
+        this.reason = r;
+    }
 
     public String getReturnDate() {
         // Если дата пустая, генерируем "завтра"
@@ -29,7 +34,9 @@ public class ReturnManager {
         return date;
     }
 
-    public void setReturnDate(String d) { this.date = d; }
+    public void setReturnDate(String d) {
+        this.date = d;
+    }
 
     public void clear() {
         reason = "Просрочка";
