@@ -15,7 +15,7 @@
 
         <!-- Выбор даты -->
         <LinearLayout
-            android:id="@+id/layoutSelectDeliveryDate"
+            android:id="@+id/layoutSelectReturnDate"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
@@ -31,7 +31,7 @@
                 android:textSize="16sp" />
 
             <TextView
-                android:id="@+id/tvDeliveryDate"
+                android:id="@+id/tvReturnDate"
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
@@ -69,24 +69,9 @@
             android:orientation="vertical"
             android:visibility="gone" />
 
-        <TextView
-            android:id="@+id/tvReturnReasonValue"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:padding="12dp"
-            android:background="@drawable/bg_edittext"
-            android:text="Нажмите, чтобы выбрать причину"
-            android:textColor="#2196F3"
-            android:textSize="16sp"
-            android:textStyle="bold" />
 
-        <!-- Скрытый чекбокс, чтобы не ломать старую логику BaseFragment если нужно -->
-        <CheckBox
-            android:id="@+id/checkboxSeparateInvoice"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:visibility="gone" />
+
+
 
     </LinearLayout>
 

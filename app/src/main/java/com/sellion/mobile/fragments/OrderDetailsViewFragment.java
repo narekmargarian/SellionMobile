@@ -9,7 +9,6 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -31,14 +30,18 @@ public class OrderDetailsViewFragment extends BaseFragment {
         TextView tvTitle = view.findViewById(R.id.tvViewOrderTitle);
         TextView tvPaymentMethod = view.findViewById(R.id.tvViewOrderPaymentMethod);
         TextView tvInvoiceStatus = view.findViewById(R.id.tvViewOrderInvoiceStatus);
+        TextView tvDate = view.findViewById(R.id.tvViewOrderDate);
         TextView tvTotalSum = view.findViewById(R.id.tvViewOrderTotalSum);
         RecyclerView rv = view.findViewById(R.id.rvViewOrderItems);
+        Button btnEdit = view.findViewById(R.id.btnEditThisOrder);
+
 
         tvTitle.setText(shopName);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 
+
         OrderModel currentOrder = null;
-        for (OrderModel o : OrderHistoryManager.getInstance().getSavedOrders()) {
+        for (OrderModel o : OrderHistoryManager.getInstance().getOrders()) {
             if (o.shopName.equals(shopName)) {
                 currentOrder = o;
                 break;
@@ -52,22 +55,17 @@ public class OrderDetailsViewFragment extends BaseFragment {
             // 1. Детали заказа
             tvPaymentMethod.setText("Оплата: " + finalOrder.paymentMethod);
             tvInvoiceStatus.setText("Раздельная фактура: " + (finalOrder.needsSeparateInvoice ? "Да" : "Нет"));
+            tvDate.setText("Дата доставки: " + finalOrder.deliveryDate);
 
             // 2. РАСЧЕТ ИТОГОВОЙ СУММЫ ЗАКАЗА
-            double totalOrderSum = 0;
-            for (Map.Entry<String, Integer> entry : finalOrder.items.entrySet()) {
-                totalOrderSum += (getPriceForProduct(entry.getKey()) * entry.getValue());
-            }
-            if (tvTotalSum != null) {
-                tvTotalSum.setText(String.format("Итоговая сумма: %,.0f ֏", totalOrderSum));
-            }
+            calculateTotal(finalOrder, tvTotalSum);
 
             // 3. Адаптер товаров
             OrderHistoryItemsAdapter adapter = new OrderHistoryItemsAdapter(finalOrder.items);
             rv.setAdapter(adapter);
 
             // Логика кнопки "Изменить"
-            Button btnEdit = view.findViewById(R.id.btnEditThisOrder);
+
             if (finalOrder.status == OrderModel.Status.SENT) {
                 btnEdit.setVisibility(View.GONE);
             } else {
@@ -77,7 +75,7 @@ public class OrderDetailsViewFragment extends BaseFragment {
                     CartManager.getInstance().getCartItems().putAll(finalOrder.items);
 
                     // 2. Переходим в экран сбора заказа
-                    StoreDetailsFragment storeFrag = new StoreDetailsFragment();
+                    OrderDetailsFragment storeFrag = new OrderDetailsFragment();
                     Bundle b = new Bundle();
                     b.putString("store_name", finalOrder.shopName);
                     storeFrag.setArguments(b);
@@ -94,7 +92,17 @@ public class OrderDetailsViewFragment extends BaseFragment {
         return view;
     }
 
-    // Справочник цен
+    private void calculateTotal(OrderModel finalOrder, TextView tvTotalSum) {
+        double totalOrderSum = 0;
+        for (Map.Entry<String, Integer> entry : finalOrder.items.entrySet()) {
+            totalOrderSum += (getPriceForProduct(entry.getKey()) * entry.getValue());
+        }
+        if (tvTotalSum != null) {
+            tvTotalSum.setText(String.format("Итоговая сумма: %,.0f ֏", totalOrderSum));
+        }
+    }
+
+
     private int getPriceForProduct(String name) {
         if (name == null) return 0;
         switch (name) {

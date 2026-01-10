@@ -68,6 +68,17 @@
         android:text="Раздельная фактура: -"
         android:textSize="14sp"
         android:textColor="#4CAF50"/>
+
+    <TextView
+        android:id="@+id/tvViewOrderDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:paddingBottom="8dp"
+        android:text="Дата отправки: -"
+        android:textSize="14sp"
+        android:textColor="#4CAF50"/>
     <TextView
         android:id="@+id/tvViewOrderTotalSum"
         android:layout_width="match_parent"

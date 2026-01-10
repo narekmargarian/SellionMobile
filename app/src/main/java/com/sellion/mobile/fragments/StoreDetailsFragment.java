@@ -8,6 +8,7 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -18,171 +19,191 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.sellion.mobile.R;
-import com.sellion.mobile.adapters.StorePagerAdapter;
 import com.sellion.mobile.entity.CartManager;
 import com.sellion.mobile.entity.OrderModel;
-import com.sellion.mobile.handler.BackPressHandler;
 import com.sellion.mobile.managers.OrderHistoryManager;
 
 import java.util.HashMap;
 import java.util.Map;
 
 
-public class StoreDetailsFragment extends BaseFragment implements BackPressHandler {
-    private TextView tvStoreName;
-    private ViewPager2 viewPager;
-
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-
-        // 1. Сначала инфлейтим макет
-        View view = inflater.inflate(R.layout.fragment_store_details, container, false);
-
-        // 2. Инициализируем View (находим ID)
-        TabLayout tabLayout = view.findViewById(R.id.storeTabLayout);
-        viewPager = view.findViewById(R.id.storeViewPager);
-        ImageButton btnBack = view.findViewById(R.id.btnBackToRoute);
-        View btnSave = view.findViewById(R.id.btnSaveFullOrder);
-        tvStoreName = view.findViewById(R.id.tvStoreName);
-
-        // 3. Установка данных из аргументов
-        if (getArguments() != null) {
-            tvStoreName.setText(getArguments().getString("store_name"));
-        }
-
-        // 4. Настройка адаптера
-        StorePagerAdapter adapter = new StorePagerAdapter(this);
-        viewPager.setAdapter(adapter);
-        viewPager.setOffscreenPageLimit(2);
-
-        // 5. ТЕПЕРЬ настраиваем колбэк (теперь viewPager НЕ null)
-        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageSelected(int position) {
-                super.onPageSelected(position);
-                // Если перешли на вкладку корзины (позиция 1)
-                if (position == 1) {
-                    Fragment currentFragment = getChildFragmentManager().findFragmentByTag("f" + viewPager.getId() + ":" + position);
-                    if (currentFragment instanceof CurrentOrderFragment) {
-                        ((CurrentOrderFragment) currentFragment).updateUI();
-                    }
-                }
-            }
-        });
-
-        // 6. Кнопка сохранить
-        btnSave.setOnClickListener(v -> {
-            if (!checkItemsInBasket()) {
-                new AlertDialog.Builder(requireContext())
-                        .setTitle("Пустой заказ")
-                        .setMessage("Вы не выбрали ни одного товара.")
-                        .setPositiveButton("ОК", null)
-                        .show();
-            } else {
-                saveOrderToDatabase();
-            }
-        });
-
-        // 7. Настройка табов
-        new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
-            switch (position) {
-                case 0: tab.setText("Товары"); break;
-                case 1: tab.setText("Заказ"); break;
-                case 2: tab.setText("О заказе"); break;
-            }
-        }).attach();
-
-        // 8. Настройка кнопки назад
-        setupBackButton(btnBack, false);
-
-        return view;
-    }
-
-    private boolean checkItemsInBasket() {
-        CartManager.getInstance().getCartItems()
-                .entrySet().removeIf(entry -> entry.getValue() == null || entry.getValue() <= 0);
-        return !CartManager.getInstance().getCartItems().isEmpty();
-    }
-
-    @Override
-    public void onBackPressedHandled() {
-        showSaveOrderDialog();
-    }
-
-    protected void showSaveOrderDialog() {
-        if (checkItemsInBasket()) {
-            new AlertDialog.Builder(requireContext())
-                    .setTitle("Завершение заказа")
-                    .setMessage("Сохранить заказ перед выходом?")
-                    .setPositiveButton("Да, сохранить", (dialog, which) -> saveOrderToDatabase())
-                    .setNegativeButton("Нет", (dialog, which) -> {
-                        CartManager.getInstance().clearCart();
-                        getParentFragmentManager().popBackStack();
-                    })
-                    .setNeutralButton("Отмена", null)
-                    .show();
-        } else {
-            CartManager.getInstance().clearCart();
-            getParentFragmentManager().popBackStack();
-        }
-    }
-
-    private void saveOrderToDatabase() {
-        String storeName = tvStoreName.getText().toString();
-        Map<String, Integer> currentItems = new HashMap<>(CartManager.getInstance().getCartItems());
-
-        if (currentItems.isEmpty()) {
-            Toast.makeText(getContext(), "Невозможно сохранить пустой заказ!", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        String payment = "Наличные";
-        boolean needsInvoice = false;
-
-        Fragment infoFrag = getChildFragmentManager().findFragmentByTag("f" + viewPager.getId() + ":" + 2);
-        if (infoFrag instanceof StoreInfoFragment) {
-            StoreInfoFragment details = (StoreInfoFragment) infoFrag;
-            payment = details.getSelectedPaymentMethod();
-            needsInvoice = details.isSeparateInvoiceRequired();
-        }
-
-        // ВАЖНО: 5-й параметр false означает, что это ПРОДАЖА, а не возврат
-        OrderModel newOrder = new OrderModel(storeName, currentItems, payment, needsInvoice, false);
-        OrderHistoryManager.getInstance().addOrder(newOrder);
-
-        CartManager.getInstance().clearCart();
-        Toast.makeText(getContext(), "Заказ сохранен!", Toast.LENGTH_SHORT).show();
-
-        if (getActivity() != null) {
-            getParentFragmentManager().popBackStack();
-            getParentFragmentManager().beginTransaction()
-                    .replace(R.id.fragment_container, new OrdersFragment())
-                    .addToBackStack(null)
-                    .commit();
-        }
-    }
-
-    public ViewPager2 getViewPager() {
-        return viewPager;
-    }
-
-    // Внутренний адаптер страниц
-    private static class StorePagerAdapter extends FragmentStateAdapter {
-        public StorePagerAdapter(@NonNull Fragment fragment) {
-            super(fragment);
-        }
-        @NonNull
-        @Override
-        public Fragment createFragment(int position) {
-            if (position == 0) return new CatalogFragment();
-            if (position == 1) return new CurrentOrderFragment();
-            return new StoreInfoFragment();
-        }
-        @Override
-        public int getItemCount() {
-            return 3;
-        }
-    }
+public class StoreDetailsFragment extends BaseFragment {
+//    private String storeName;
+//    private boolean isReturnMode = false;
+//    private ViewPager2 viewPager;
+//
+//    @Nullable
+//    @Override
+//    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+//        View view = inflater.inflate(R.layout.fragment_order_details, container, false);
+//
+//        if (getArguments() != null) {
+//            storeName = getArguments().getString("store_name");
+//            isReturnMode = getArguments().getBoolean("is_actually_return", false);
+//        }
+//
+//        TextView tvTitle = view.findViewById(R.id.tvStoreName);
+//        TabLayout tabLayout = view.findViewById(R.id.storeTabLayout);
+//        viewPager = view.findViewById(R.id.storeViewPager);
+//        TextView btnSave = view.findViewById(R.id.btnSaveFullOrder);
+//        ImageButton btnBack = view.findViewById(R.id.btnBackToRoute);
+//
+//        tvTitle.setText(isReturnMode ? storeName + " (Возврат)" : storeName);
+//        if (isReturnMode) btnSave.setText("ОФОРМИТЬ");
+//
+//        // 1. ПЕРЕХВАТ КНОПКИ НАЗАД
+//        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), new OnBackPressedCallback(true) {
+//            @Override
+//            public void handleOnBackPressed() {
+//                showExitConfirmation();
+//            }
+//        });
+//
+//        btnBack.setOnClickListener(v -> showExitConfirmation());
+//
+//        // 2. НАСТРОЙКА АДАПТЕРА (передаем фрагмент целиком для доступа к аргументам)
+//        viewPager.setAdapter(new StorePagerAdapter(this, isReturnMode));
+//        viewPager.setOffscreenPageLimit(3);
+//
+//        // 3. ОБНОВЛЕНИЕ ПРИ ПЕРЕХОДЕ НА ВКЛАДКУ ЗАКАЗА
+//        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+//            @Override
+//            public void onPageSelected(int position) {
+//                if (position == 1) {
+//                    Fragment f = getChildFragmentManager().findFragmentByTag("f" + position);
+//                    if (f instanceof CurrentOrderFragment) ((CurrentOrderFragment) f).updateUI();
+//                }
+//            }
+//        });
+//
+//        new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
+//            switch (position) {
+//                case 0:
+//                    tab.setText("Товары");
+//                    break;
+//                case 1:
+//                    tab.setText(isReturnMode ? "Возврат" : "Заказ");
+//                    break;
+//                case 2:
+//                    tab.setText(isReturnMode ? "Причина" : "О заказе");
+//                    break;
+//            }
+//        }).attach();
+//
+//        btnSave.setOnClickListener(v -> saveProcess());
+//
+//        return view;
+//    }
+//
+//    public ViewPager2 getViewPager() {
+//        return viewPager;
+//    }
+//
+//    private void showExitConfirmation() {
+//        if (!CartManager.getInstance().getCartItems().isEmpty()) {
+//            new AlertDialog.Builder(requireContext())
+//                    .setTitle("Выход")
+//                    .setMessage("Сохранить текущие изменения?")
+//                    .setPositiveButton("Да, сохранить", (d, w) -> saveProcess())
+//                    .setNegativeButton("Нет, удалить", (d, w) -> {
+//                        CartManager.getInstance().clearCart();
+//                        getParentFragmentManager().popBackStack();
+//                    })
+//                    .setNeutralButton("Отмена", null).show();
+//        } else {
+//            getParentFragmentManager().popBackStack();
+//        }
+//    }
+//
+//    private void saveProcess() {
+//        // 1. Берем актуальные товары из CartManager
+//        Map<String, Integer> items = new HashMap<>(CartManager.getInstance().getCartItems());
+//        items.entrySet().removeIf(e -> e.getValue() <= 0);
+//
+//        if (items.isEmpty()) {
+//            Toast.makeText(getContext(), "Список пуст! Добавьте товары.", Toast.LENGTH_SHORT).show();
+//            return;
+//        }
+//
+//        String dateStr = "";
+//        String payMethod = "Наличные";
+//        String retReason = "Просрочка";
+//        boolean isInvoice = false;
+//
+//        // 2. Ищем фрагмент ИНФО (позиция 2)
+//        // ВАЖНО: Мы ищем его по ID ViewPager и позиции
+//        Fragment infoFrag = getChildFragmentManager().findFragmentByTag("f" + viewPager.getAdapter().getItemId(2));
+//
+//        // Если по тегу не нашли, ищем среди всех активных фрагментов
+//        if (infoFrag == null) {
+//            for (Fragment f : getChildFragmentManager().getFragments()) {
+//                if (f instanceof OrderInfoFragment) {
+//                    infoFrag = f;
+//                    break;
+//                }
+//            }
+//        }
+//
+//        if (infoFrag instanceof OrderInfoFragment) {
+//            OrderInfoFragment sInfo = (OrderInfoFragment) infoFrag;
+//            dateStr = sInfo.getDeliveryDate();
+//            isInvoice = sInfo.isSeparateInvoiceRequired();
+//            if (isReturnMode) {
+//                retReason = sInfo.getSelectedReason();
+//            } else {
+//                payMethod = sInfo.getPaymentMethod();
+//            }
+//        }
+//
+//        // 3. Сохранение
+//
+//
+//        OrderModel om = new OrderModel(storeName, items, payMethod, dateStr, isInvoice);
+//        OrderHistoryManager.getInstance().addOrder(om);
+//
+//
+//        CartManager.getInstance().clearCart();
+//        getParentFragmentManager().popBackStack();
+//    }
+//
+//    private static class StorePagerAdapter extends FragmentStateAdapter {
+//        private final boolean isRet;
+//        private final Fragment parent;
+//
+//        public StorePagerAdapter(Fragment f, boolean isRet) {
+//            super(f);
+//            this.isRet = isRet;
+//            this.parent = f;
+//        }
+//
+//        @Override
+//        public int getItemCount() {
+//            return 3;
+//        }
+//
+//        @NonNull
+//        @Override
+//        public Fragment createFragment(int p) {
+//            Bundle b = new Bundle();
+//            // ВАЖНО: Пробрасываем аргументы (edit_payment, edit_date и т.д.) во вложенные фрагменты
+//            if (parent.getArguments() != null) {
+//                b.putAll(parent.getArguments());
+//            }
+//            b.putBoolean("is_actually_return", isRet);
+//
+//            if (p == 0) {
+//                CatalogFragment f = new CatalogFragment();
+//                f.setArguments(b);
+//                return f;
+//            }
+//            if (p == 1) {
+//                CurrentOrderFragment f = new CurrentOrderFragment();
+//                f.setArguments(b);
+//                return f;
+//            }
+//            OrderInfoFragment f = new OrderInfoFragment();
+//            f.setArguments(b);
+//            return f;
+//        }
+//    }
 }

@@ -6,7 +6,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 import com.sellion.mobile.fragments.CatalogFragment;
 import com.sellion.mobile.fragments.CurrentOrderFragment;
-import com.sellion.mobile.fragments.StoreInfoFragment;
+import com.sellion.mobile.fragments.OrderInfoFragment;
 
 public class StorePagerAdapter extends FragmentStateAdapter {
 
@@ -24,7 +24,7 @@ public class StorePagerAdapter extends FragmentStateAdapter {
             case 1:
                 return new CurrentOrderFragment(); // Список заказа
             case 2:
-                return new StoreInfoFragment();    // Инфо о магазине
+                return new OrderInfoFragment();    // Инфо о магазине
             default:
                 return new CatalogFragment();
         }

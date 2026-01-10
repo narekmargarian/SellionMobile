@@ -28,37 +28,36 @@ import java.util.Locale;
 
 
 public class ReturnInfoFragment extends BaseFragment {
-
     private TextView tvDate;
     private TextView tvReasonValue;
     private ReturnReason selectedReason = ReturnReason.EXPIRED;
 
-    private SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy", new Locale("ru"));
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy", new Locale("ru"));
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         // Используем ваш fragment_store_info
-        View view = inflater.inflate(R.layout.fragment_store_info, container, false);
+        View rootView = inflater.inflate(R.layout.fragment_return_info, container, false);
 
-        tvDate = view.findViewById(R.id.tvDeliveryDate);
-        LinearLayout layoutDate = view.findViewById(R.id.layoutSelectDeliveryDate);
+        tvDate = rootView.findViewById(R.id.tvReturnDate);
+        LinearLayout layoutDate = rootView.findViewById(R.id.layoutSelectReturnDate);
 
         // Ставим 7 января 2026
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.DAY_OF_MONTH, 1);
         tvDate.setText(dateFormat.format(cal.getTime()));
 
-        // Скрываем оплату (ID из вашего XML)
-        if (view.findViewById(R.id.radioGroupPaymentMethod) != null) {
-            view.findViewById(R.id.radioGroupPaymentMethod).setVisibility(View.GONE);
-        }
-        if (view.findViewById(R.id.checkboxSeparateInvoice) != null) {
-            view.findViewById(R.id.checkboxSeparateInvoice).setVisibility(View.GONE);
-        }
+//        // Скрываем оплату (ID из вашего XML)
+//        if (rootView.findViewById(R.id.radioGroupPaymentMethod) != null) {
+//            rootView.findViewById(R.id.radioGroupPaymentMethod).setVisibility(View.GONE);
+//        }
+//        if (rootView.findViewById(R.id.checkboxSeparateInvoice) != null) {
+//            rootView.findViewById(R.id.checkboxSeparateInvoice).setVisibility(View.GONE);
+//        }
 
         // Находим заголовок программно, так как у него нет ID в вашем XML
-        LinearLayout root = (LinearLayout) ((ScrollView) view).getChildAt(0);
+        LinearLayout root = (LinearLayout) ((ScrollView) rootView).getChildAt(0);
         for (int i = 0; i < root.getChildCount(); i++) {
             if (root.getChildAt(i) instanceof TextView) {
                 TextView tv = (TextView) root.getChildAt(i);
@@ -71,10 +70,8 @@ public class ReturnInfoFragment extends BaseFragment {
         // Создаем поле выбора причины
         tvReasonValue = new TextView(getContext());
         tvReasonValue.setText(selectedReason.getTitle());
-        tvReasonValue.setTextSize(18);
-        tvReasonValue.setPadding(0, 24, 0, 24);
         tvReasonValue.setTextColor(Color.parseColor("#2196F3"));
-        tvReasonValue.setTypeface(null, Typeface.BOLD);
+
 
         // Вставляем после заголовка причины
         root.addView(tvReasonValue, 3);
@@ -82,7 +79,7 @@ public class ReturnInfoFragment extends BaseFragment {
         layoutDate.setOnClickListener(v -> showDatePicker());
         tvReasonValue.setOnClickListener(v -> showReasonDialog());
 
-        return view;
+        return rootView;
     }
 
     private void showReasonDialog() {
@@ -107,5 +104,9 @@ public class ReturnInfoFragment extends BaseFragment {
             return tvReasonValue.getText().toString();
         }
         return selectedReason.getTitle();
+    }
+
+    public String getDeliveryDate() {
+        return tvDate != null ? tvDate.getText().toString() : "";
     }
 }

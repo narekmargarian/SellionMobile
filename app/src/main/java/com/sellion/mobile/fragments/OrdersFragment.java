@@ -6,11 +6,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.PopupMenu;
-import android.widget.Toast;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -25,30 +25,48 @@ import java.util.List;
 public class OrdersFragment extends BaseFragment {
 
     private RecyclerView recyclerView;
-    private OrderAdapter adapter; // Тип изменен на OrderAdapter
-
-    public OrdersFragment() {
-    }
+    private OrderAdapter adapter;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_orders, container, false);
 
-        // 1. Кнопки
-        ImageButton btnFilterOrders = view.findViewById(R.id.btnFilterOrders);
+        // 1. Инициализация кнопок
+
         ImageButton btnBack = view.findViewById(R.id.btnBackOrders);
         ImageButton btnAddOrder = view.findViewById(R.id.btnAddOrder);
-
-        // 2. Список (RecyclerView)
+        ImageButton btnFilter = view.findViewById(R.id.btnFilterOrders);
         recyclerView = view.findViewById(R.id.recyclerOrders);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // Загружаем список заказов при открытии
-        updateOrdersList();
+        androidx.appcompat.widget.Toolbar toolbar = view.findViewById(R.id.toolbarOrders);
+        if (toolbar != null) {
+            // Находим TextView внутри Toolbar (в вашем XML он второй по счету в RelativeLayout)
+            for (int i = 0; i < toolbar.getChildCount(); i++) {
+                View child = toolbar.getChildAt(i);
+                if (child instanceof RelativeLayout) {
+                    RelativeLayout rl = (RelativeLayout) child;
+                    for (int j = 0; j < rl.getChildCount(); j++) {
+                        if (rl.getChildAt(j) instanceof TextView) {
+                            ((TextView) rl.getChildAt(j)).setText("Заказы сегодня");
+                        }
+                    }
+                }
+            }
+        }
 
-        setupBackButton(btnBack, true);
 
+        // Настройка кнопки назад
+        btnBack.setOnClickListener(v -> {
+            if (getParentFragmentManager().getBackStackEntryCount() > 0) {
+                getParentFragmentManager().popBackStack();
+            }
+        });
+
+        setupBackButton(btnBack, false);
+
+        // Кнопка создания нового заказа
         btnAddOrder.setOnClickListener(v -> {
             getParentFragmentManager().beginTransaction()
                     .replace(R.id.fragment_container, new CreateOrderFragment())
@@ -56,77 +74,61 @@ public class OrdersFragment extends BaseFragment {
                     .commit();
         });
 
-        btnFilterOrders.setOnClickListener(v -> {
-            PopupMenu popup = new PopupMenu(getContext(), v);
-            popup.getMenu().add("Выбрать дату");
-            popup.getMenu().add("Фильтр: Только оплаченные");
-            popup.getMenu().add("Фильтр: Все");
-
-            popup.setOnMenuItemClickListener(item -> {
-                if (item.getTitle().equals("Выбрать дату")) {
-                    showDatePicker();
-                } else {
-                    Toast.makeText(getContext(), item.getTitle(), Toast.LENGTH_SHORT).show();
-                }
-                return true;
-            });
-            popup.show();
-        });
+        // Фильтрация (просто заглушка по вашему коду)
+        btnFilter.setOnClickListener(this::showFilterMenu);
 
         return view;
     }
 
-    // ИСПРАВЛЕНО: Теперь работаем с OrderModel и OrderAdapter
     private void updateOrdersList() {
-        // Получаем список объектов OrderModel из менеджера
-        List<OrderModel> orders = OrderHistoryManager.getInstance().getSavedOrders();
-
-        // Инициализируем адаптер с логикой клика
-        adapter = new OrderAdapter(orders, order -> {
-            // При нажатии вызываем наш метод просмотра заказа
-            onOrderClick(order);
-        });
-
+        // ВАЖНО: Используем новый метод getOrders()
+        List<OrderModel> orders = OrderHistoryManager.getInstance().getOrders();
+        adapter = new OrderAdapter(orders, this::onOrderClick);
         recyclerView.setAdapter(adapter);
     }
 
-    //
+    // ЛОГИКА КЛИКА: Сначала всегда открываем ПРОСМОТР
     private void onOrderClick(OrderModel order) {
-        // 1. Создаем фрагмент детального просмотра (вместо AlertDialog)
         OrderDetailsViewFragment fragment = new OrderDetailsViewFragment();
 
-        // 2. Передаем данные о заказе
         Bundle args = new Bundle();
         args.putString("order_shop_name", order.shopName);
+        // Передаем ID или позицию, если нужно для точного поиска
         fragment.setArguments(args);
 
-        // 3. Совершаем переход на полный экран
         getParentFragmentManager().beginTransaction()
                 .replace(R.id.fragment_container, fragment)
-                .addToBackStack(null) // Чтобы кнопка "Назад" вернула нас к списку заказов
+                .addToBackStack(null)
                 .commit();
+    }
+
+    private void showFilterMenu(View v) {
+        PopupMenu popup = new PopupMenu(requireContext(), v);
+        popup.getMenu().add("Выбрать дату");
+        popup.getMenu().add("Все");
+        popup.setOnMenuItemClickListener(item -> {
+            if (item.getTitle().equals("Выбрать дату")) {
+                showDatePicker();
+            } else {
+                updateOrdersList();
+            }
+            return true;
+        });
+        popup.show();
     }
 
     private void showDatePicker() {
         MaterialDatePicker<Long> datePicker = MaterialDatePicker.Builder.datePicker()
-                .setTitleText("Выберите дату заказа")
-                .setSelection(MaterialDatePicker.todayInUtcMilliseconds())
+                .setTitleText("Заказы за дату")
                 .build();
-
-        datePicker.addOnPositiveButtonClickListener(selection -> {
-            Toast.makeText(getContext(), "Дата выбрана: " + datePicker.getHeaderText(), Toast.LENGTH_SHORT).show();
-        });
-
         datePicker.show(getParentFragmentManager(), "DATE_PICKER");
     }
+
 
     @Override
     public void onResume() {
         super.onResume();
-        // Обновляем список каждый раз, когда возвращаемся на экран
+        // Обновляем список каждый раз при возврате на экран (например, после редактирования)
         updateOrdersList();
-        if (adapter != null) {
-            adapter.notifyDataSetChanged();
-        }
     }
 }

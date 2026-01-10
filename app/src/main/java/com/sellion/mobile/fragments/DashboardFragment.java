@@ -5,7 +5,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -46,7 +45,7 @@ public class DashboardFragment extends BaseFragment {
 
         cardReturn.setOnClickListener(v -> {
             getParentFragmentManager().beginTransaction()
-                    .replace(R.id.fragment_container, new ReturnsHistoryFragment())
+                    .replace(R.id.fragment_container, new ReturnsFragment())
                     .addToBackStack(null)
                     .commit();
         });

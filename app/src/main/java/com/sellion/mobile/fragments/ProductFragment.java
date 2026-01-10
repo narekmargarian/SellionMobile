@@ -7,14 +7,11 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
@@ -30,7 +27,8 @@ import java.util.List;
 public class ProductFragment extends BaseFragment {
     private ProductAdapter adapter;
     private boolean isOrderMode = false;
-    private boolean isActuallyReturn = false; // Поле для хранения режима
+    private boolean isActuallyReturn = false;
+
 
     @Nullable
     @Override
@@ -39,9 +37,10 @@ public class ProductFragment extends BaseFragment {
 
         if (getArguments() != null) {
             isOrderMode = getArguments().getBoolean("is_order_mode", false);
-            // ПОЛУЧАЕМ ФЛАГ ИЗ АРГУМЕНТОВ
             isActuallyReturn = getArguments().getBoolean("is_actually_return", false);
         }
+
+
         String category = getArguments() != null ? getArguments().getString("category_name") : "Товары";
 
         TextView tvTitle = view.findViewById(R.id.tvCategoryTitle);
@@ -52,16 +51,22 @@ public class ProductFragment extends BaseFragment {
 
         RecyclerView rv = view.findViewById(R.id.recyclerViewProducts);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
+        if (category != null) {
 
-        List<Product> productList = getProductsByCategory(category);
+            List<Product> productList = getProductsByCategory(category);
+            adapter = new ProductAdapter(productList, product -> {
+                if (isOrderMode || isActuallyReturn) {
+                    showQuantityDialog(product);
+                } else {
+                    showProductInfo(product);
+                }
+            });
 
-        adapter = new ProductAdapter(productList, product -> {
-            if (isOrderMode) {
-                showQuantityDialog(product);
-            } else {
-                showProductInfo(product);
-            }
-        });
+
+        } else {
+            // TODO: 10.01.2026
+        }
+
 
         rv.setAdapter(adapter);
         return view;
@@ -71,22 +76,26 @@ public class ProductFragment extends BaseFragment {
 
     private void showProductInfo(Product product) {
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
-        View view = getLayoutInflater().inflate(R.layout.layout_bottom_sheet_quantity, null);
+        View view = getLayoutInflater().inflate(R.layout.dialog_product_info, null);
         dialog.setContentView(view);
 
-        view.findViewById(R.id.btnPlus).setVisibility(View.GONE);
-        view.findViewById(R.id.btnMinus).setVisibility(View.GONE);
-        view.findViewById(R.id.etSheetQuantity).setVisibility(View.GONE);
 
-        TextView tvTitle = view.findViewById(R.id.tvSheetTitle);
-        MaterialButton btnConfirm = view.findViewById(R.id.btnConfirm);
+        TextView tvTitle = view.findViewById(R.id.tvInfoName);
+        TextView tvInfoPrice = view.findViewById(R.id.tvInfoPrice);
+        TextView tvBarcode = view.findViewById(R.id.tvInfoBarcode);
+        TextView tvInfoDescription = view.findViewById(R.id.tvInfoDescription);
+        TextView tvBoxCount = view.findViewById(R.id.tvInfoBoxCount);
+        MaterialButton btnConfirm = view.findViewById(R.id.btnCloseInfo);
 
-        String info = product.getName() +
-                "\n\nШтрих-код: " + product.getBarcode() +
-                "\nЦена: " + product.getPrice() + " ֏" +
-                "\nВ коробке: " + product.getItemsPerBox() + " шт.";
+        String info = "Здесь будет детальное описание: вес, количество в коробке, срок годности и остаток на складе.";
 
-        tvTitle.setText(info);
+        tvTitle.setText(product.getName());
+        tvInfoPrice.setText("Цена: " + product.getPrice());
+        tvBarcode.setText("Штрих код: " + product.getBarcode());
+        tvInfoDescription.setText(info);
+        tvBoxCount.setText("В упаковке: " + product.getItemsPerBox());
+
+
         btnConfirm.setText("Закрыть");
         btnConfirm.setOnClickListener(v -> dialog.dismiss());
         dialog.show();
@@ -94,8 +103,6 @@ public class ProductFragment extends BaseFragment {
 
     private void showQuantityDialog(Product product) {
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
-
-        // ИСПОЛЬЗУЕМ ФЛАГ ИЗ АРГУМЕНТОВ ДЛЯ ВЫБОРА XML
         int layoutId = isActuallyReturn ?
                 R.layout.layout_bottom_sheet_return :
                 R.layout.layout_bottom_sheet_quantity;
@@ -117,8 +124,7 @@ public class ProductFragment extends BaseFragment {
             etQuantity.setText(String.valueOf(currentQty != null ? currentQty : 1));
             if (btnDelete != null) btnDelete.setVisibility(View.VISIBLE);
 
-            // Динамический текст кнопки подтверждения
-            btnConfirm.setText(isActuallyReturn ? "Изменить возврат" : "Изменить заказ");
+//            btnConfirm.setText("Изменить заказ");
         }
 
         btnPlus.setOnClickListener(v -> {
@@ -137,7 +143,7 @@ public class ProductFragment extends BaseFragment {
             btnDelete.setOnClickListener(v -> {
                 CartManager.getInstance().addProduct(product.getName(), 0);
                 adapter.notifyDataSetChanged();
-                notifyParentRefresh();
+//                notifyParentRefresh();
                 dialog.dismiss();
             });
         }
@@ -147,7 +153,7 @@ public class ProductFragment extends BaseFragment {
             int qty = qtyS.isEmpty() ? 0 : Integer.parseInt(qtyS);
             CartManager.getInstance().addProduct(product.getName(), qty);
             adapter.notifyDataSetChanged();
-            notifyParentRefresh();
+//            notifyParentRefresh();
             dialog.dismiss();
         });
 
@@ -196,32 +202,4 @@ public class ProductFragment extends BaseFragment {
         return productList;
     }
 
-
-    private void notifyParentRefresh() {
-        Fragment parent = getParentFragment();
-        while (parent != null) {
-            ViewPager2 vp = null;
-            if (parent instanceof StoreDetailsFragment) {
-                vp = ((StoreDetailsFragment) parent).getViewPager();
-            } else if (parent instanceof ReturnDetailsFragment) {
-                // Прямой поиск ViewPager2 в макете возврата
-                if (parent.getView() != null) {
-                    vp = parent.getView().findViewById(R.id.storeViewPager);
-                }
-            }
-
-            if (vp != null) {
-                Fragment tab = parent.getChildFragmentManager().findFragmentByTag("f" + vp.getId() + ":1");
-                if (tab instanceof OrderTabFragmentInterface) {
-                    ((OrderTabFragmentInterface) tab).refreshOrderList();
-                }
-                break;
-            }
-            parent = parent.getParentFragment();
-        }
-    }
-
-    public interface OrderTabFragmentInterface {
-        void refreshOrderList();
-    }
 }

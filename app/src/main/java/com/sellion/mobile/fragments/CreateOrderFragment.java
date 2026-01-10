@@ -10,7 +10,6 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.tabs.TabLayout;
@@ -22,26 +21,27 @@ import com.sellion.mobile.managers.OrderHistoryManager;
 
 
 public class CreateOrderFragment extends BaseFragment {
-    private ViewPager2 viewPager;
-    private TabLayout tabLayout;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_store_details, container, false);
+        View view = inflater.inflate(R.layout.fragment_order_details, container, false);
 
-        viewPager = view.findViewById(R.id.storeViewPager);
-        tabLayout = view.findViewById(R.id.storeTabLayout);
+        ViewPager2 viewPager = view.findViewById(R.id.orderDetailsViewPager);
+        TabLayout tabLayout = view.findViewById(R.id.storeTabLayout);
         ImageButton btnBack = view.findViewById(R.id.btnBackToRoute);
 
-        setupBackButton(btnBack, false);
+        TextView title = view.findViewById(R.id.tvStoreName);
+        if (title != null) title.setText("Выбор клиента (Заказ)");
 
-        CreateOrderPagerAdapter adapter = new CreateOrderPagerAdapter(this);
-        viewPager.setAdapter(adapter);
+        viewPager.setAdapter(new CreateOrderPagerAdapter(this));
+
 
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             tab.setText(position == 0 ? "Маршрут" : "Клиенты");
         }).attach();
+
+        setupBackButton(btnBack, false);
 
         return view;
     }
@@ -50,7 +50,7 @@ public class CreateOrderFragment extends BaseFragment {
     public void onClientSelected(String storeName) {
         // 1. Проверка на наличие неотправленного заказа
         boolean hasPendingOrder = false;
-        for (OrderModel order : OrderHistoryManager.getInstance().getSavedOrders()) {
+        for (OrderModel order : OrderHistoryManager.getInstance().getOrders()) {
             if (order.shopName.equals(storeName) && order.status == OrderModel.Status.PENDING) {
                 hasPendingOrder = true;
                 break;
@@ -70,7 +70,7 @@ public class CreateOrderFragment extends BaseFragment {
     }
 
     private void openStoreDetails(String storeName) {
-        StoreDetailsFragment fragment = new StoreDetailsFragment();
+        OrderDetailsFragment fragment = new OrderDetailsFragment();
         Bundle args = new Bundle();
         args.putString("store_name", storeName);
         fragment.setArguments(args);

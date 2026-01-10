@@ -1,47 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:app2="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="#FFFFFF">
 
-    <!-- Шапка -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
+        android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="8dp">
+        android:background="#FFFFFF"
+        android:elevation="4dp"
+        android:paddingHorizontal="8dp">
 
         <ImageButton
-            android:id="@+id/btnBackFromDetails"
+            android:id="@+id/btnBackToRoute"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:src="@drawable/ic_back"
             android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_back"
             app:tint="#000000" />
 
         <TextView
-            android:id="@+id/tvDetailStoreName"
+            android:id="@+id/tvStoreName"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
+            android:text="Магазин"
+            android:textColor="#000000"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="#000000"
-            android:text="Магазин" />
+            android:paddingStart="8dp" />
 
-        <Button
-            android:id="@+id/btnEditOrder"
+        <!-- Кнопка сохранить -->
+        <TextView
+            android:id="@+id/btnSaveFullOrder"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Изменить"
-            style="@style/Widget.MaterialComponents.Button.TextButton" />
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:paddingHorizontal="12dp"
+            android:text="СОХРАНИТЬ"
+            android:textColor="#2196F3"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:background="?attr/selectableItemBackground" />
+
     </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvOrderItemsDetail"
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/storeTabLayout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="wrap_content"
+        android:background="#FFFFFF"
+        app:tabIndicatorColor="#2196F3"
+        app:tabSelectedTextColor="#2196F3"
+        app:tabTextColor="#757575" />
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/orderDetailsViewPager"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#FFFFFF" />
+
 
 </LinearLayout>

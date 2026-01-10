@@ -90,7 +90,7 @@ public class SyncFragment extends BaseFragment {
     private void sendDocuments() {
         showLoadingDialog("Отправка заказов в офис...");
 
-        List<OrderModel> allOrders = OrderHistoryManager.getInstance().getSavedOrders();
+        List<OrderModel> allOrders = OrderHistoryManager.getInstance().getOrders();
 
         if (allOrders.isEmpty()) {
             Toast.makeText(getContext(), "Нет заказов для отправки", Toast.LENGTH_SHORT).show();

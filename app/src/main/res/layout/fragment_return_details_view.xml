@@ -25,7 +25,7 @@
             app:tint="#000000" />
 
         <TextView
-            android:id="@+id/RtvViewOrderTitle"
+            android:id="@+id/RtvViewReturnTitle"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
@@ -49,11 +49,34 @@
             android:textStyle="bold"/>
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/tvViewReturnMethod"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:paddingTop="8dp"
+        android:text="Причина возврата : -"
+        android:textSize="14sp"
+        android:textColor="#4CAF50"/>
 
 
 
     <TextView
-        android:id="@+id/RtvViewOrderTotalSum"
+        android:id="@+id/tvViewReturnDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:paddingBottom="8dp"
+        android:text="Дата возврата : -"
+        android:textSize="14sp"
+        android:textColor="#4CAF50"/>
+
+
+
+    <TextView
+        android:id="@+id/RtvViewReturnTotalSum"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp"

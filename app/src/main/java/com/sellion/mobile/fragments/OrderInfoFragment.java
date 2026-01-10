@@ -1,12 +1,15 @@
 package com.sellion.mobile.fragments;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -20,17 +23,17 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
-public class StoreInfoFragment extends BaseFragment {
-
+public class OrderInfoFragment extends BaseFragment {
+    private TextView tvDate;
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy", new Locale("ru"));
+    private View rootView; // Сохраняем view для поиска чекбоксов
     private TextView tvDeliveryDate;
     private RadioGroup radioGroupPaymentMethod;
     private CheckBox checkboxSeparateInvoice;
-    private SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy", new Locale("ru")); // Формат даты на русском
-
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_store_info, container, false);
+        View view = inflater.inflate(R.layout.fragment_order_info, container, false);
 
         tvDeliveryDate = view.findViewById(R.id.tvDeliveryDate);
         radioGroupPaymentMethod = view.findViewById(R.id.radioGroupPaymentMethod);
@@ -72,6 +75,6 @@ public class StoreInfoFragment extends BaseFragment {
     }
 
     public String getDeliveryDate() {
-        return tvDeliveryDate.getText().toString();
+        return tvDate != null ? tvDate.getText().toString() : "";
     }
 }

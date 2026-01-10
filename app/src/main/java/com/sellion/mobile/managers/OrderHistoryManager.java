@@ -7,26 +7,34 @@ import java.util.List;
 
 public class OrderHistoryManager {
     private static OrderHistoryManager instance;
-    private final List<OrderModel> savedOrders = new ArrayList<>();
+    private final List<OrderModel> orders = new ArrayList<>();
 
-    public static OrderHistoryManager getInstance() {
+    private OrderHistoryManager() {
+    }
+
+    public static synchronized OrderHistoryManager getInstance() {
         if (instance == null) instance = new OrderHistoryManager();
         return instance;
     }
 
+    // РАБОТА С ЗАКАЗАМИ
     public void addOrder(OrderModel order) {
-        // Если магазин уже есть (редактирование), заменяем его
-        for (int i = 0; i < savedOrders.size(); i++) {
-            if (savedOrders.get(i).shopName.equals(order.shopName)) {
-                savedOrders.set(i, order);
-                return;
-            }
-        }
-        savedOrders.add(order);
+        // Если такой магазин уже есть в заказах, удаляем старый (режим редактирования)
+        orders.removeIf(o -> o.shopName.equals(order.shopName));
+        orders.add(order);
     }
 
-    public List<OrderModel> getSavedOrders() {
-        return savedOrders;
+    public List<OrderModel> getOrders() {
+        return orders;
     }
+
+    public OrderModel getOrder(String shopName) {
+        for (OrderModel o : orders) {
+            if (o.shopName.equals(shopName)) return o;
+        }
+        return null;
+    }
+
+
 }
 

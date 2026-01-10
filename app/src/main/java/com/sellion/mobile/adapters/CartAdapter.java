@@ -15,8 +15,8 @@ import com.sellion.mobile.entity.Product;
 import java.util.List;
 
 public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
-    private List<Product> selectedProducts;
-    private OnItemClickListener listener;
+    private final List<Product> selectedProducts;
+    private final OnItemClickListener listener;
 
     public interface OnItemClickListener {
         void onItemClick(Product product);

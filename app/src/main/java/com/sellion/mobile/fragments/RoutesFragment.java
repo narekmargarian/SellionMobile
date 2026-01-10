@@ -19,10 +19,10 @@ import com.sellion.mobile.adapters.DebtsAdapter;
 import com.sellion.mobile.entity.DebtModel;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 public class RoutesFragment extends BaseFragment {
-
     private TextView tvCurrentDay;
     private RecyclerView recyclerView;
     private final String[] daysOfWeek = {"Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"};
@@ -39,8 +39,11 @@ public class RoutesFragment extends BaseFragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         // Кнопка назад
-        view.findViewById(R.id.btnBackRoutes).setOnClickListener(v -> setupBackButton(v, false));
-
+        view.findViewById(R.id.btnBackRoutes).setOnClickListener(v -> {
+            if (getParentFragmentManager().getBackStackEntryCount() > 0) {
+                getParentFragmentManager().popBackStack();
+            }
+        });
 
         layoutSelectDay.setOnClickListener(v -> {
             new AlertDialog.Builder(requireContext())
@@ -53,9 +56,24 @@ public class RoutesFragment extends BaseFragment {
                     .show();
         });
 
-        // Установка дня по умолчанию (2026 год)
-        tvCurrentDay.setText("Вторник");
-        loadStoresForDay("Вторник");
+        // --- ЛОГИКА ОПРЕДЕЛЕНИЯ ТЕКУЩЕГО ДНЯ НЕДЕЛИ ДЛЯ 2026 ГОДА ---
+        Calendar calendar = Calendar.getInstance();
+        int dayOfWeekNum = calendar.get(Calendar.DAY_OF_WEEK); // 1-Вск, 2-Пн, ... 6-Пт
+
+        int index;
+        switch (dayOfWeekNum) {
+            case Calendar.MONDAY: index = 0; break;
+            case Calendar.TUESDAY: index = 1; break;
+            case Calendar.WEDNESDAY: index = 2; break;
+            case Calendar.THURSDAY: index = 3; break;
+            case Calendar.FRIDAY: index = 4; break;
+            case Calendar.SATURDAY: index = 5; break;
+            default: index = 0; // Если воскресенье, ставим Понедельник
+        }
+
+        String todayName = daysOfWeek[index];
+        tvCurrentDay.setText(todayName);
+        loadStoresForDay(todayName);
 
         return view;
     }
@@ -63,7 +81,6 @@ public class RoutesFragment extends BaseFragment {
     private void loadStoresForDay(String day) {
         List<DebtModel> filteredList = new ArrayList<>();
 
-        // Наполнение списка в зависимости от выбранного дня
         switch (day) {
             case "Понедельник":
                 filteredList.add(new DebtModel("ZOVQ Arshakunyac", "ИП Акопян", "1122", "Комитаса 15", 0));
@@ -89,12 +106,11 @@ public class RoutesFragment extends BaseFragment {
                 break;
         }
 
-        // 1. Создаем адаптер
         DebtsAdapter adapter = new DebtsAdapter(filteredList, store -> {
-            // Логика перехода в детали магазина
             StoreDetailsFragment fragment = new StoreDetailsFragment();
             Bundle args = new Bundle();
             args.putString("store_name", store.getShopName());
+            args.putBoolean("is_actually_return", false); // Это маршрут заказа, не возврата
             fragment.setArguments(args);
 
             getParentFragmentManager().beginTransaction()
@@ -103,11 +119,8 @@ public class RoutesFragment extends BaseFragment {
                     .commit();
         });
 
-        // 2. !!! САМАЯ ВАЖНАЯ СТРОКА ДЛЯ 2026 ГОДА !!!
-        // Мы принудительно отключаем показ долгов для экрана "Маршруты"
         adapter.setShowDebtDetails(false);
 
-        // 3. Устанавливаем адаптер в RecyclerView
         if (recyclerView != null) {
             recyclerView.setAdapter(adapter);
         }

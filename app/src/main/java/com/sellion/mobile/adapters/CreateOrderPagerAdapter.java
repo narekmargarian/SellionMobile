@@ -16,7 +16,8 @@ public class CreateOrderPagerAdapter extends FragmentStateAdapter {
     @NonNull
     @Override
     public Fragment createFragment(int position) {
-        if (position == 0) return new OrderRouteFragment();
+        if (position == 0)
+            return new OrderRouteFragment();
         return new OrderClientFragment();
     }
 

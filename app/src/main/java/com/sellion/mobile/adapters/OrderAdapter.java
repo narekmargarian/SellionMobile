@@ -13,63 +13,124 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.entity.OrderModel;
 
 import java.util.List;
+import java.util.Map;
 
-public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.ViewHolder> {
+public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.ReturnVH> {
 
-    private List<OrderModel> ordersList;
+    private List<OrderModel> list;
     private OnOrderClickListener listener;
 
     public interface OnOrderClickListener {
-        void onOrderClick(OrderModel order);
+        void onOrderClick(OrderModel o);
     }
 
-    public OrderAdapter(List<OrderModel> ordersList, OnOrderClickListener listener) {
-        this.ordersList = ordersList;
-        this.listener = listener;
+    public OrderAdapter(List<OrderModel> list, OnOrderClickListener l) {
+        this.list = list;
+        this.listener = l;
     }
 
     @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // Используем вашу стандартную разметку item_category
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_category, parent, false);
-        return new ViewHolder(view);
+    public ReturnVH onCreateViewHolder(@NonNull ViewGroup p, int vt) {
+        View view = LayoutInflater.from(p.getContext()).inflate(R.layout.item_order, p, false);
+        return new ReturnVH(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        OrderModel order = ordersList.get(position);
+    public void onBindViewHolder(@NonNull ReturnVH h, int pos) {
+        OrderModel o = list.get(pos);
 
-        // Устанавливаем название магазина
-        holder.tvName.setText(order.shopName);
+        h.tvShopName.setText(o.shopName);
+        // Расчет итоговой суммы
+        double total = 0;
+        if (o.items != null) {
+            for (Map.Entry<String, Integer> entry : o.items.entrySet()) {
+                total += (entry.getValue() * getPriceForProduct(entry.getKey()));
+            }
+        }
+        h.tvTotalAmount.setText(String.format("%,.0f ֏", total));
 
-        // ЛОГИКА ЦВЕТА СТАТУСА:
-        if (order.status == OrderModel.Status.SENT) {
-            // Зеленый цвет для отправленных заказов
-            holder.tvName.setTextColor(Color.parseColor("#2E7D32"));
-            holder.tvName.setText(order.shopName + " (Отправлен)");
+        // Логика статуса
+        if (o.status == OrderModel.Status.SENT) {
+            h.tvStatus.setText("ОТПРАВЛЕН");
+            h.tvStatus.setTextColor(Color.parseColor("#2E7D32"));
         } else {
-            // Синий цвет для тех, что сохранены локально (PENDING)
-            holder.tvName.setTextColor(Color.BLUE);
-            holder.tvName.setText(order.shopName + " (Ожидает)");
+            h.tvStatus.setText("ОЖИДАЕТ");
+            h.tvStatus.setTextColor(Color.parseColor("#2196F3"));
         }
 
-        holder.itemView.setOnClickListener(v -> {
-            if (listener != null) listener.onOrderClick(order);
+
+        h.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onOrderClick(o);
+            }
         });
+
+
     }
 
     @Override
     public int getItemCount() {
-        return ordersList != null ? ordersList.size() : 0;
+        return list != null ? list.size() : 0;
     }
 
-    public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvName;
+    public static class ReturnVH extends RecyclerView.ViewHolder {
+        TextView tvShopName, tvStatus, tvTotalAmount;
 
-        public ViewHolder(@NonNull View itemView) {
-            super(itemView);
-            tvName = itemView.findViewById(R.id.tvCategoryName);
+        public ReturnVH(View v) {
+            super(v);
+            tvShopName = v.findViewById(R.id.tvOrderShopName);
+            tvStatus = v.findViewById(R.id.tvOrderStatus);
+            tvTotalAmount = v.findViewById(R.id.tvOrderTotalAmount);
+        }
+    }
+
+    private int getPriceForProduct(String name) {
+        if (name == null) return 0;
+        switch (name) {
+            case "Шоколад Аленка":
+                return 500;
+            case "Шоколад 1":
+                return 5574;
+            case "Шоколад 2":
+                return 45452;
+            case "Шоколад 3":
+                return 1212;
+            case "Конфеты Мишка":
+                return 2500;
+            case "Вафли Артек":
+                return 3500;
+            case "Вафли 1":
+                return 12560;
+            case "Вафли 2":
+                return 12121;
+            case "Вафли 3":
+                return 12;
+            case "Lays 1":
+                return 785;
+            case "Lays 2":
+                return 125;
+            case "Lays Сметана/Зелень":
+                return 10001;
+            case "Pringles Оригинал":
+                return 789;
+            case "Pringles 1":
+                return 123;
+            case "Pringles 2":
+                return 566;
+            case "Чай 1":
+                return 120;
+            case "Чай 2":
+                return 698;
+            case "Чай 3":
+                return 900;
+            case "Чай Ахмад":
+                return 1100;
+            default:
+                return 0;
         }
     }
 }
+
+
+

@@ -20,6 +20,8 @@ import java.util.List;
 
 
 public class CatalogFragment extends BaseFragment {
+    private boolean orderMode = false;
+    private boolean isReturn = false;
 
 
     @Nullable
@@ -29,16 +31,16 @@ public class CatalogFragment extends BaseFragment {
 
         ImageButton btnBack = view.findViewById(R.id.btnBack);
         setupBackButton(btnBack, false);
+        orderMode = isInsideAnyProcess();
+        isReturn = isInsideReturnProcess();
 
         RecyclerView recyclerView = view.findViewById(R.id.recyclerViewCatalog);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         // Проверяем, находимся ли мы в любом процессе оформления
-        boolean orderMode = isInsideAnyProcess();
-        // Определяем конкретно, это Возврат или нет
-        boolean isReturn = isInsideReturnProcess();
 
-        if (orderMode) {
+
+        if (orderMode || isReturn) {
             btnBack.setVisibility(View.GONE);
         }
 
@@ -50,7 +52,6 @@ public class CatalogFragment extends BaseFragment {
 
             args.putString("category_name", category);
             args.putBoolean("is_order_mode", orderMode);
-            // ПЕРЕДАЕМ ФЛАГ ВОЗВРАТА ПРЯМО В АРГУМЕНТЫ
             args.putBoolean("is_actually_return", isReturn);
 
             fragment.setArguments(args);
@@ -68,7 +69,7 @@ public class CatalogFragment extends BaseFragment {
     private boolean isInsideAnyProcess() {
         Fragment parent = getParentFragment();
         while (parent != null) {
-            if (parent instanceof StoreDetailsFragment || parent instanceof ReturnDetailsFragment) {
+            if (parent instanceof OrderDetailsFragment) {
                 return true;
             }
             parent = parent.getParentFragment();

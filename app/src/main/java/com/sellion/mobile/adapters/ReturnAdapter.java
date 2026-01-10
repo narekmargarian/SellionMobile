@@ -11,60 +11,83 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
 import com.sellion.mobile.entity.OrderModel;
+import com.sellion.mobile.entity.ReturnModel;
 
 import java.util.List;
 import java.util.Map;
 
-public class ReturnAdapter extends  RecyclerView.Adapter<ReturnAdapter.ReturnVH> {
-    private List<OrderModel> list;
+public class ReturnAdapter extends RecyclerView.Adapter<ReturnAdapter.ReturnVH> {
+    private List<ReturnModel> list;
     private OnItemClickListener listener;
 
-    public interface OnItemClickListener { void onItemClick(OrderModel order); }
+    // Интерфейс теперь принимает ReturnModel
+    public interface OnItemClickListener {
+        void onItemClick(ReturnModel returnModel);
+    }
 
-    public ReturnAdapter(List<OrderModel> list, OnItemClickListener listener) {
+    public ReturnAdapter(List<ReturnModel> list, OnItemClickListener listener) {
         this.list = list;
         this.listener = listener;
     }
 
-    @NonNull @Override
-    public ReturnVH onCreateViewHolder(@NonNull ViewGroup p, int vt) {
-        // Используем новый макет item_return
-        View v = LayoutInflater.from(p.getContext()).inflate(R.layout.item_return, p, false);
+    @NonNull
+    @Override
+    public ReturnVH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        // Используем макет карточки возврата
+        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_return, parent, false);
         return new ReturnVH(v);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ReturnVH h, int p) {
-        OrderModel o = list.get(p);
-        h.tvShopName.setText(o.shopName);
-        h.tvStatus.setText("ВОЗВРАТ");
+    public void onBindViewHolder(@NonNull ReturnVH holder, int position) {
+        ReturnModel item = list.get(position);
 
-        // Расчет суммы (обязательно перенесите сюда getPriceForProduct из CurrentOrderFragment)
+        holder.tvShopName.setText(item.shopName);
+//        holder.tvStatus.setText("ВОЗВРАТ");
+
+        // Расчет суммы
         double total = 0;
-        if (o.items != null) {
-            for (Map.Entry<String, Integer> entry : o.items.entrySet()) {
+        if (item.items != null) {
+            for (Map.Entry<String, Integer> entry : item.items.entrySet()) {
                 total += (entry.getValue() * getPriceForProduct(entry.getKey()));
             }
         }
-        h.tvTotalAmount.setText(String.format("%,.0f ֏", total));
+        holder.tvTotalAmount.setText(String.format("%,.0f ֏", total));
 
-        h.itemView.setOnClickListener(v -> listener.onItemClick(o));
+        if (item.status ==  ReturnModel.Status.SENT) {
+            holder.tvStatus.setText("ОТПРАВЛЕН");
+            holder.tvStatus.setTextColor(Color.parseColor("#2E7D32"));
+        } else {
+            holder.tvStatus.setText("ОЖИДАЕТ");
+            holder.tvStatus.setTextColor(Color.parseColor("#2196F3"));
+        }
+
+
+
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onItemClick(item);
+            }
+        });
     }
 
-    @Override public int getItemCount() { return list.size(); }
+    @Override
+    public int getItemCount() {
+        return list != null ? list.size() : 0;
+    }
 
     static class ReturnVH extends RecyclerView.ViewHolder {
         TextView tvShopName, tvTotalAmount, tvStatus;
+
         ReturnVH(View v) {
             super(v);
-            // Привязываем ID из нашего нового макета item_return
             tvShopName = v.findViewById(R.id.tvReturnShopName);
             tvTotalAmount = v.findViewById(R.id.tvReturnTotalAmount);
             tvStatus = v.findViewById(R.id.tvReturnStatus);
         }
     }
 
-    // Вспомогательный метод (скопируйте его из вашего CurrentOrderFragment, где он уже есть)
+    // Справочник цен для корректного отображения суммы в списке
     private int getPriceForProduct(String name) {
         if (name == null) return 0;
         switch (name) {

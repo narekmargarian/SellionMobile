@@ -32,6 +32,16 @@
         android:textStyle="bold"
         android:text="Цена: 500 ֏" />
 
+    <TextView
+        android:id="@+id/tvInfoBoxCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="#000000"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:text="В упковку: " />
+
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
@@ -40,12 +50,13 @@
         android:background="#EEEEEE" />
 
     <TextView
+        android:id="@+id/tvInfoBarcode"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Описание и характеристики:"
+        android:text="Штрих код : "
         android:textStyle="bold"
-        android:textSize="14sp"
-        android:textColor="#757575" />
+        android:textSize="16sp"
+        android:textColor="#000000"/>
 
     <TextView
         android:id="@+id/tvInfoDescription"
