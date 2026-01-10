@@ -70,9 +70,14 @@ public class OrderDetailsViewFragment extends BaseFragment {
                 btnEdit.setVisibility(View.GONE);
             } else {
                 btnEdit.setOnClickListener(v -> {
-                    // 1. Загружаем данные обратно в корзину
+                    // 1. Загружаем ВСЕ данные обратно в CartManager
                     CartManager.getInstance().clearCart();
                     CartManager.getInstance().getCartItems().putAll(finalOrder.items);
+
+                    // ВАЖНО: сохраняем параметры заказа, чтобы они появились в полях
+                    CartManager.getInstance().setDeliveryDate(finalOrder.deliveryDate);
+                    CartManager.getInstance().setPaymentMethod(finalOrder.paymentMethod);
+                    CartManager.getInstance().setSeparateInvoice(finalOrder.needsSeparateInvoice);
 
                     // 2. Переходим в экран сбора заказа
                     OrderDetailsFragment storeFrag = new OrderDetailsFragment();
@@ -88,7 +93,10 @@ public class OrderDetailsViewFragment extends BaseFragment {
             }
         }
 
-        view.findViewById(R.id.btnBackFromView).setOnClickListener(v -> setupBackButton(v, false));
+        view.findViewById(R.id.btnBackFromView).setOnClickListener(v ->
+                getParentFragmentManager().popBackStack()
+        );
+//        view.findViewById(R.id.btnBackFromView).setOnClickListener(v -> setupBackButton(v, false));
         return view;
     }
 

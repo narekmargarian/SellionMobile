@@ -17,6 +17,7 @@ import androidx.annotation.Nullable;
 
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.sellion.mobile.R;
+import com.sellion.mobile.entity.CartManager;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -24,12 +25,11 @@ import java.util.Date;
 import java.util.Locale;
 
 public class OrderInfoFragment extends BaseFragment {
-    private TextView tvDate;
-    private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy", new Locale("ru"));
-    private View rootView; // Сохраняем view для поиска чекбоксов
     private TextView tvDeliveryDate;
     private RadioGroup radioGroupPaymentMethod;
     private CheckBox checkboxSeparateInvoice;
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy", new Locale("ru"));
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -40,12 +40,45 @@ public class OrderInfoFragment extends BaseFragment {
         checkboxSeparateInvoice = view.findViewById(R.id.checkboxSeparateInvoice);
         LinearLayout layoutSelectDeliveryDate = view.findViewById(R.id.layoutSelectDeliveryDate);
 
-        // Устанавливаем завтрашнюю дату по умолчанию
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.DAY_OF_MONTH, 1);
-        tvDeliveryDate.setText(dateFormat.format(calendar.getTime()));
+        // --- ВОССТАНОВЛЕНИЕ ДАННЫХ ПРИ ВХОДЕ ---
+
+        // 1. Проверяем дату
+        String savedDate = CartManager.getInstance().getDeliveryDate();
+        if (savedDate != null && !savedDate.isEmpty()) {
+            tvDeliveryDate.setText(savedDate);
+        } else {
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.DAY_OF_MONTH, 1);
+            String defaultDate = dateFormat.format(calendar.getTime());
+            tvDeliveryDate.setText(defaultDate);
+            CartManager.getInstance().setDeliveryDate(defaultDate);
+        }
+
+        // 2. Проверяем оплату
+        String savedPayment = CartManager.getInstance().getPaymentMethod();
+        if ("Банковский перевод".equals(savedPayment)) {
+            radioGroupPaymentMethod.check(R.id.radioTransfer);
+        } else {
+            radioGroupPaymentMethod.check(R.id.radioCash);
+        }
+
+        // 3. Проверяем чекбокс
+        checkboxSeparateInvoice.setChecked(CartManager.getInstance().isSeparateInvoice());
+
+        // --- СЛУШАТЕЛИ (ЗАПИСЬ ИЗМЕНЕНИЙ) ---
 
         layoutSelectDeliveryDate.setOnClickListener(v -> showDatePicker());
+
+        checkboxSeparateInvoice.setOnCheckedChangeListener((button, isChecked) -> {
+            CartManager.getInstance().setSeparateInvoice(isChecked);
+        });
+
+        radioGroupPaymentMethod.setOnCheckedChangeListener((group, checkedId) -> {
+            RadioButton rb = group.findViewById(checkedId);
+            if (rb != null) {
+                CartManager.getInstance().setPaymentMethod(rb.getText().toString());
+            }
+        });
 
         return view;
     }
@@ -57,24 +90,11 @@ public class OrderInfoFragment extends BaseFragment {
                 .build();
 
         datePicker.addOnPositiveButtonClickListener(selection -> {
-            tvDeliveryDate.setText(dateFormat.format(new Date(selection)));
+            String selectedDate = dateFormat.format(new Date(selection));
+            tvDeliveryDate.setText(selectedDate);
+            CartManager.getInstance().setDeliveryDate(selectedDate);
         });
 
         datePicker.show(getChildFragmentManager(), "DELIVERY_DATE_PICKER");
-    }
-
-    // Геттеры для получения данных во время сохранения заказа
-    public String getSelectedPaymentMethod() {
-        int checkedId = radioGroupPaymentMethod.getCheckedRadioButtonId();
-        if (checkedId == R.id.radioCash) return "Наличный расчет";
-        return "Банковский перевод";
-    }
-
-    public boolean isSeparateInvoiceRequired() {
-        return checkboxSeparateInvoice.isChecked();
-    }
-
-    public String getDeliveryDate() {
-        return tvDate != null ? tvDate.getText().toString() : "";
     }
 }

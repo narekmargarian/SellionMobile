@@ -20,8 +20,8 @@ import java.util.List;
 
 
 public class CatalogFragment extends BaseFragment {
-    private boolean orderMode = false;
-    private boolean isReturn = false;
+    private boolean orderMode;
+    private boolean isReturn ;
 
 
     @Nullable
@@ -42,6 +42,8 @@ public class CatalogFragment extends BaseFragment {
 
         if (orderMode || isReturn) {
             btnBack.setVisibility(View.GONE);
+        }else {
+            setupBackButton(btnBack, false);
         }
 
         List<String> categories = Arrays.asList("Сладкое", "Чай", "Чипсы", "Хлопья", "Весовые");

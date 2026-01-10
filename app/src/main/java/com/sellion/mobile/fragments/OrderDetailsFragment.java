@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
@@ -44,7 +45,7 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
 
         if (getArguments() != null) {
             tvStoreName.setText(getArguments().getString("store_name"));
-        }else {
+        } else {
             //TODO
         }
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
@@ -98,54 +99,35 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
         String storeName = tvStoreName.getText().toString();
         Map<String, Integer> currentItems = new HashMap<>(CartManager.getInstance().getCartItems());
 
-        if (currentItems.isEmpty()) {
-            Toast.makeText(getContext(), "Невозможно сохранить пустой возврат!", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        String dateStr = CartManager.getInstance().getDeliveryDate();
+        String payMethod = CartManager.getInstance().getPaymentMethod();
+        boolean isInvoice = CartManager.getInstance().isSeparateInvoice();
 
-        String dateStr = " ";
-        String payMethod = " ";
-        boolean isInvoice = true;
-
-        // Ищем фрагмент с инфо (вкладка 2)
-        Fragment infoFrag = getChildFragmentManager().findFragmentByTag("f" + viewPager.getId() + ":" + 2);
-//        if (infoFrag == null) {
-//            for (Fragment f : getChildFragmentManager().getFragments()) {
-//                if (f instanceof OrderInfoFragment) {
-//                    infoFrag = f;
-//                    break;
-//                }
-//            }
-//        }
-
-        if (infoFrag instanceof OrderInfoFragment) {
-            OrderInfoFragment sInfo = (OrderInfoFragment) infoFrag;
-            dateStr = sInfo.getDeliveryDate();
-            isInvoice = sInfo.isSeparateInvoiceRequired();
-            payMethod = sInfo.getSelectedPaymentMethod();
-
-        }
+        // Создаем модель заказа
         OrderModel om = new OrderModel(
                 storeName,
                 currentItems,
                 payMethod,
                 dateStr,
                 isInvoice);
+
+        // 1. Сохраняем в историю
         OrderHistoryManager.getInstance().addOrder(om);
 
-
+        // 2. Очищаем корзину
         CartManager.getInstance().clearCart();
 
         Toast.makeText(getContext(), "Заказ оформлен!", Toast.LENGTH_SHORT).show();
 
-        // Переход в список возвратов
+        getParentFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);        // 3. ПЕРЕХОД В СПИСОК ЗАКАЗОВ
+        // Мы очищаем стек, чтобы пользователь не вернулся назад в пустую корзину
         if (getActivity() != null) {
-            getParentFragmentManager().popBackStack();
             getParentFragmentManager().beginTransaction()
-                    .replace(R.id.fragment_container, new OrdersFragment())
+                    .replace(R.id.fragment_container, new OrdersFragment()) // замените на ваше имя класса
                     .addToBackStack(null)
                     .commit();
         }
+
     }
 
     @Override
