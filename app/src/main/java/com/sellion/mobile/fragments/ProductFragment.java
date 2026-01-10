@@ -197,8 +197,8 @@ public class ProductFragment extends BaseFragment {
                 break;
 
             case "Сухофрукты":
-                productList.add(new Product("Сух. Манго сушеное Вкусы мира ", 1490, 12, "44601234411556706"));
-                productList.add(new Product("Сух. Манго сушеное ВМ Чили ", 1490, 12, "4604123456706"));
+                productList.add(new Product("Сух. Манго сушеное Вкусы мира", 1490, 12, "44601234411556706"));
+                productList.add(new Product("Сух. Манго сушеное ВМ Чили", 1490, 12, "4604123456706"));
                 productList.add(new Product("Сух. Папайя сушеная Вкусы мира", 1190, 12, "1460123456706"));
                 productList.add(new Product("Сух. Манго шарики из сушеного манго", 1190, 12, "4601233456707"));
                 productList.add(new Product("Сух. Манго Сушеное LikeDay (250г)", 2490, 14, "4601233456707"));
