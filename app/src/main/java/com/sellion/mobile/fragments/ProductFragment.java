@@ -167,31 +167,45 @@ public class ProductFragment extends BaseFragment {
         // В 2026 году используем switch для фильтрации товаров по категориям
         switch (category) {
             case "Сладкое":
-                productList.add(new Product("Шоколад Аленка", 5060, 20, "46450123456701"));
-                productList.add(new Product("Шоколад 1", 2560, 10, "4601234567021"));
-                productList.add(new Product("Шоколад 2", 250, 10, "46012345612702"));
-                productList.add(new Product("Шоколад 3", 4853, 10, "4601234256702"));
-                productList.add(new Product("Конфеты Мишка", 2500, 10, "4601230456702"));
-                productList.add(new Product("Вафли Артек", 254154, 15, "4601234156703"));
-                productList.add(new Product("Вафли 1", 1, 15, "4601234156703"));
-                productList.add(new Product("Вафли 2", 2, 15, "4601234156703"));
-                productList.add(new Product("Вафли 3", 5, 15, "4601234156703"));
+                productList.add(new Product("Шарики Манго в какао-глазури ВМ", 930, 12, "46450123456701"));
+                productList.add(new Product("Шарики Манго в белой глазури ВМ", 930, 12, "4601234567021"));
+                productList.add(new Product("Шарики Банано в глазури ВМ", 730, 12, "46012345612702"));
+                productList.add(new Product("Шарики Имбирь сладкий в глазури ВМ", 930, 12, "4601234256702"));
                 break;
 
             case "Чипсы":
-                productList.add(new Product("Lays 1", 7566, 3, "4601234856704"));
-                productList.add(new Product("Lays 2", 4785, 3, "4601234456704"));
-                productList.add(new Product("Lays Сметана/Зелень", 755, 3, "4601234456704"));
-                productList.add(new Product("Pringles 1", 589, 6, "4601234566705"));
-                productList.add(new Product("Pringles 2", 289, 6, "4601234856705"));
-                productList.add(new Product("Pringles Оригинал", 389, 6, "460123689456705"));
+                productList.add(new Product("Чипсы кокосовые ВМ Оригинальные", 730, 12, "4601234856704"));
+                productList.add(new Product("Чипсы кокосовые ВМ Соленая карамель", 730, 12, "4601234456704"));
+                productList.add(new Product("Чипсы кокосовые Costa Cocosta", 430, 12, "4601234456704"));
+                productList.add(new Product("Чипсы кокосовые Costa Cocosta Васаби", 430, 12, "4601234566705"));
                 break;
 
             case "Чай":
-                productList.add(new Product("Чай 3", 9010, 12, "44601234411556706"));
-                productList.add(new Product("Чай 2", 70, 12, "4604123456706"));
-                productList.add(new Product("Чай 1", 900, 12, "1460123456706"));
-                productList.add(new Product("Чай Ахмад", 1100, 12, "4601233456707"));
+                productList.add(new Product("Чай ВМ Лемонграсс и ананас", 1690, 10, "44601234411556706"));
+                productList.add(new Product("Чай ВМ зеленый с фруктами", 1690, 10, "4604123456706"));
+                productList.add(new Product("Чай ВМ черный Мята и апельсин", 1690, 10, "1460123456706"));
+                productList.add(new Product("Чай ВМ черный Черника и манго", 1990, 10, "4601233456707"));
+                productList.add(new Product("Чай ВМ черный Шишки и саган-дайля", 1990, 10, "4601233456707"));
+                productList.add(new Product("Чай ВМ зеленый Жасмин и манго", 1990, 10, "4601233456707"));
+                productList.add(new Product("Чай ВМ черный Цветочное манго", 590, 12, "4601233456707"));
+                productList.add(new Product("Чай ВМ черный Шишки и клюква", 790, 12, "4601233456707"));
+                productList.add(new Product("Чай ВМ черный Нежная черника", 790, 12, "4601233456707"));
+                productList.add(new Product("Чай ВМ черный Ассам Цейлон", 1190, 14, "4601233456707"));
+                productList.add(new Product("Чай ВМ черный \"Хвойный\"", 790, 12, "4601233456707"));
+                productList.add(new Product("Чай ВМ черный \"Русский березовый\"", 790, 12, "4601233456707"));
+                productList.add(new Product("Чай ВМ черный Шишки и малина", 790, 12, "4601233456707"));
+                break;
+
+            case "Сухофрукты":
+                productList.add(new Product("Сух. Манго сушеное Вкусы мира ", 1490, 12, "44601234411556706"));
+                productList.add(new Product("Сух. Манго сушеное ВМ Чили ", 1490, 12, "4604123456706"));
+                productList.add(new Product("Сух. Папайя сушеная Вкусы мира", 1190, 12, "1460123456706"));
+                productList.add(new Product("Сух. Манго шарики из сушеного манго", 1190, 12, "4601233456707"));
+                productList.add(new Product("Сух. Манго Сушеное LikeDay (250г)", 2490, 14, "4601233456707"));
+                productList.add(new Product("Сух. Манго Сушеное LikeDay (100г)", 1190, 12, "4601233456707"));
+                productList.add(new Product("Сух.Бананы вяленые Вкусы мира", 1190, 12, "4601233456707"));
+                productList.add(new Product("Сух.Джекфрут сушеный Вкусы мира", 1190, 12, "4601233456707"));
+                productList.add(new Product("Сух.Ананас сушеный Вкусы мира", 1190, 12, "4601233456707"));
                 break;
 
             default:

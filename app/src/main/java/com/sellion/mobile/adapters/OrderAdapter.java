@@ -88,44 +88,65 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.ReturnVH> {
     private int getPriceForProduct(String name) {
         if (name == null) return 0;
         switch (name) {
-            case "Шоколад Аленка":
-                return 500;
-            case "Шоколад 1":
-                return 5574;
-            case "Шоколад 2":
-                return 45452;
-            case "Шоколад 3":
-                return 1212;
-            case "Конфеты Мишка":
-                return 2500;
-            case "Вафли Артек":
-                return 3500;
-            case "Вафли 1":
-                return 12560;
-            case "Вафли 2":
-                return 12121;
-            case "Вафли 3":
-                return 12;
-            case "Lays 1":
-                return 785;
-            case "Lays 2":
-                return 125;
-            case "Lays Сметана/Зелень":
-                return 10001;
-            case "Pringles Оригинал":
-                return 789;
-            case "Pringles 1":
-                return 123;
-            case "Pringles 2":
-                return 566;
-            case "Чай 1":
-                return 120;
-            case "Чай 2":
-                return 698;
-            case "Чай 3":
-                return 900;
-            case "Чай Ахмад":
-                return 1100;
+            case "Чипсы кокосовые ВМ Оригинальные":
+                return 730;
+            case "Чипсы кокосовые ВМ Соленая карамель":
+                return 730;
+            case "Чипсы кокосовые Costa Cocosta":
+                return 430;
+            case "Чипсы кокосовые Costa Cocosta Васаби":
+                return 430;
+            case "Шарики Манго в какао-глазури ВМ":
+                return 930;
+            case "Шарики Манго в белой глазури ВМ":
+                return 930;
+            case "Шарики Банано в глазури ВМ":
+                return 730;
+            case "Шарики Имбирь сладкий в глазури ВМ":
+                return 930;
+            case "Чай ВМ Лемонграсс и ананас":
+                return 1690;
+            case "Чай ВМ зеленый с фруктами":
+                return 1690;
+            case "Чай ВМ черный Мята и апельсин":
+                return 1690;
+            case "Чай ВМ черный Черника и манго":
+                return 1990;
+            case "Чай ВМ черный Шишки и саган-дайля":
+                return 1990;
+            case "Чай ВМ зеленый Жасмин и манго":
+                return 1990;
+            case "Чай ВМ черный Цветочное манго":
+                return 590;
+            case "Чай ВМ черный Шишки и клюква":
+                return 790;
+            case "Чай ВМ черный Нежная черника":
+                return 790;
+            case "Чай ВМ черный Ассам Цейлон":
+                return 1190;
+            case "Чай ВМ черный \"Хвойный\"":
+                return 790;
+            case "Чай ВМ черный \"Русский березовый\"":
+                return 790;
+            case "Чай ВМ черный Шишки и малина":
+                return 790;
+            case "Сух. Манго сушеное Вкусы мира":
+                return 1490;
+            case "Сух. Манго сушеное ВМ Чили":
+                return 1490;
+            case "Сух. Папайя сушеная Вкусы мира":
+                return 1190;
+            case "Сух. Манго шарики из сушеного манго":
+                return 1190;
+            case "Сух. Манго Сушеное LikeDay (250г)":
+                return 2490;
+            case "Сух. Манго Сушеное LikeDay (100г)":
+                return 1190;
+            case "Сух.Бананы вяленые Вкусы мира":
+                return 1190;
+            case "Сух.Джекфрут сушеный Вкусы мира":
+                return 1190;
+            case "Сух.Ананас сушеный Вкусы мира":
             default:
                 return 0;
         }

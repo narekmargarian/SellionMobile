@@ -37,9 +37,9 @@ public class DebtsFragment extends BaseFragment {
         List<DebtModel> debtList = new ArrayList<>();
 
         // Получаем реальные модели из менеджера
-        ClientModel client1 = ClientManager.getInstance().getClientByName("ZOVQ Arshakunyac");
-        ClientModel client2 = ClientManager.getInstance().getClientByName("Carrefour ТЦ Ереван Мол");
-        ClientModel client3 = ClientManager.getInstance().getClientByName("MG Маркет Аван");
+        ClientModel client1 = ClientManager.getInstance().getClientByName("Զովք Շրջանային");
+        ClientModel client2 = ClientManager.getInstance().getClientByName("Զովք Աէրացիա");
+        ClientModel client3 = ClientManager.getInstance().getClientByName("Carfur gyulbekyan");
 
         if (client1 != null)
             debtList.add(new DebtModel(client1.getName(), client1.getIp(), "0254871", client1.getAddress(), 45000));

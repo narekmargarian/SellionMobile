@@ -46,7 +46,7 @@ public class CatalogFragment extends BaseFragment {
             setupBackButton(btnBack, false);
         }
 
-        List<String> categories = Arrays.asList("Сладкое", "Чай", "Чипсы", "Хлопья", "Весовые");
+        List<String> categories = Arrays.asList("Сладкое", "Чай", "Чипсы", "Сухофрукты");
 
         CategoryAdapter adapter = new CategoryAdapter(categories, category -> {
             ProductFragment fragment = new ProductFragment();
