@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@drawable/rounded_top_corners"
+    >
+
+
+
+
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center"
+        android:layout_marginBottom="16dp"
+        android:background="#D3D3D3" />
+
+    <TextView
+        android:id="@+id/tvClientInfoName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#000000"
+        android:text="Название магазина" />
+
+    <TextView
+        android:id="@+id/tvClientInfoAddress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textSize="16sp"
+        android:textColor="#424242"
+        android:lineSpacingExtra="4dp"
+        android:text="Адрес магазина" />
+
+    <TextView
+        android:id="@+id/tvClientInfoIp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textSize="16sp"
+        android:textColor="#424242"
+        android:lineSpacingExtra="4dp"
+        android:text="Имя ИП" />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Закрыть"
+        android:id="@+id/btnCloseClientInfo"
+        style="@style/Widget.MaterialComponents.Button.TextButton" />
+
+
+</LinearLayout>

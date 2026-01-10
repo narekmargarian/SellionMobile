@@ -14,7 +14,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.DebtsAdapter;
+import com.sellion.mobile.entity.ClientModel;
 import com.sellion.mobile.entity.DebtModel;
+import com.sellion.mobile.managers.ClientManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +27,6 @@ public class DebtsFragment extends BaseFragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-
         View view = inflater.inflate(R.layout.fragment_debts, container, false);
         ImageButton btnBack = view.findViewById(R.id.btnBackDebts);
         RecyclerView recyclerView = view.findViewById(R.id.recyclerDebts);
@@ -33,12 +34,17 @@ public class DebtsFragment extends BaseFragment {
         setupBackButton(btnBack, false);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-
+        // Используем реальные магазины из менеджера для создания тестовых долгов
         List<DebtModel> debtList = new ArrayList<>();
-        debtList.add(new DebtModel("Магазин Ани", "ИП Саргсян А.", "0254871", "Ереван, Абовяна 12", 45000));
-        debtList.add(new DebtModel("Продукты Гюмри", "ИП Карапетян М.", "0312457", "Гюмри, Ширакаци 5", 125000));
-        debtList.add(new DebtModel("Зигзаг Маркет", "ООО Ривенто", "0125478", "Ереван, Комитаса 44", 0));
 
+        // Получаем реальные модели из менеджера
+        ClientModel client1 = ClientManager.getInstance().getClientByName("ZOVQ Arshakunyac");
+        ClientModel client2 = ClientManager.getInstance().getClientByName("Carrefour ТЦ Ереван Мол");
+        ClientModel client3 = ClientManager.getInstance().getClientByName("MG Маркет Аван");
+
+        if (client1 != null) debtList.add(new DebtModel(client1.getName(), client1.getIp(), "0254871", client1.getAddress(), 45000));
+        if (client2 != null) debtList.add(new DebtModel(client2.getName(), client2.getIp(), "0312457", client2.getAddress(), 125000));
+        if (client3 != null) debtList.add(new DebtModel(client3.getName(), client3.getIp(), "0125478", client3.getAddress(), 0));
 
         DebtsAdapter adapter = new DebtsAdapter(debtList, this::openDetails);
         recyclerView.setAdapter(adapter);
