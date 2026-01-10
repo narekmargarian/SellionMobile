@@ -99,16 +99,6 @@ public class CurrentOrderFragment extends BaseFragment {
                 return false;
             }
 
-//            @Override
-//            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-//                int position = viewHolder.getAdapterPosition();
-//                if (position != RecyclerView.NO_POSITION) {
-//                    Product productToDelete = selectedProducts.get(position);
-//                    CartManager.getInstance().addProduct(productToDelete.getName(), 0);
-//                    updateUI(); // Сразу пересчитываем сумму
-//                    Toast.makeText(getContext(), "Удалено: " + productToDelete.getName(), Toast.LENGTH_SHORT).show();
-//                }
-//            }
 
             @Override
             public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {

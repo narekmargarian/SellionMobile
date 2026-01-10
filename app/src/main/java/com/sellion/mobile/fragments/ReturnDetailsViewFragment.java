@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.OrderHistoryItemsAdapter;
 import com.sellion.mobile.entity.CartManager;
+import com.sellion.mobile.entity.OrderModel;
 import com.sellion.mobile.entity.ReturnModel;
 import com.sellion.mobile.managers.ReturnHistoryManager;
 import com.sellion.mobile.managers.ReturnManager;
@@ -94,14 +95,20 @@ public class ReturnDetailsViewFragment extends BaseFragment {
         return view;
     }
 
-    private void calculateTotal(ReturnModel model, TextView tvTotal) {
-        double total = 0;
-        if (model.items != null) {
-            for (Map.Entry<String, Integer> entry : model.items.entrySet()) {
-                total += (getPriceForProduct(entry.getKey()) * entry.getValue());
+    private void calculateTotal(ReturnModel finalReturn, TextView tvTotalSum) {
+        double totalOrderSum = 0;
+        int totalQty = 0;
+        if (finalReturn.items != null) {
+            for (Map.Entry<String, Integer> entry : finalReturn.items.entrySet()) {
+                int qty = entry.getValue();
+                totalOrderSum += (getPriceForProduct(entry.getKey()) * qty);
+                totalQty += qty;
             }
         }
-        if (tvTotal != null) tvTotal.setText(String.format("Итоговая сумма: %,.0f ֏", total));
+        if (tvTotalSum != null) {
+            // Добавили вывод общего кол-ва штук для контроля
+            tvTotalSum.setText(String.format("Товаров: %d шт. | Итого: %,.0f ֏", totalQty, totalOrderSum));
+        }
     }
 
 
