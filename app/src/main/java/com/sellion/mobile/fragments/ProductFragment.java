@@ -17,7 +17,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.ProductAdapter;
-import com.sellion.mobile.entity.CartManager;
+import com.sellion.mobile.managers.CartManager;
 import com.sellion.mobile.entity.Product;
 
 import java.util.ArrayList;

@@ -15,7 +15,7 @@ import androidx.annotation.Nullable;
 
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.sellion.mobile.R;
-import com.sellion.mobile.entity.CartManager;
+import com.sellion.mobile.managers.CartManager;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;

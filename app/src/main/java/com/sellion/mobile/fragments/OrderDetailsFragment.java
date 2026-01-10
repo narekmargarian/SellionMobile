@@ -18,7 +18,7 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.sellion.mobile.R;
-import com.sellion.mobile.entity.CartManager;
+import com.sellion.mobile.managers.CartManager;
 import com.sellion.mobile.entity.OrderModel;
 import com.sellion.mobile.handler.BackPressHandler;
 import com.sellion.mobile.helper.NavigationHelper;

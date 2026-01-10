@@ -18,7 +18,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.CartAdapter;
-import com.sellion.mobile.entity.CartManager;
+import com.sellion.mobile.managers.CartManager;
 import com.sellion.mobile.entity.Product;
 
 import java.util.ArrayList;

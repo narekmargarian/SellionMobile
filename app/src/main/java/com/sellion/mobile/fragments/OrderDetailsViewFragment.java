@@ -14,7 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.OrderHistoryItemsAdapter;
-import com.sellion.mobile.entity.CartManager;
+import com.sellion.mobile.managers.CartManager;
 import com.sellion.mobile.entity.OrderModel;
 import com.sellion.mobile.managers.OrderHistoryManager;
 

@@ -1,4 +1,4 @@
-package com.sellion.mobile.entity;
+package com.sellion.mobile.managers;
 
 import java.util.HashMap;
 import java.util.Map;

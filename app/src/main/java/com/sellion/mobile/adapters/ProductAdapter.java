@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
 import com.sellion.mobile.entity.Product;
+import com.sellion.mobile.managers.CartManager;
 
 import java.util.List;
 
@@ -46,7 +47,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
         holder.tvName.setText(displayText);
 
         // ЛОГИКА ЦВЕТА: Если товар уже в корзине — делаем его СИНИМ
-        if (com.sellion.mobile.entity.CartManager.getInstance().hasProduct(product.getName())) {
+        if (CartManager.getInstance().hasProduct(product.getName())) {
             holder.tvName.setTextColor(android.graphics.Color.BLUE);
         } else {
             holder.tvName.setTextColor(android.graphics.Color.BLACK);
