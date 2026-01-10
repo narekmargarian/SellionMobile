@@ -22,6 +22,7 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.entity.CartManager;
 import com.sellion.mobile.entity.OrderModel;
 import com.sellion.mobile.handler.BackPressHandler;
+import com.sellion.mobile.helper.NavigationHelper;
 import com.sellion.mobile.managers.OrderHistoryManager;
 
 import java.util.HashMap;
@@ -95,6 +96,43 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
         return view;
     }
 
+//    private void saveOrderToDatabase() {
+//        String storeName = tvStoreName.getText().toString();
+//        Map<String, Integer> currentItems = new HashMap<>(CartManager.getInstance().getCartItems());
+//
+//        String dateStr = CartManager.getInstance().getDeliveryDate();
+//        String payMethod = CartManager.getInstance().getPaymentMethod();
+//        boolean isInvoice = CartManager.getInstance().isSeparateInvoice();
+//
+//        // Создаем модель заказа
+//        OrderModel om = new OrderModel(
+//                storeName,
+//                currentItems,
+//                payMethod,
+//                dateStr,
+//                isInvoice);
+//
+//        // 1. Сохраняем в историю
+//        OrderHistoryManager.getInstance().addOrder(om);
+//
+//        // 2. Очищаем корзину
+//        CartManager.getInstance().clearCart();
+//
+//        Toast.makeText(getContext(), "Заказ оформлен!", Toast.LENGTH_SHORT).show();
+//
+//        getParentFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);        // 3. ПЕРЕХОД В СПИСОК ЗАКАЗОВ
+//        // Мы очищаем стек, чтобы пользователь не вернулся назад в пустую корзину
+//        if (getActivity() != null) {
+//            getParentFragmentManager().beginTransaction()
+//                    .replace(R.id.fragment_container, new OrdersFragment()) // замените на ваше имя класса
+//                    .addToBackStack(null)
+//                    .commit();
+//        }
+//
+//    }
+
+
+
     private void saveOrderToDatabase() {
         String storeName = tvStoreName.getText().toString();
         Map<String, Integer> currentItems = new HashMap<>(CartManager.getInstance().getCartItems());
@@ -103,32 +141,18 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
         String payMethod = CartManager.getInstance().getPaymentMethod();
         boolean isInvoice = CartManager.getInstance().isSeparateInvoice();
 
-        // Создаем модель заказа
-        OrderModel om = new OrderModel(
-                storeName,
-                currentItems,
-                payMethod,
-                dateStr,
-                isInvoice);
-
-        // 1. Сохраняем в историю
+        OrderModel om = new OrderModel(storeName, currentItems, payMethod, dateStr, isInvoice);
         OrderHistoryManager.getInstance().addOrder(om);
 
-        // 2. Очищаем корзину
+        // ВАЖНО: Сначала очищаем всё
         CartManager.getInstance().clearCart();
 
         Toast.makeText(getContext(), "Заказ оформлен!", Toast.LENGTH_SHORT).show();
 
-        getParentFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);        // 3. ПЕРЕХОД В СПИСОК ЗАКАЗОВ
-        // Мы очищаем стек, чтобы пользователь не вернулся назад в пустую корзину
-        if (getActivity() != null) {
-            getParentFragmentManager().beginTransaction()
-                    .replace(R.id.fragment_container, new OrdersFragment()) // замените на ваше имя класса
-                    .addToBackStack(null)
-                    .commit();
-        }
-
+        // ИСПОЛЬЗУЕМ HELPER (как в возвратах), чтобы навигация была одинаковой
+        NavigationHelper.finishAndGoTo(getParentFragmentManager(), new OrdersFragment());
     }
+
 
     @Override
     public void onBackPressedHandled() {
@@ -173,6 +197,7 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
                     .setPositiveButton("Да, сохранить", (dialog, which) -> saveOrderToDatabase())
                     .setNegativeButton("Нет", (dialog, which) -> {
                         CartManager.getInstance().clearCart();
+                        // Возвращаемся к выбору клиента
                         getParentFragmentManager().popBackStack();
                     })
                     .setNeutralButton("Отмена", null)

@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.ReturnAdapter;
 import com.sellion.mobile.entity.ReturnModel;
+import com.sellion.mobile.helper.NavigationHelper;
 import com.sellion.mobile.managers.ReturnHistoryManager;
 
 import java.util.List;
@@ -62,7 +63,10 @@ public class ReturnsFragment extends BaseFragment {
         });
 
         // Кнопка создания нового возврата
-        setupBackButton(btnBack, false);
+        btnBack.setOnClickListener(v -> {
+            // Очищаем стек и выходим на главный экран
+            NavigationHelper.backToDashboard(getParentFragmentManager());
+        });
 
         btnAddReturn.setOnClickListener(v -> {
             getParentFragmentManager().beginTransaction()

@@ -143,7 +143,6 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
     }
 
     protected void showSaveReturnDialog() {
-        // Если в корзине что-то есть, спрашиваем о сохранении
         if (!CartManager.getInstance().getCartItems().isEmpty()) {
             new AlertDialog.Builder(requireContext())
                     .setTitle("Завершение возврата")
@@ -152,15 +151,15 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
                     .setNegativeButton("Нет", (dialog, which) -> {
                         CartManager.getInstance().clearCart();
                         ReturnManager.getInstance().clear();
-                        NavigationHelper.backToDashboard(getParentFragmentManager());
+                        // КЛЮЧЕВОЙ МОМЕНТ: возвращает на один экран назад (к выбору магазина)
+                        getParentFragmentManager().popBackStack();
                     })
                     .setNeutralButton("Отмена", null)
                     .show();
         } else {
-            // Если пусто, просто уходим на главную
             CartManager.getInstance().clearCart();
             ReturnManager.getInstance().clear();
-            NavigationHelper.backToDashboard(getParentFragmentManager());
+            getParentFragmentManager().popBackStack();
         }
     }
 

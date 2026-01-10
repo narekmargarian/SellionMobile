@@ -18,9 +18,11 @@ import com.sellion.mobile.entity.CartManager;
 import com.sellion.mobile.entity.OrderModel;
 import com.sellion.mobile.managers.OrderHistoryManager;
 
+import java.util.List;
 import java.util.Map;
 
 public class OrderDetailsViewFragment extends BaseFragment {
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -34,14 +36,18 @@ public class OrderDetailsViewFragment extends BaseFragment {
         TextView tvTotalSum = view.findViewById(R.id.tvViewOrderTotalSum);
         RecyclerView rv = view.findViewById(R.id.rvViewOrderItems);
         Button btnEdit = view.findViewById(R.id.btnEditThisOrder);
-
+        View btnBack = view.findViewById(R.id.btnBackFromView);
 
         tvTitle.setText(shopName);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 
-
+        // --- ИСПРАВЛЕННЫЙ ПОИСК (АКТУАЛЬНО НА 10 ЯНВАРЯ 2026) ---
+        // Идем с конца списка, чтобы найти САМЫЙ НОВЫЙ заказ (черновик),
+        // даже если есть старые отправленные заказы для этого магазина.
         OrderModel currentOrder = null;
-        for (OrderModel o : OrderHistoryManager.getInstance().getOrders()) {
+        List<OrderModel> allOrders = OrderHistoryManager.getInstance().getOrders();
+        for (int i = allOrders.size() - 1; i >= 0; i--) {
+            OrderModel o = allOrders.get(i);
             if (o.shopName.equals(shopName)) {
                 currentOrder = o;
                 break;
@@ -49,7 +55,6 @@ public class OrderDetailsViewFragment extends BaseFragment {
         }
 
         if (currentOrder != null) {
-            // Создаем финальную переменную для использования внутри лямбда-выражения
             final OrderModel finalOrder = currentOrder;
 
             // 1. Детали заказа
@@ -57,29 +62,34 @@ public class OrderDetailsViewFragment extends BaseFragment {
             tvInvoiceStatus.setText("Раздельная фактура: " + (finalOrder.needsSeparateInvoice ? "Да" : "Нет"));
             tvDate.setText("Дата доставки: " + finalOrder.deliveryDate);
 
-            // 2. РАСЧЕТ ИТОГОВОЙ СУММЫ ЗАКАЗА
+            // 2. РАСЧЕТ ИТОГОВОЙ СУММЫ И КОЛИЧЕСТВА (Синхронизировано с возвратами)
             calculateTotal(finalOrder, tvTotalSum);
 
             // 3. Адаптер товаров
-            OrderHistoryItemsAdapter adapter = new OrderHistoryItemsAdapter(finalOrder.items);
-            rv.setAdapter(adapter);
+            if (finalOrder.items != null) {
+                OrderHistoryItemsAdapter adapter = new OrderHistoryItemsAdapter(finalOrder.items);
+                rv.setAdapter(adapter);
+            }
 
-            // Логика кнопки "Изменить"
-
+            // --- ЛОГИКА БЛОКИРОВКИ РЕДАКТИРОВАНИЯ ---
             if (finalOrder.status == OrderModel.Status.SENT) {
+                // Если в SyncFragment нажали "Отправить", кнопка исчезает
                 btnEdit.setVisibility(View.GONE);
             } else {
+                // Если статус PENDING, редактирование доступно
+                btnEdit.setVisibility(View.VISIBLE);
                 btnEdit.setOnClickListener(v -> {
-                    // 1. Загружаем ВСЕ данные обратно в CartManager
+                    // Загружаем данные обратно в CartManager
                     CartManager.getInstance().clearCart();
-                    CartManager.getInstance().getCartItems().putAll(finalOrder.items);
+                    if (finalOrder.items != null) {
+                        CartManager.getInstance().getCartItems().putAll(finalOrder.items);
+                    }
 
-                    // ВАЖНО: сохраняем параметры заказа, чтобы они появились в полях
                     CartManager.getInstance().setDeliveryDate(finalOrder.deliveryDate);
                     CartManager.getInstance().setPaymentMethod(finalOrder.paymentMethod);
                     CartManager.getInstance().setSeparateInvoice(finalOrder.needsSeparateInvoice);
 
-                    // 2. Переходим в экран сбора заказа
+                    // Переходим в экран оформления
                     OrderDetailsFragment storeFrag = new OrderDetailsFragment();
                     Bundle b = new Bundle();
                     b.putString("store_name", finalOrder.shopName);
@@ -93,67 +103,54 @@ public class OrderDetailsViewFragment extends BaseFragment {
             }
         }
 
-        view.findViewById(R.id.btnBackFromView).setOnClickListener(v ->
-                getParentFragmentManager().popBackStack()
-        );
-//        view.findViewById(R.id.btnBackFromView).setOnClickListener(v -> setupBackButton(v, false));
+        // Кнопка назад на экране
+        btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
+
+        // Привязка системной кнопки назад на корпусе телефона
+        setupBackButton(btnBack, false);
+
         return view;
     }
 
     private void calculateTotal(OrderModel finalOrder, TextView tvTotalSum) {
         double totalOrderSum = 0;
-        for (Map.Entry<String, Integer> entry : finalOrder.items.entrySet()) {
-            totalOrderSum += (getPriceForProduct(entry.getKey()) * entry.getValue());
+        int totalQty = 0;
+        if (finalOrder.items != null) {
+            for (Map.Entry<String, Integer> entry : finalOrder.items.entrySet()) {
+                int qty = entry.getValue();
+                totalOrderSum += (getPriceForProduct(entry.getKey()) * qty);
+                totalQty += qty;
+            }
         }
         if (tvTotalSum != null) {
-            tvTotalSum.setText(String.format("Итоговая сумма: %,.0f ֏", totalOrderSum));
+            // Добавили вывод общего кол-ва штук для контроля
+            tvTotalSum.setText(String.format("Товаров: %d шт. | Итого: %,.0f ֏", totalQty, totalOrderSum));
         }
     }
-
 
     private int getPriceForProduct(String name) {
         if (name == null) return 0;
         switch (name) {
-            case "Шоколад Аленка":
-                return 500;
-            case "Шоколад 1":
-                return 5574;
-            case "Шоколад 2":
-                return 45452;
-            case "Шоколад 3":
-                return 1212;
-            case "Конфеты Мишка":
-                return 2500;
-            case "Вафли Артек":
-                return 3500;
-            case "Вафли 1":
-                return 12560;
-            case "Вафли 2":
-                return 12121;
-            case "Вафли 3":
-                return 12;
-            case "Lays 1":
-                return 785;
-            case "Lays 2":
-                return 125;
-            case "Lays Сметана/Зелень":
-                return 10001;
-            case "Pringles Оригинал":
-                return 789;
-            case "Pringles 1":
-                return 123;
-            case "Pringles 2":
-                return 566;
-            case "Чай 1":
-                return 120;
-            case "Чай 2":
-                return 698;
-            case "Чай 3":
-                return 900;
-            case "Чай Ахмад":
-                return 1100;
-            default:
-                return 0;
+            case "Шоколад Аленка": return 500;
+            case "Шоколад 1": return 5574;
+            case "Шоколад 2": return 45452;
+            case "Шоколад 3": return 1212;
+            case "Конфеты Мишка": return 2500;
+            case "Вафли Артек": return 3500;
+            case "Вафли 1": return 12560;
+            case "Вафли 2": return 12121;
+            case "Вафли 3": return 12;
+            case "Lays 1": return 785;
+            case "Lays 2": return 125;
+            case "Lays Сметана/Зелень": return 10001;
+            case "Pringles Оригинал": return 789;
+            case "Pringles 1": return 123;
+            case "Pringles 2": return 566;
+            case "Чай 1": return 120;
+            case "Чай 2": return 698;
+            case "Чай 3": return 900;
+            case "Чай Ахмад": return 1100;
+            default: return 0;
         }
     }
 }

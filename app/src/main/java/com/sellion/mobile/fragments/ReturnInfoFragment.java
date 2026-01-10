@@ -30,47 +30,60 @@ import java.util.Locale;
 
 
 public class ReturnInfoFragment extends BaseFragment {
-    private TextView tvDate;
-    private RadioGroup rgReason;
-    private final SimpleDateFormat df = new SimpleDateFormat("dd MMMM yyyy", new Locale("ru"));
+    private TextView tvReturnDate;
+    private RadioGroup radioGroupReason;
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy", new Locale("ru"));
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View v = inflater.inflate(R.layout.fragment_return_info, container, false);
-        tvDate = v.findViewById(R.id.tvReturnDate);
-        rgReason = v.findViewById(R.id.radioGroupReturnReason);
-        LinearLayout lDate = v.findViewById(R.id.layoutSelectReturnDate);
+        View view = inflater.inflate(R.layout.fragment_return_info, container, false);
 
-        // 1. Получаем дату из менеджера (там уже будет "завтра", если это новый возврат)
-        String sDate = ReturnManager.getInstance().getReturnDate();
-        tvDate.setText(sDate);
+        tvReturnDate = view.findViewById(R.id.tvReturnDate);
+        radioGroupReason = view.findViewById(R.id.radioGroupReturnReason);
+        LinearLayout layoutSelectDate = view.findViewById(R.id.layoutSelectReturnDate);
 
-        // 2. Восстановление причины
-        String sReason = ReturnManager.getInstance().getReturnReason();
-        for (int i = 0; i < rgReason.getChildCount(); i++) {
-            RadioButton rb = (RadioButton) rgReason.getChildAt(i);
-            if (rb.getText().toString().equals(sReason)) {
+        // --- ВАША ЛОГИКА (Дата на 1 день вперед) ---
+        String savedDate = ReturnManager.getInstance().getReturnDate();
+        if (savedDate != null && !savedDate.isEmpty()) {
+            tvReturnDate.setText(savedDate);
+        } else {
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.DAY_OF_MONTH, 1); // Устанавливаем ЗАВТРА
+            String defaultDate = dateFormat.format(calendar.getTime());
+            tvReturnDate.setText(defaultDate);
+            ReturnManager.getInstance().setReturnDate(defaultDate);
+        }
+
+        // --- ВОССТАНОВЛЕНИЕ ПРИЧИНЫ ---
+        String savedReason = ReturnManager.getInstance().getReturnReason();
+        for (int i = 0; i < radioGroupReason.getChildCount(); i++) {
+            RadioButton rb = (RadioButton) radioGroupReason.getChildAt(i);
+            if (rb.getText().toString().equals(savedReason)) {
                 rb.setChecked(true);
                 break;
             }
         }
 
-        lDate.setOnClickListener(view -> showPicker());
-        rgReason.setOnCheckedChangeListener((g, id) -> {
-            RadioButton rb = g.findViewById(id);
-            if (rb != null) ReturnManager.getInstance().setReturnReason(rb.getText().toString());
+        // --- СЛУШАТЕЛИ ---
+        layoutSelectDate.setOnClickListener(v -> showDatePicker());
+        radioGroupReason.setOnCheckedChangeListener((group, checkedId) -> {
+            RadioButton rb = group.findViewById(checkedId);
+            if (rb != null) {
+                ReturnManager.getInstance().setReturnReason(rb.getText().toString());
+            }
         });
-        return v;
+
+        return view;
     }
 
-    private void showPicker() {
-        MaterialDatePicker<Long> dp = MaterialDatePicker.Builder.datePicker().build();
-        dp.addOnPositiveButtonClickListener(sel -> {
-            String selectedDate = df.format(new Date(sel));
-            tvDate.setText(selectedDate);
+    private void showDatePicker() {
+        MaterialDatePicker<Long> datePicker = MaterialDatePicker.Builder.datePicker().build();
+        datePicker.addOnPositiveButtonClickListener(selection -> {
+            String selectedDate = dateFormat.format(new Date(selection));
+            tvReturnDate.setText(selectedDate);
             ReturnManager.getInstance().setReturnDate(selectedDate);
         });
-        dp.show(getChildFragmentManager(), "DP");
+        datePicker.show(getChildFragmentManager(), "DATE_PICKER");
     }
 }

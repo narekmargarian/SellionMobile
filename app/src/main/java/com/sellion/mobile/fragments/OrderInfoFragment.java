@@ -26,8 +26,6 @@ import java.util.Locale;
 
 public class OrderInfoFragment extends BaseFragment {
     private TextView tvDeliveryDate;
-    private RadioGroup radioGroupPaymentMethod;
-    private CheckBox checkboxSeparateInvoice;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy", new Locale("ru"));
 
     @Nullable
@@ -36,8 +34,8 @@ public class OrderInfoFragment extends BaseFragment {
         View view = inflater.inflate(R.layout.fragment_order_info, container, false);
 
         tvDeliveryDate = view.findViewById(R.id.tvDeliveryDate);
-        radioGroupPaymentMethod = view.findViewById(R.id.radioGroupPaymentMethod);
-        checkboxSeparateInvoice = view.findViewById(R.id.checkboxSeparateInvoice);
+        RadioGroup radioGroupPaymentMethod = view.findViewById(R.id.radioGroupPaymentMethod);
+        CheckBox checkboxSeparateInvoice = view.findViewById(R.id.checkboxSeparateInvoice);
         LinearLayout layoutSelectDeliveryDate = view.findViewById(R.id.layoutSelectDeliveryDate);
 
         // --- ВОССТАНОВЛЕНИЕ ДАННЫХ ПРИ ВХОДЕ ---

@@ -78,10 +78,11 @@ public class CreateReturnFragment extends BaseFragment {
         args.putString("store_name", storeName);
         fragment.setArguments(args);
 
+        // Используем стандартную анимацию и ПРАВИЛЬНУЮ транзакцию
         getParentFragmentManager().beginTransaction()
                 .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
                 .replace(R.id.fragment_container, fragment)
-                .addToBackStack(null)
+                .addToBackStack("return_process") // Даем имя шагу, чтобы легче управлять
                 .commit();
     }
 }
