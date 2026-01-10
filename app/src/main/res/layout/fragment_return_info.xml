@@ -50,9 +50,7 @@
 
         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#EEEEEE"/>
 
-        <!-- Причина возврата -->
         <TextView
-            android:id="@+id/tvLabelPayment"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
@@ -60,6 +58,47 @@
             android:textColor="#000000"
             android:textSize="17sp"
             android:textStyle="bold" />
+
+        <RadioGroup
+            android:id="@+id/radioGroupReturnReason"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:visibility="visible"> <!-- Сделали видимым -->
+
+
+            <RadioButton
+                android:id="@+id/reasonExpired"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Просрочка"
+                android:textSize="16sp"
+                app:buttonTint="#000000" />
+            <RadioButton
+                android:id="@+id/reasonMarriage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Брак"
+                android:textSize="16sp"
+                app:buttonTint="#000000" />
+
+
+            <RadioButton
+                android:id="@+id/reasonWarehouse"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Возврат в склад"
+                android:textSize="16sp"
+                app:buttonTint="#000000" />
+
+            <RadioButton
+                android:id="@+id/reasonOther"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Другое"
+                android:textSize="16sp"
+                app:buttonTint="#000000" />
+        </RadioGroup>
 
         <!-- Этот ID будет использоваться для динамической вставки выбора причины из Enum -->
         <LinearLayout

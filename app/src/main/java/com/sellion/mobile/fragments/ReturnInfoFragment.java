@@ -13,6 +13,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -20,6 +21,7 @@ import android.widget.TextView;
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.sellion.mobile.R;
 import com.sellion.mobile.entity.ReturnReason;
+import com.sellion.mobile.managers.ReturnManager;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -29,84 +31,46 @@ import java.util.Locale;
 
 public class ReturnInfoFragment extends BaseFragment {
     private TextView tvDate;
-    private TextView tvReasonValue;
-    private ReturnReason selectedReason = ReturnReason.EXPIRED;
-
-    private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy", new Locale("ru"));
+    private RadioGroup rgReason;
+    private final SimpleDateFormat df = new SimpleDateFormat("dd MMMM yyyy", new Locale("ru"));
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // Используем ваш fragment_store_info
-        View rootView = inflater.inflate(R.layout.fragment_return_info, container, false);
+        View v = inflater.inflate(R.layout.fragment_return_info, container, false);
+        tvDate = v.findViewById(R.id.tvReturnDate);
+        rgReason = v.findViewById(R.id.radioGroupReturnReason);
+        LinearLayout lDate = v.findViewById(R.id.layoutSelectReturnDate);
 
-        tvDate = rootView.findViewById(R.id.tvReturnDate);
-        LinearLayout layoutDate = rootView.findViewById(R.id.layoutSelectReturnDate);
+        // 1. Получаем дату из менеджера (там уже будет "завтра", если это новый возврат)
+        String sDate = ReturnManager.getInstance().getReturnDate();
+        tvDate.setText(sDate);
 
-        // Ставим 7 января 2026
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.DAY_OF_MONTH, 1);
-        tvDate.setText(dateFormat.format(cal.getTime()));
-
-//        // Скрываем оплату (ID из вашего XML)
-//        if (rootView.findViewById(R.id.radioGroupPaymentMethod) != null) {
-//            rootView.findViewById(R.id.radioGroupPaymentMethod).setVisibility(View.GONE);
-//        }
-//        if (rootView.findViewById(R.id.checkboxSeparateInvoice) != null) {
-//            rootView.findViewById(R.id.checkboxSeparateInvoice).setVisibility(View.GONE);
-//        }
-
-        // Находим заголовок программно, так как у него нет ID в вашем XML
-        LinearLayout root = (LinearLayout) ((ScrollView) rootView).getChildAt(0);
-        for (int i = 0; i < root.getChildCount(); i++) {
-            if (root.getChildAt(i) instanceof TextView) {
-                TextView tv = (TextView) root.getChildAt(i);
-                if (tv.getText().toString().contains("Способ оплаты")) {
-                    tv.setText("Причина возврата:");
-                }
+        // 2. Восстановление причины
+        String sReason = ReturnManager.getInstance().getReturnReason();
+        for (int i = 0; i < rgReason.getChildCount(); i++) {
+            RadioButton rb = (RadioButton) rgReason.getChildAt(i);
+            if (rb.getText().toString().equals(sReason)) {
+                rb.setChecked(true);
+                break;
             }
         }
 
-        // Создаем поле выбора причины
-        tvReasonValue = new TextView(getContext());
-        tvReasonValue.setText(selectedReason.getTitle());
-        tvReasonValue.setTextColor(Color.parseColor("#2196F3"));
-
-
-        // Вставляем после заголовка причины
-        root.addView(tvReasonValue, 3);
-
-        layoutDate.setOnClickListener(v -> showDatePicker());
-        tvReasonValue.setOnClickListener(v -> showReasonDialog());
-
-        return rootView;
+        lDate.setOnClickListener(view -> showPicker());
+        rgReason.setOnCheckedChangeListener((g, id) -> {
+            RadioButton rb = g.findViewById(id);
+            if (rb != null) ReturnManager.getInstance().setReturnReason(rb.getText().toString());
+        });
+        return v;
     }
 
-    private void showReasonDialog() {
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Выберите причину")
-                .setItems(ReturnReason.getAllTitles(), (d, i) -> {
-                    selectedReason = ReturnReason.values()[i];
-                    tvReasonValue.setText(selectedReason.getTitle());
-                }).show();
-    }
-
-    private void showDatePicker() {
-        MaterialDatePicker<Long> picker = MaterialDatePicker.Builder.datePicker().build();
-        picker.addOnPositiveButtonClickListener(s -> tvDate.setText(dateFormat.format(new Date(s))));
-        picker.show(getChildFragmentManager(), "DATE");
-    }
-
-
-
-    public String getSelectedReason() {
-        if (tvReasonValue != null) {
-            return tvReasonValue.getText().toString();
-        }
-        return selectedReason.getTitle();
-    }
-
-    public String getDeliveryDate() {
-        return tvDate != null ? tvDate.getText().toString() : "";
+    private void showPicker() {
+        MaterialDatePicker<Long> dp = MaterialDatePicker.Builder.datePicker().build();
+        dp.addOnPositiveButtonClickListener(sel -> {
+            String selectedDate = df.format(new Date(sel));
+            tvDate.setText(selectedDate);
+            ReturnManager.getInstance().setReturnDate(selectedDate);
+        });
+        dp.show(getChildFragmentManager(), "DP");
     }
 }

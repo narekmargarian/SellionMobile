@@ -15,9 +15,12 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 
 import com.sellion.mobile.R;
+import com.sellion.mobile.adapters.OrderHistoryItemsAdapter;
 import com.sellion.mobile.entity.CartManager;
 import com.sellion.mobile.entity.ReturnModel;
+import com.sellion.mobile.helper.NavigationHelper;
 import com.sellion.mobile.managers.ReturnHistoryManager;
+import com.sellion.mobile.managers.ReturnManager;
 
 import java.util.Map;
 
@@ -27,62 +30,49 @@ public class ReturnDetailsViewFragment extends BaseFragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_return_details_view, container, false);
-        String shopName = getArguments() != null ? getArguments().getString("order_shop_name") : "";
+        View v = inflater.inflate(R.layout.fragment_return_details_view, container, false);
+        String name = getArguments() != null ? getArguments().getString("order_shop_name") : "";
 
-        TextView tvTitle = view.findViewById(R.id.RtvViewReturnTitle);
-        TextView tvMethod = view.findViewById(R.id.tvViewReturnMethod);
-        TextView tvDate = view.findViewById(R.id.tvViewReturnDate);
-        TextView tvTotalSum = view.findViewById(R.id.RtvViewReturnTotalSum);
-        RecyclerView rv = view.findViewById(R.id.RrvViewOrderItems);
-        Button btnEdit = view.findViewById(R.id.RbtnEditThisReturn);
-        ImageButton btnBack = view.findViewById(R.id.RbtnBackFromView);
+        TextView tvTitle = v.findViewById(R.id.RtvViewReturnTitle);
+        TextView tvReason = v.findViewById(R.id.tvViewReturnMethod);
+        TextView tvDate = v.findViewById(R.id.tvViewReturnDate);
+        TextView tvTotal = v.findViewById(R.id.RtvViewReturnTotalSum);
+        RecyclerView rv = v.findViewById(R.id.RrvViewOrderItems);
+        Button btnEdit = v.findViewById(R.id.RbtnEditThisReturn);
+        ImageButton btnBack = v.findViewById(R.id.RbtnBackFromView);
 
-        tvTitle.setText(shopName);
+        tvTitle.setText(name);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // Поиск в списке возвратов
-        ReturnModel returnOrder = ReturnHistoryManager.getInstance().getReturn(shopName);
+        ReturnModel rOrder = ReturnHistoryManager.getInstance().getReturn(name);
+        if (rOrder != null) {
+            tvReason.setText("Причина: " + rOrder.returnReason);
+            tvDate.setText("Дата: " + rOrder.returnDate);
 
-        if (returnOrder != null) {
-            // ВАЖНО: Создаем финальную копию
-            final ReturnModel finalReturn = returnOrder;
+            // Список товаров (используем адаптер заказов)
+            rv.setAdapter(new OrderHistoryItemsAdapter(rOrder.items));
 
-            btnEdit.setOnClickListener(v -> {
-                // 1. Загружаем товары в корзину
+            // Расчет итога
+            double total = 0;
+            for (Map.Entry<String, Integer> e : rOrder.items.entrySet()) {
+                total += (e.getValue() * 500); // Замените 500 на getPriceForProduct если нужно
+            }
+            tvTotal.setText(String.format("Итоговая сумма: %,.0f ֏", total));
+
+            btnEdit.setOnClickListener(view -> {
                 CartManager.getInstance().clearCart();
-                CartManager.getInstance().getCartItems().putAll(finalReturn.items);
+                CartManager.getInstance().getCartItems().putAll(rOrder.items);
+                ReturnManager.getInstance().setReturnReason(rOrder.returnReason);
+                ReturnManager.getInstance().setReturnDate(rOrder.returnDate);
 
-                // 2. Открываем экран сборки
-                ReturnDetailsFragment storeFrag = new ReturnDetailsFragment();
-                Bundle b = new Bundle();
-                b.putString("store_name", finalReturn.shopName);
-                b.putBoolean("is_actually_return", true);
-
-                // ПЕРЕДАЕМ ДАННЫЕ ВОЗВРАТА
-                b.putString("edit_reason", finalReturn.returnReason);
-                b.putString("edit_date", finalReturn.returnDate);
-
-                storeFrag.setArguments(b);
-                getParentFragmentManager().beginTransaction()
-                        .replace(R.id.fragment_container, storeFrag)
-                        .addToBackStack(null)
-                        .commit();
+                ReturnDetailsFragment frag = new ReturnDetailsFragment();
+                Bundle b = new Bundle(); b.putString("store_name", rOrder.shopName);
+                frag.setArguments(b);
+                NavigationHelper.openSection(getParentFragmentManager(), frag);
             });
-
-            double total = calculateTotal(returnOrder.items);
-
-            // Устанавливаем результат в TextView
-            tvTotalSum.setText(String.format("%,.0f ֏", total));
         }
-        btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
-        return view;
-    }
-
-    private double calculateTotal(Map<String, Integer> items) {
-        double total = 0;
-        for (Map.Entry<String, Integer> e : items.entrySet()) total += (getPriceForProduct(e.getKey()) * e.getValue());
-        return total;
+        btnBack.setOnClickListener(view -> getParentFragmentManager().popBackStack());
+        return v;
     }
 
     private int getPriceForProduct(String name) {
