@@ -16,8 +16,8 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.CreateReturnPagerAdapter;
-import com.sellion.mobile.entity.ReturnModel;
-import com.sellion.mobile.managers.ReturnHistoryManager;
+import com.sellion.mobile.database.AppDatabase;
+import com.sellion.mobile.entity.ReturnEntity;
 
 
 public class CreateReturnFragment extends BaseFragment {
@@ -47,30 +47,36 @@ public class CreateReturnFragment extends BaseFragment {
 
     // ВАЖНО: Этот метод вызывается при клике на клиента
     public void onClientSelected(String storeName) {
+        // Проверка в фоновом потоке через Room
+        new Thread(() -> {
+            AppDatabase db = AppDatabase.getInstance(requireContext());
 
-        // 1. Проверка на наличие неотправленного заказа
-        boolean hasPendingReturn = false;
-        for (ReturnModel returnModel : ReturnHistoryManager.getInstance().getReturns()) {
-            if (returnModel.shopName.equals(storeName) && returnModel.status == ReturnModel.Status.PENDING) {
-                hasPendingReturn = true;
-                break;
+            // Получаем все возвраты
+            java.util.List<ReturnEntity> returns = db.returnDao().getPendingReturnsSync();
+
+            boolean hasPendingReturn = false;
+            for (ReturnEntity ret : returns) {
+                if (ret.shopName.equals(storeName) && "PENDING".equals(ret.status)) {
+                    hasPendingReturn = true;
+                    break;
+                }
             }
 
-        }
+            final boolean finalHasPending = hasPendingReturn;
 
-        if (hasPendingReturn) {
-            new AlertDialog.Builder(requireContext())
-                    .setTitle("Внимание")
-                    .setMessage("Для магазина '" + storeName + "' уже есть активный Возврат. Отредактируйте его в истории или отправьте текущий.")
-                    .setPositiveButton("Понятно", null)
-                    .show();
-        } else {
-            // 2. Если заказа нет — открываем детали
-            openStoreDetails(storeName);
-        }
-
+            requireActivity().runOnUiThread(() -> {
+                if (finalHasPending) {
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle("Внимание")
+                            .setMessage("Для магазина '" + storeName + "' уже есть активный Возврат. Отредактируйте его в истории или отправьте текущий.")
+                            .setPositiveButton("Понятно", null)
+                            .show();
+                } else {
+                    openStoreDetails(storeName);
+                }
+            });
+        }).start();
     }
-
 
     private void openStoreDetails(String storeName) {
         ReturnDetailsFragment fragment = new ReturnDetailsFragment();

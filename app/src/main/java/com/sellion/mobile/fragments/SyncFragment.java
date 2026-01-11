@@ -3,7 +3,6 @@ package com.sellion.mobile.fragments;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.LayoutInflater;
@@ -22,12 +21,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 
 import com.sellion.mobile.R;
-import com.sellion.mobile.entity.OrderModel;
-import com.sellion.mobile.entity.ReturnModel;
-import com.sellion.mobile.managers.OrderHistoryManager;
-import com.sellion.mobile.managers.ReturnHistoryManager;
-
-import java.util.List;
 
 public class SyncFragment extends BaseFragment {
 
@@ -86,27 +79,22 @@ public class SyncFragment extends BaseFragment {
     }
 
     private void sendDocuments() {
-        showLoadingDialog("Синхронизация данных...");
+        // Создаем запрос на синхронизацию (используем наш SyncWorker)
+        androidx.work.OneTimeWorkRequest syncRequest =
+                new androidx.work.OneTimeWorkRequest.Builder(com.sellion.mobile.sync.SyncWorker.class).build();
 
-        // 1. Обработка Заказов - меняем статус на SENT
-        List<OrderModel> allOrders = OrderHistoryManager.getInstance().getOrders();
-        for (OrderModel order : allOrders) {
-            if (order.status == OrderModel.Status.PENDING) {
-                order.status = OrderModel.Status.SENT;
-            }
-        }
+        // Ставим задачу в очередь
+        androidx.work.WorkManager.getInstance(requireContext()).enqueue(syncRequest);
 
-        // 2. Обработка Возвратов - меняем статус на SENT
-        List<ReturnModel> allReturns = ReturnHistoryManager.getInstance().getReturns();
-        for (ReturnModel returnItem : allReturns) {
-            if (returnItem.status == ReturnModel.Status.PENDING) {
-                returnItem.status = ReturnModel.Status.SENT;
-            }
-        }
-
-        tvStatus.setText("Синхронизация завершена успешно.");
-        tvStatus.setTextColor(Color.parseColor("#2E7D32"));
-        Toast.makeText(getContext(), "Все документы переданы в офис!", Toast.LENGTH_SHORT).show();
+        // Слушаем статус выполнения через LiveData
+        androidx.work.WorkManager.getInstance(requireContext())
+                .getWorkInfoByIdLiveData(syncRequest.getId())
+                .observe(getViewLifecycleOwner(), workInfo -> {
+                    if (workInfo != null && workInfo.getState().isFinished()) {
+                        tvStatus.setText("Синхронизация завершена. Данные на сервере!");
+                        tvStatus.setTextColor(android.graphics.Color.parseColor("#2E7D32"));
+                    }
+                });
     }
 
     private void loadDocuments() {
@@ -115,15 +103,31 @@ public class SyncFragment extends BaseFragment {
     }
 
     private void clearData() {
+        // 1. Сначала показываем диалог подтверждения
         new AlertDialog.Builder(requireContext())
                 .setTitle("Очистка")
-                .setMessage("Удалить все локальные заказы и возвраты?")
+                .setMessage("Удалить все локальные заказы и возвраты из базы данных?")
                 .setPositiveButton("Да", (d, w) -> {
-                    OrderHistoryManager.getInstance().getOrders().clear();
-                    ReturnHistoryManager.getInstance().getReturns().clear();
-                    tvStatus.setText("Все данные удалены");
-                    tvStatus.setTextColor(Color.RED);
-                    Toast.makeText(getContext(), "База очищена", Toast.LENGTH_SHORT).show();
+
+                    // 2. Запускаем очистку Room в отдельном потоке
+                    new Thread(() -> {
+                        com.sellion.mobile.database.AppDatabase db =
+                                com.sellion.mobile.database.AppDatabase.getInstance(requireContext());
+
+                        // Очищаем таблицы заказов и возвратов
+                        db.orderDao().deleteAll();
+                        db.returnDao().deleteAll(); // Убедитесь, что метод deleteAll есть в ReturnDao
+
+                        // 3. Возвращаемся в главный поток, чтобы обновить UI
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                tvStatus.setText("База данных Room очищена");
+                                tvStatus.setTextColor(android.graphics.Color.RED);
+                                android.widget.Toast.makeText(getContext(), "Все данные удалены", android.widget.Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    }).start();
+
                 })
                 .setNegativeButton("Нет", null)
                 .show();

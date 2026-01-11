@@ -15,12 +15,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.OrderHistoryItemsAdapter;
+import com.sellion.mobile.database.AppDatabase;
+import com.sellion.mobile.entity.ReturnEntity;
 import com.sellion.mobile.managers.CartManager;
-import com.sellion.mobile.entity.ReturnModel;
-import com.sellion.mobile.managers.ReturnHistoryManager;
 import com.sellion.mobile.managers.ReturnManager;
 
-import java.util.List;
 import java.util.Map;
 
 
@@ -31,7 +30,9 @@ public class ReturnDetailsViewFragment extends BaseFragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_return_details_view, container, false);
-        String shopName = getArguments() != null ? getArguments().getString("order_shop_name") : "";
+
+        int returnId = getArguments() != null ? getArguments().getInt("return_id") : -1;
+        String shopNameFromArgs = getArguments() != null ? getArguments().getString("order_shop_name") : "";
 
         TextView tvTitle = view.findViewById(R.id.RtvViewReturnTitle);
         TextView tvReason = view.findViewById(R.id.tvViewReturnMethod);
@@ -41,75 +42,81 @@ public class ReturnDetailsViewFragment extends BaseFragment {
         Button btnEdit = view.findViewById(R.id.RbtnEditThisReturn);
         ImageButton btnBack = view.findViewById(R.id.RbtnBackFromView);
 
-        tvTitle.setText(shopName);
+        tvTitle.setText(shopNameFromArgs);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // ИСПРАВЛЕНО: Ищем самый свежий возврат (с конца списка)
-        ReturnModel currentReturn = null;
-        List<ReturnModel> history = ReturnHistoryManager.getInstance().getReturns();
-        for (int i = history.size() - 1; i >= 0; i--) {
-            if (history.get(i).shopName.equals(shopName)) {
-                currentReturn = history.get(i);
-                break;
+        // Получаем данные из Room через LiveData
+        AppDatabase db = AppDatabase.getInstance(requireContext());
+        db.returnDao().getAllReturnsLive().observe(getViewLifecycleOwner(), returns -> {
+            ReturnEntity currentReturn = null;
+            if (returns != null) {
+                for (ReturnEntity r : returns) {
+                    if (r.id == returnId) {
+                        currentReturn = r;
+                        break;
+                    }
+                }
             }
-        }
 
-        if (currentReturn != null) {
-            final ReturnModel finalReturn = currentReturn;
+            if (currentReturn != null) {
+                final ReturnEntity finalReturn = currentReturn; // Для использования в listener
 
-            tvReason.setText("Причина: " + finalReturn.returnReason);
-            tvDate.setText("Дата возврата: " + finalReturn.returnDate);
+                tvReason.setText("Причина: " + finalReturn.returnReason);
+                tvDate.setText("Дата возврата: " + finalReturn.returnDate);
 
-            // Расчет итога
-            calculateTotal(finalReturn, tvTotalSum);
-            rv.setAdapter(new OrderHistoryItemsAdapter(finalReturn.items));
+                // Исправленный расчет суммы через справочник цен
+                calculateTotal(finalReturn, tvTotalSum);
 
-            // ЛОГИКА БЛОКИРОВКИ: Если статус SENT (Отправлен), кнопка "Изменить" исчезает
-            if (finalReturn.status == ReturnModel.Status.SENT) {
-                btnEdit.setVisibility(View.GONE);
-            } else {
-                btnEdit.setVisibility(View.VISIBLE);
-                btnEdit.setOnClickListener(v -> {
-                    // Загружаем данные для редактирования
-                    CartManager.getInstance().clearCart();
-                    CartManager.getInstance().getCartItems().putAll(finalReturn.items);
-                    ReturnManager.getInstance().setReturnReason(finalReturn.returnReason);
-                    ReturnManager.getInstance().setReturnDate(finalReturn.returnDate);
+                rv.setAdapter(new OrderHistoryItemsAdapter(finalReturn.items));
 
-                    ReturnDetailsFragment storeFrag = new ReturnDetailsFragment();
-                    Bundle b = new Bundle();
-                    b.putString("store_name", finalReturn.shopName);
-                    storeFrag.setArguments(b);
+                // Логика кнопки "Изменить"
+                if ("SENT".equals(finalReturn.status)) {
+                    btnEdit.setVisibility(View.GONE);
+                } else {
+                    btnEdit.setVisibility(View.VISIBLE);
+                    btnEdit.setOnClickListener(v -> {
+                        // 1. Загружаем данные в менеджеры для редактирования
+                        CartManager.getInstance().clearCart();
+                        if (finalReturn.items != null) {
+                            CartManager.getInstance().getCartItems().putAll(finalReturn.items);
+                        }
+                        ReturnManager.getInstance().setReturnReason(finalReturn.returnReason);
+                        ReturnManager.getInstance().setReturnDate(finalReturn.returnDate);
 
-                    getParentFragmentManager().beginTransaction()
-                            .replace(R.id.fragment_container, storeFrag)
-                            .addToBackStack(null)
-                            .commit();
-                });
+                        // 2. Открываем экран оформления возврата
+                        ReturnDetailsFragment fragment = new ReturnDetailsFragment();
+                        Bundle args = new Bundle();
+                        args.putString("store_name", finalReturn.shopName);
+                        fragment.setArguments(args);
+
+                        getParentFragmentManager().beginTransaction()
+                                .replace(R.id.fragment_container, fragment)
+                                .addToBackStack(null)
+                                .commit();
+                    });
+                }
             }
-        }
+        });
 
         btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
         setupBackButton(btnBack, false);
         return view;
     }
 
-    private void calculateTotal(ReturnModel finalReturn, TextView tvTotalSum) {
-        double totalOrderSum = 0;
-        int totalQty = 0;
-        if (finalReturn.items != null) {
-            for (Map.Entry<String, Integer> entry : finalReturn.items.entrySet()) {
-                int qty = entry.getValue();
-                totalOrderSum += (getPriceForProduct(entry.getKey()) * qty);
-                totalQty += qty;
+    private void calculateTotal(ReturnEntity ret, TextView tvTotalSum) {
+        double total = 0;
+        int qty = 0;
+        if (ret.items != null) {
+            for (Map.Entry<String, Integer> entry : ret.items.entrySet()) {
+                int itemQty = entry.getValue();
+                total += (itemQty * getPriceForProduct(entry.getKey()));
+                qty += itemQty;
             }
         }
         if (tvTotalSum != null) {
-            // Добавили вывод общего кол-ва штук для контроля
-            tvTotalSum.setText(String.format("Товаров: %d шт. | Итого: %,.0f ֏", totalQty, totalOrderSum));
+            tvTotalSum.setText(String.format("Товаров: %d шт. | Итого: %,.0f ֏", qty, total));
         }
     }
-
 
     // Идентичный справочник цен
     private int getPriceForProduct(String name) {

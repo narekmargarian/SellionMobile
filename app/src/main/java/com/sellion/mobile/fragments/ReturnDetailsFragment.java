@@ -18,11 +18,11 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.sellion.mobile.R;
-import com.sellion.mobile.managers.CartManager;
-import com.sellion.mobile.entity.ReturnModel;
+import com.sellion.mobile.database.AppDatabase;
+import com.sellion.mobile.entity.ReturnEntity;
 import com.sellion.mobile.handler.BackPressHandler;
 import com.sellion.mobile.helper.NavigationHelper;
-import com.sellion.mobile.managers.ReturnHistoryManager;
+import com.sellion.mobile.managers.CartManager;
 import com.sellion.mobile.managers.ReturnManager;
 
 import java.util.HashMap;
@@ -62,12 +62,8 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
             @Override
             public void onPageSelected(int position) {
                 super.onPageSelected(position);
-                if (position == 1) {
-                    Fragment currentFragment = getChildFragmentManager().findFragmentByTag("f" + viewPager.getId() + ":" + position);
-                    if (currentFragment instanceof CurrentReturnFragment) {
-                        ((CurrentReturnFragment) currentFragment).updateUI();
-                    }
-                }
+                // В 2026 году здесь ПУСТО.
+                // LiveData внутри CurrentOrderFragment сама обновит экран.
             }
         });
 
@@ -109,38 +105,29 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
 
     private void saveReturnToDatabase() {
         String storeName = tvStoreName.getText().toString();
-
-        // Клонируем список товаров из корзины
         Map<String, Integer> currentItems = new HashMap<>(CartManager.getInstance().getCartItems());
 
-        if (currentItems.isEmpty()) {
-            Toast.makeText(getContext(), "Невозможно сохранить пустой возврат!", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        // Создаем Entity для Room
+        ReturnEntity newReturn = new ReturnEntity();
+        newReturn.shopName = storeName;
+        newReturn.items = currentItems;
+        newReturn.returnReason = ReturnManager.getInstance().getReturnReason();
+        newReturn.returnDate = ReturnManager.getInstance().getReturnDate();
+        newReturn.status = "PENDING"; // Устанавливаем статус для WorkManager
 
-        // Берем данные из ReturnManager (которые установил ReturnInfoFragment)
-        String reason = ReturnManager.getInstance().getReturnReason();
-        String dateStr = ReturnManager.getInstance().getReturnDate();
+        // Сохраняем в фоновом потоке
+        new Thread(() -> {
+            AppDatabase.getInstance(requireContext())
+                    .returnDao().insert(newReturn);
 
-        // Создаем модель возврата
-        ReturnModel newReturn = new ReturnModel(
-                storeName,
-                currentItems,
-                reason,
-                dateStr
-        );
-
-        // Сохраняем в историю возвратов
-        ReturnHistoryManager.getInstance().addReturn(newReturn);
-
-        // Очищаем временные менеджеры
-        CartManager.getInstance().clearCart();
-        ReturnManager.getInstance().clear();
-
-        Toast.makeText(getContext(), "Возврат оформлен!", Toast.LENGTH_SHORT).show();
-
-        // Переход в список возвратов (очищая стек, чтобы убрать пошаговый переход назад)
-        NavigationHelper.finishAndGoTo(getParentFragmentManager(), new ReturnsFragment());
+            requireActivity().runOnUiThread(() -> {
+                CartManager.getInstance().clearCart();
+                ReturnManager.getInstance().clear();
+                Toast.makeText(getContext(), "Возврат сохранен в базу!", Toast.LENGTH_SHORT).show();
+                // Навигация через Helper
+                NavigationHelper.finishAndGoTo(getParentFragmentManager(), new ReturnsFragment());
+            });
+        }).start();
     }
 
     @Override

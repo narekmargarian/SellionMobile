@@ -10,22 +10,22 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
-import com.sellion.mobile.entity.OrderModel;
-import com.sellion.mobile.entity.ReturnModel;
+import com.sellion.mobile.entity.ReturnEntity;
 
 import java.util.List;
 import java.util.Map;
 
-public class ReturnAdapter extends RecyclerView.Adapter<ReturnAdapter.ReturnVH> {
-    private List<ReturnModel> list;
-    private OnItemClickListener listener;
+public class ReturnAdapter  extends RecyclerView.Adapter<ReturnAdapter.ReturnVH> {
 
-    // Интерфейс теперь принимает ReturnModel
+    private List<ReturnEntity> list; // Список теперь из базы данных Room
+    private final OnItemClickListener listener;
+
+    // Интерфейс для обработки клика, принимает ReturnEntity
     public interface OnItemClickListener {
-        void onItemClick(ReturnModel returnModel);
+        void onItemClick(ReturnEntity returnModel);
     }
 
-    public ReturnAdapter(List<ReturnModel> list, OnItemClickListener listener) {
+    public ReturnAdapter(List<ReturnEntity> list, OnItemClickListener listener) {
         this.list = list;
         this.listener = listener;
     }
@@ -33,37 +33,39 @@ public class ReturnAdapter extends RecyclerView.Adapter<ReturnAdapter.ReturnVH> 
     @NonNull
     @Override
     public ReturnVH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // Используем макет карточки возврата
+        // Используем ваш существующий макет item_return
         View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_return, parent, false);
         return new ReturnVH(v);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ReturnVH holder, int position) {
-        ReturnModel item = list.get(position);
+        ReturnEntity item = list.get(position);
 
         holder.tvShopName.setText(item.shopName);
-//        holder.tvStatus.setText("ВОЗВРАТ");
 
-        // Расчет суммы
+        // 1. Расчет суммы возврата на основе данных из Room
         double total = 0;
         if (item.items != null) {
             for (Map.Entry<String, Integer> entry : item.items.entrySet()) {
                 total += (entry.getValue() * getPriceForProduct(entry.getKey()));
             }
         }
+
+        // Форматирование суммы (Разделители тысяч, символ драма)
         holder.tvTotalAmount.setText(String.format("%,.0f ֏", total));
 
-        if (item.status ==  ReturnModel.Status.SENT) {
+        // 2. Логика статуса (Синхронизировано с WorkManager)
+        // В 2026 году мы используем строковые константы "SENT" и "PENDING"
+        if ("SENT".equals(item.status)) {
             holder.tvStatus.setText("ОТПРАВЛЕН");
-            holder.tvStatus.setTextColor(Color.parseColor("#2E7D32"));
+            holder.tvStatus.setTextColor(Color.parseColor("#2E7D32")); // Темно-зеленый
         } else {
             holder.tvStatus.setText("ОЖИДАЕТ");
-            holder.tvStatus.setTextColor(Color.parseColor("#2196F3"));
+            holder.tvStatus.setTextColor(Color.parseColor("#2196F3")); // Синий
         }
 
-
-
+        // Клик для открытия деталей возврата
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
                 listener.onItemClick(item);
@@ -86,8 +88,10 @@ public class ReturnAdapter extends RecyclerView.Adapter<ReturnAdapter.ReturnVH> 
             tvStatus = v.findViewById(R.id.tvReturnStatus);
         }
     }
-
-    // Справочник цен для корректного отображения суммы в списке
+    public void updateData(List<ReturnEntity> newList) {
+        this.list = newList;
+        notifyDataSetChanged();
+    }
     private int getPriceForProduct(String name) {
         if (name == null) return 0;
         switch (name) {

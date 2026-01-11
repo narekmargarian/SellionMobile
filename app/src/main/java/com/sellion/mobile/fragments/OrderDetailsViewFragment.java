@@ -14,11 +14,10 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.OrderHistoryItemsAdapter;
+import com.sellion.mobile.database.AppDatabase;
+import com.sellion.mobile.entity.OrderEntity;
 import com.sellion.mobile.managers.CartManager;
-import com.sellion.mobile.entity.OrderModel;
-import com.sellion.mobile.managers.OrderHistoryManager;
 
-import java.util.List;
 import java.util.Map;
 
 public class OrderDetailsViewFragment extends BaseFragment {
@@ -27,7 +26,10 @@ public class OrderDetailsViewFragment extends BaseFragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_order_details_view, container, false);
+
+        // Получаем данные из аргументов
         String shopName = getArguments() != null ? getArguments().getString("order_shop_name") : "";
+        int orderId = getArguments() != null ? getArguments().getInt("order_id", -1) : -1;
 
         TextView tvTitle = view.findViewById(R.id.tvViewOrderTitle);
         TextView tvPaymentMethod = view.findViewById(R.id.tvViewOrderPaymentMethod);
@@ -41,90 +43,90 @@ public class OrderDetailsViewFragment extends BaseFragment {
         tvTitle.setText(shopName);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // --- ИСПРАВЛЕННЫЙ ПОИСК (АКТУАЛЬНО НА 10 ЯНВАРЯ 2026) ---
-        // Идем с конца списка, чтобы найти САМЫЙ НОВЫЙ заказ (черновик),
-        // даже если есть старые отправленные заказы для этого магазина.
-        OrderModel currentOrder = null;
-        List<OrderModel> allOrders = OrderHistoryManager.getInstance().getOrders();
-        for (int i = allOrders.size() - 1; i >= 0; i--) {
-            OrderModel o = allOrders.get(i);
-            if (o.shopName.equals(shopName)) {
-                currentOrder = o;
-                break;
-            }
-        }
+        // --- РАБОТА С ROOM И LIVEDATA ---
+        AppDatabase db = AppDatabase.getInstance(requireContext());
 
-        if (currentOrder != null) {
-            final OrderModel finalOrder = currentOrder;
+        // Наблюдаем за списком заказов. LiveData сама найдет нужный при изменении в БД.
+        db.orderDao().getAllOrdersLive().observe(getViewLifecycleOwner(), orders -> {
+            OrderEntity currentOrder = null;
 
-            // 1. Детали заказа
-            tvPaymentMethod.setText("Оплата: " + finalOrder.paymentMethod);
-            tvInvoiceStatus.setText("Раздельная фактура: " + (finalOrder.needsSeparateInvoice ? "Да" : "Нет"));
-            tvDate.setText("Дата доставки: " + finalOrder.deliveryDate);
-
-            // 2. РАСЧЕТ ИТОГОВОЙ СУММЫ И КОЛИЧЕСТВА (Синхронизировано с возвратами)
-            calculateTotal(finalOrder, tvTotalSum);
-
-            // 3. Адаптер товаров
-            if (finalOrder.items != null) {
-                OrderHistoryItemsAdapter adapter = new OrderHistoryItemsAdapter(finalOrder.items);
-                rv.setAdapter(adapter);
-            }
-
-            // --- ЛОГИКА БЛОКИРОВКИ РЕДАКТИРОВАНИЯ ---
-            if (finalOrder.status == OrderModel.Status.SENT) {
-                // Если в SyncFragment нажали "Отправить", кнопка исчезает
-                btnEdit.setVisibility(View.GONE);
-            } else {
-                // Если статус PENDING, редактирование доступно
-                btnEdit.setVisibility(View.VISIBLE);
-                btnEdit.setOnClickListener(v -> {
-                    // Загружаем данные обратно в CartManager
-                    CartManager.getInstance().clearCart();
-                    if (finalOrder.items != null) {
-                        CartManager.getInstance().getCartItems().putAll(finalOrder.items);
+            // Ищем конкретный заказ по ID или по имени (если ID не передан)
+            for (OrderEntity o : orders) {
+                if (orderId != -1) {
+                    if (o.id == orderId) {
+                        currentOrder = o;
+                        break;
                     }
-
-                    CartManager.getInstance().setDeliveryDate(finalOrder.deliveryDate);
-                    CartManager.getInstance().setPaymentMethod(finalOrder.paymentMethod);
-                    CartManager.getInstance().setSeparateInvoice(finalOrder.needsSeparateInvoice);
-
-                    // Переходим в экран оформления
-                    OrderDetailsFragment storeFrag = new OrderDetailsFragment();
-                    Bundle b = new Bundle();
-                    b.putString("store_name", finalOrder.shopName);
-                    storeFrag.setArguments(b);
-
-                    getParentFragmentManager().beginTransaction()
-                            .replace(R.id.fragment_container, storeFrag)
-                            .addToBackStack(null)
-                            .commit();
-                });
+                } else if (o.shopName.equals(shopName)) {
+                    currentOrder = o;
+                    break;
+                }
             }
-        }
 
-        // Кнопка назад на экране
+            if (currentOrder != null) {
+                final OrderEntity finalOrder = currentOrder;
+
+                // 1. Установка деталей
+                tvPaymentMethod.setText("Оплата: " + finalOrder.paymentMethod);
+                tvInvoiceStatus.setText("Раздельная фактура: " + (finalOrder.needsSeparateInvoice ? "Да" : "Нет"));
+                tvDate.setText("Дата доставки: " + finalOrder.deliveryDate);
+
+                // 2. Расчет итога
+                calculateTotal(finalOrder, tvTotalSum);
+
+                // 3. Адаптер товаров
+                if (finalOrder.items != null) {
+                    rv.setAdapter(new OrderHistoryItemsAdapter(finalOrder.items));
+                }
+
+                // 4. Логика блокировки редактирования
+                if ("SENT".equals(finalOrder.status)) {
+                    btnEdit.setVisibility(View.GONE); // Скрываем кнопку, если отправлено на сервер
+                } else {
+                    btnEdit.setVisibility(View.VISIBLE);
+                    btnEdit.setOnClickListener(v -> {
+                        // Загружаем данные обратно в CartManager для редактирования
+                        CartManager.getInstance().clearCart();
+                        if (finalOrder.items != null) {
+                            CartManager.getInstance().getCartItems().putAll(finalOrder.items);
+                        }
+                        CartManager.getInstance().setDeliveryDate(finalOrder.deliveryDate);
+                        CartManager.getInstance().setPaymentMethod(finalOrder.paymentMethod);
+                        CartManager.getInstance().setSeparateInvoice(finalOrder.needsSeparateInvoice);
+
+                        // Переходим в экран оформления
+                        OrderDetailsFragment editFrag = new OrderDetailsFragment();
+                        Bundle b = new Bundle();
+                        b.putString("store_name", finalOrder.shopName);
+                        editFrag.setArguments(b);
+
+                        getParentFragmentManager().beginTransaction()
+                                .replace(R.id.fragment_container, editFrag)
+                                .addToBackStack(null)
+                                .commit();
+                    });
+                }
+            }
+        });
+
         btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
-
-        // Привязка системной кнопки назад на корпусе телефона
         setupBackButton(btnBack, false);
 
         return view;
     }
 
-    private void calculateTotal(OrderModel finalOrder, TextView tvTotalSum) {
-        double totalOrderSum = 0;
+    private void calculateTotal(OrderEntity order, TextView tvTotalSum) {
+        double totalSum = 0;
         int totalQty = 0;
-        if (finalOrder.items != null) {
-            for (Map.Entry<String, Integer> entry : finalOrder.items.entrySet()) {
+        if (order.items != null) {
+            for (Map.Entry<String, Integer> entry : order.items.entrySet()) {
                 int qty = entry.getValue();
-                totalOrderSum += (getPriceForProduct(entry.getKey()) * qty);
+                totalSum += (getPriceForProduct(entry.getKey()) * qty);
                 totalQty += qty;
             }
         }
         if (tvTotalSum != null) {
-            // Добавили вывод общего кол-ва штук для контроля
-            tvTotalSum.setText(String.format("Товаров: %d шт. | Итого: %,.0f ֏", totalQty, totalOrderSum));
+            tvTotalSum.setText(String.format("Товаров: %d шт. | Итого: %,.0f ֏", totalQty, totalSum));
         }
     }
 

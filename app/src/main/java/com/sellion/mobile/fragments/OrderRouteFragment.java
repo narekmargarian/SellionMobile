@@ -43,13 +43,26 @@ public class OrderRouteFragment extends Fragment {
 
         // Определяем правильный индекс для нашего массива
         switch (dayOfWeekNum) {
-            case Calendar.MONDAY:    selectedDayIndex = 0; break;
-            case Calendar.TUESDAY:   selectedDayIndex = 1; break;
-            case Calendar.WEDNESDAY: selectedDayIndex = 2; break;
-            case Calendar.THURSDAY:  selectedDayIndex = 3; break;
-            case Calendar.FRIDAY:    selectedDayIndex = 4; break;
-            case Calendar.SATURDAY:  selectedDayIndex = 5; break; // Сегодняшний день
-            default: selectedDayIndex = 0; // Воскресенье или ошибка -> Понедельник
+            case Calendar.MONDAY:
+                selectedDayIndex = 0;
+                break;
+            case Calendar.TUESDAY:
+                selectedDayIndex = 1;
+                break;
+            case Calendar.WEDNESDAY:
+                selectedDayIndex = 2;
+                break;
+            case Calendar.THURSDAY:
+                selectedDayIndex = 3;
+                break;
+            case Calendar.FRIDAY:
+                selectedDayIndex = 4;
+                break;
+            case Calendar.SATURDAY:
+                selectedDayIndex = 5;
+                break; // Сегодняшний день
+            default:
+                selectedDayIndex = 0; // Воскресенье или ошибка -> Понедельник
         }
         // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
 

@@ -9,26 +9,28 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.CartAdapter;
-import com.sellion.mobile.managers.CartManager;
+import com.sellion.mobile.database.AppDatabase;
+import com.sellion.mobile.entity.CartEntity;
 import com.sellion.mobile.entity.Product;
+import com.sellion.mobile.managers.CartManager;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class CurrentReturnFragment extends BaseFragment {
     private RecyclerView rv;
     private TextView tvTotalSum;
     private TextView tvEmptyOrder;
+    private CartAdapter adapter;
     private final List<Product> selectedProducts = new ArrayList<>();
 
     @Override
@@ -37,60 +39,45 @@ public class CurrentReturnFragment extends BaseFragment {
 
         rv = view.findViewById(R.id.rvCurrentReturn);
         tvTotalSum = view.findViewById(R.id.tvTotalReturnSum);
-        tvEmptyOrder = view.findViewById(R.id.tvReturnDetails); // Текст "Пусто"
+        tvEmptyOrder = view.findViewById(R.id.tvReturnDetails);
 
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
+        adapter = new CartAdapter(selectedProducts, this::showEditDialog);
+        rv.setAdapter(adapter);
 
-        // Инициализируем свайп один раз
         initSwipeToDelete();
+
+        // --- ИСПРАВЛЕНО: Ссылка на метод через :: без скобок ---
+        AppDatabase.getInstance(requireContext()).cartDao().getCartItemsLive()
+                .observe(getViewLifecycleOwner(), this::updateUI);
 
         return view;
     }
 
-    // Метод для обновления данных
-    public void updateUI() {
-        if (getContext() == null) return;
-
-        Map<String, Integer> cartData = CartManager.getInstance().getCartItems();
+    // Метод должен быть public или package-private для доступа из LiveData
+    void updateUI(List<CartEntity> cartItems) {
         selectedProducts.clear();
         double totalAmount = 0;
 
-        // Если корзина пуста
-        CartAdapter adapter;
-        if (cartData.isEmpty()) {
-            if (tvTotalSum != null) tvTotalSum.setText("0 ֏");
-            if (tvEmptyOrder != null) {
-                tvEmptyOrder.setVisibility(View.VISIBLE);
-                tvEmptyOrder.setText("В заказе пока ничего нет");
-            }
-            adapter = new CartAdapter(selectedProducts, this::showEditDialog);
-            rv.setAdapter(adapter);
+        if (cartItems == null || cartItems.isEmpty()) {
+            tvTotalSum.setText("0 ֏");
+            tvEmptyOrder.setVisibility(View.VISIBLE);
+            tvEmptyOrder.setText("В возврате пока ничего нет");
+            adapter.notifyDataSetChanged();
             return;
         }
 
-        // Если товары есть
-        if (tvEmptyOrder != null) tvEmptyOrder.setVisibility(View.GONE);
+        tvEmptyOrder.setVisibility(View.GONE);
 
-        for (Map.Entry<String, Integer> entry : cartData.entrySet()) {
-            String name = entry.getKey();
-            int qty = entry.getValue();
-            int price = getPriceForProduct(name);
-
-            totalAmount += (price * qty);
-            selectedProducts.add(new Product(name, price, 0, ""));
+        for (CartEntity item : cartItems) {
+            int price = getPriceForProduct(item.productName);
+            totalAmount += (price * item.quantity);
+            selectedProducts.add(new Product(item.productName, price, 0, ""));
         }
 
-        // Обновляем общую сумму
-        if (tvTotalSum != null) {
-            tvTotalSum.setText(String.format("%,.0f ֏", totalAmount));
-        }
-
-        // Пересоздаем адаптер для гарантии отрисовки
-        adapter = new CartAdapter(selectedProducts, this::showEditDialog);
-        rv.setAdapter(adapter);
+        tvTotalSum.setText(String.format("%,.0f ֏", totalAmount));
+        adapter.notifyDataSetChanged();
     }
-
-
 
     private void initSwipeToDelete() {
         ItemTouchHelper.SimpleCallback simpleItemTouchCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
@@ -101,21 +88,10 @@ public class CurrentReturnFragment extends BaseFragment {
 
             @Override
             public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-                int position = viewHolder.getBindingAdapterPosition();
-
+                int position = viewHolder.getAbsoluteAdapterPosition();
                 if (position != RecyclerView.NO_POSITION) {
                     Product productToDelete = selectedProducts.get(position);
-
-                    CartManager.getInstance()
-                            .addProduct(productToDelete.getName(), 0);
-
-                    updateUI(); // пересчёт суммы
-
-                    Toast.makeText(
-                            getContext(),
-                            "Удалено: " + productToDelete.getName(),
-                            Toast.LENGTH_SHORT
-                    ).show();
+                    CartManager.getInstance().addProduct(productToDelete.getName(), 0);
                 }
             }
 
@@ -134,7 +110,7 @@ public class CurrentReturnFragment extends BaseFragment {
     }
 
     private void showEditDialog(Product product) {
-        com.google.android.material.bottomsheet.BottomSheetDialog dialog = new com.google.android.material.bottomsheet.BottomSheetDialog(requireContext());
+        BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
         View view = getLayoutInflater().inflate(R.layout.layout_bottom_sheet_return, null);
         dialog.setContentView(view);
 
@@ -143,13 +119,24 @@ public class CurrentReturnFragment extends BaseFragment {
         View btnPlus = view.findViewById(R.id.btnPlus);
         View btnMinus = view.findViewById(R.id.btnMinus);
         View btnConfirm = view.findViewById(R.id.btnConfirm);
-        TextView btnDelete = view.findViewById(R.id.btnDeleteFromCart);
 
         tvTitle.setText(product.getName());
-        btnDelete.setVisibility(View.VISIBLE);
 
-        Integer currentQty = CartManager.getInstance().getCartItems().get(product.getName());
-        etQuantity.setText(String.valueOf(currentQty != null ? currentQty : 1));
+        // Получаем текущее количество для установки в EditText
+        new Thread(() -> {
+            List<CartEntity> items = AppDatabase.getInstance(requireContext()).cartDao().getCartItemsSync();
+            int qty = 1;
+            for (CartEntity item : items) {
+                if (item.productName.equals(product.getName())) {
+                    qty = item.quantity;
+                    break;
+                }
+            }
+            int finalQty = qty;
+            if (getActivity() != null) {
+                getActivity().runOnUiThread(() -> etQuantity.setText(String.valueOf(finalQty)));
+            }
+        }).start();
 
         btnPlus.setOnClickListener(v -> {
             int val = Integer.parseInt(etQuantity.getText().toString());
@@ -161,28 +148,14 @@ public class CurrentReturnFragment extends BaseFragment {
             if (val > 1) etQuantity.setText(String.valueOf(val - 1));
         });
 
-        btnDelete.setOnClickListener(v -> {
-            CartManager.getInstance().addProduct(product.getName(), 0);
-            updateUI();
-            dialog.dismiss();
-        });
-
         btnConfirm.setOnClickListener(v -> {
-            String qtyS = etQuantity.getText().toString();
-            if (!qtyS.isEmpty()) {
-                CartManager.getInstance().addProduct(product.getName(), Integer.parseInt(qtyS));
-                updateUI();
+            String qStr = etQuantity.getText().toString();
+            if (!qStr.isEmpty()) {
+                CartManager.getInstance().addProduct(product.getName(), Integer.parseInt(qStr));
                 dialog.dismiss();
             }
         });
         dialog.show();
-    }
-
-    // 2026 СТАНДАРТ: Обновление при каждом появлении вкладки
-    @Override
-    public void onResume() {
-        super.onResume();
-        updateUI();
     }
 
     private int getPriceForProduct(String name) {

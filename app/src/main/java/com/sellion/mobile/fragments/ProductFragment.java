@@ -17,8 +17,10 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.ProductAdapter;
-import com.sellion.mobile.managers.CartManager;
+import com.sellion.mobile.database.AppDatabase;
+import com.sellion.mobile.entity.CartEntity;
 import com.sellion.mobile.entity.Product;
+import com.sellion.mobile.managers.CartManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,11 +37,17 @@ public class ProductFragment extends BaseFragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_product, container, false);
 
+
         if (getArguments() != null) {
             isOrderMode = getArguments().getBoolean("is_order_mode", false);
             isActuallyReturn = getArguments().getBoolean("is_actually_return", false);
         }
 
+        AppDatabase.getInstance(requireContext()).cartDao().getCartItemsLive().observe(getViewLifecycleOwner(), cartItems -> {
+            if (adapter != null) {
+                adapter.setItemsInCart(cartItems); // Обновляем список "синих" товаров
+            }
+        });
 
         String category = getArguments() != null ? getArguments().getString("category_name") : "Товары";
 
@@ -114,18 +122,41 @@ public class ProductFragment extends BaseFragment {
         EditText etQuantity = view.findViewById(R.id.etSheetQuantity);
         View btnPlus = view.findViewById(R.id.btnPlus);
         View btnMinus = view.findViewById(R.id.btnMinus);
-        MaterialButton btnConfirm = view.findViewById(R.id.btnConfirm);
+        com.google.android.material.button.MaterialButton btnConfirm = view.findViewById(R.id.btnConfirm);
         View btnDelete = view.findViewById(R.id.btnDeleteFromCart);
 
         tvTitle.setText(product.getName());
 
-        if (CartManager.getInstance().hasProduct(product.getName())) {
-            Integer currentQty = CartManager.getInstance().getCartItems().get(product.getName());
-            etQuantity.setText(String.valueOf(currentQty != null ? currentQty : 1));
-            if (btnDelete != null) btnDelete.setVisibility(View.VISIBLE);
+        // --- ИСПРАВЛЕНИЕ: Получаем количество из Room в фоновом потоке ---
+        new Thread(() -> {
+            AppDatabase db = AppDatabase.getInstance(requireContext());
+            java.util.List<CartEntity> items = db.cartDao().getCartItemsSync();
 
-//            btnConfirm.setText("Изменить заказ");
-        }
+            int currentQty = 1;
+            boolean found = false;
+
+            for (CartEntity item : items) {
+                if (item.productName.equals(product.getName())) {
+                    currentQty = item.quantity;
+                    found = true;
+                    break;
+                }
+            }
+
+            final int finalQty = currentQty;
+            final boolean isFound = found;
+
+            // Обновляем UI в главном потоке
+            if (getActivity() != null) {
+                getActivity().runOnUiThread(() -> {
+                    etQuantity.setText(String.valueOf(finalQty));
+                    if (isFound && btnDelete != null) {
+                        btnDelete.setVisibility(View.VISIBLE);
+                    }
+                });
+            }
+        }).start();
+        // ----------------------------------------------------------------
 
         btnPlus.setOnClickListener(v -> {
             String s = etQuantity.getText().toString();
@@ -142,9 +173,8 @@ public class ProductFragment extends BaseFragment {
         if (btnDelete != null) {
             btnDelete.setOnClickListener(v -> {
                 CartManager.getInstance().addProduct(product.getName(), 0);
-                adapter.notifyDataSetChanged();
-//                notifyParentRefresh();
                 dialog.dismiss();
+                // notifyDataSetChanged не нужен, если вы используете LiveData в фрагменте
             });
         }
 
@@ -152,14 +182,11 @@ public class ProductFragment extends BaseFragment {
             String qtyS = etQuantity.getText().toString();
             int qty = qtyS.isEmpty() ? 0 : Integer.parseInt(qtyS);
             CartManager.getInstance().addProduct(product.getName(), qty);
-            adapter.notifyDataSetChanged();
-//            notifyParentRefresh();
             dialog.dismiss();
         });
 
         dialog.show();
     }
-
 
     private List<Product> getProductsByCategory(String category) {
         List<Product> productList = new ArrayList<>();

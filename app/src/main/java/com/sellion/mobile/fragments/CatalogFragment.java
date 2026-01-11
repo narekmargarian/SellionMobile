@@ -21,7 +21,7 @@ import java.util.List;
 
 public class CatalogFragment extends BaseFragment {
     private boolean orderMode;
-    private boolean isReturn ;
+    private boolean isReturn;
 
 
     @Nullable
@@ -42,7 +42,7 @@ public class CatalogFragment extends BaseFragment {
 
         if (orderMode || isReturn) {
             btnBack.setVisibility(View.GONE);
-        }else {
+        } else {
             setupBackButton(btnBack, false);
         }
 

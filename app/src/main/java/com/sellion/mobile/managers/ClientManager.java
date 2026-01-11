@@ -11,6 +11,27 @@ public class ClientManager {
     // Также добавим список моделей клиентов для хранения адресов и ИП
     public final List<ClientModel> clientList = new ArrayList<>();
 
+
+
+    public static ClientManager getInstance() {
+        if (instance == null) instance = new ClientManager();
+        return instance;
+    }
+
+    public List<String> getStoreNames() {
+        return storeNames;
+    }
+
+    // Новый метод для получения полной модели клиента
+    public ClientModel getClientByName(String name) {
+        for (ClientModel client : clientList) {
+            if (client.getName().equals(name)) {
+                return client;
+            }
+        }
+        return null;
+    }
+
     private ClientManager() {
         // Используем реальные названия для тестирования
         clientList.add(new ClientModel("Զովք Շրջանային", "Հայաստան, Երևան", "ԻՊ Հակոբյան"));
@@ -67,25 +88,6 @@ public class ClientManager {
         for (ClientModel client : clientList) {
             storeNames.add(client.getName());
         }
-    }
-
-    public static ClientManager getInstance() {
-        if (instance == null) instance = new ClientManager();
-        return instance;
-    }
-
-    public List<String> getStoreNames() {
-        return storeNames;
-    }
-
-    // Новый метод для получения полной модели клиента
-    public ClientModel getClientByName(String name) {
-        for (ClientModel client : clientList) {
-            if (client.getName().equals(name)) {
-                return client;
-            }
-        }
-        return null;
     }
 }
 

@@ -15,11 +15,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.ReturnAdapter;
-import com.sellion.mobile.entity.ReturnModel;
+import com.sellion.mobile.database.AppDatabase;
+import com.sellion.mobile.entity.ReturnEntity;
 import com.sellion.mobile.helper.NavigationHelper;
-import com.sellion.mobile.managers.ReturnHistoryManager;
-
-import java.util.List;
 
 
 public class ReturnsFragment extends BaseFragment {
@@ -32,15 +30,54 @@ public class ReturnsFragment extends BaseFragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_return, container, false);
 
-        // 1. Инициализация кнопок
         ImageButton btnBack = view.findViewById(R.id.btnBackReturn);
         ImageButton btnAddReturn = view.findViewById(R.id.btnAddReturn);
         recyclerView = view.findViewById(R.id.recyclerReturns);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
+        // Настройка заголовка в Toolbar
+        setupToolbarTitle(view);
+
+        btnBack.setOnClickListener(v -> NavigationHelper.backToDashboard(getParentFragmentManager()));
+
+        btnAddReturn.setOnClickListener(v -> getParentFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, new CreateReturnFragment())
+                .addToBackStack(null)
+                .commit());
+
+        // Запуск наблюдения за базой данных
+        observeReturns();
+
+        return view;
+    }
+
+    private void observeReturns() {
+        AppDatabase db = AppDatabase.getInstance(requireContext());
+        // LiveData автоматически обновит список, если добавится новый возврат или изменится статус
+        db.returnDao().getAllReturnsLive().observe(getViewLifecycleOwner(), returnEntities -> {
+            if (returnEntities != null) {
+                adapter = new ReturnAdapter(returnEntities, this::openReturnDetailsView);
+                recyclerView.setAdapter(adapter);
+            }
+        });
+    }
+
+    private void openReturnDetailsView(ReturnEntity returnEntity) {
+        ReturnDetailsViewFragment fragment = new ReturnDetailsViewFragment();
+        Bundle args = new Bundle();
+        args.putString("order_shop_name", returnEntity.shopName);
+        args.putInt("return_id", returnEntity.id);
+        fragment.setArguments(args);
+
+        getParentFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit();
+    }
+
+    private void setupToolbarTitle(View view) {
         androidx.appcompat.widget.Toolbar toolbar = view.findViewById(R.id.toolbarReturn);
         if (toolbar != null) {
-            // Находим TextView внутри Toolbar (в вашем XML он второй по счету в RelativeLayout)
             for (int i = 0; i < toolbar.getChildCount(); i++) {
                 View child = toolbar.getChildAt(i);
                 if (child instanceof RelativeLayout) {
@@ -53,56 +90,5 @@ public class ReturnsFragment extends BaseFragment {
                 }
             }
         }
-
-
-        // Настройка кнопки назад
-        btnBack.setOnClickListener(v -> {
-            if (getParentFragmentManager().getBackStackEntryCount() > 0) {
-                getParentFragmentManager().popBackStack();
-            }
-        });
-
-        // Кнопка создания нового возврата
-        btnBack.setOnClickListener(v -> {
-            // Очищаем стек и выходим на главный экран
-            NavigationHelper.backToDashboard(getParentFragmentManager());
-        });
-
-        btnAddReturn.setOnClickListener(v -> {
-            getParentFragmentManager().beginTransaction()
-                    .replace(R.id.fragment_container, new CreateReturnFragment())
-                    .addToBackStack(null)
-                    .commit();
-        });
-
-        return view;
-    }
-
-    private void updateReturnsList() {
-        // Теперь получаем правильный список ReturnModel
-        List<ReturnModel> returns = ReturnHistoryManager.getInstance().getReturns();
-        // Адаптер теперь должен принимать List<ReturnModel>
-        adapter = new ReturnAdapter(returns, this::openReturnDetailsView);
-        recyclerView.setAdapter(adapter);
-    }
-
-    // ИСПРАВЛЕНО: Аргумент теперь ReturnModel
-    private void openReturnDetailsView(ReturnModel returnModel) {
-        ReturnDetailsViewFragment fragment = new ReturnDetailsViewFragment();
-        Bundle args = new Bundle();
-        // Берем имя магазина из модели возврата
-        args.putString("order_shop_name", returnModel.shopName);
-        fragment.setArguments(args);
-
-        getParentFragmentManager().beginTransaction()
-                .replace(R.id.fragment_container, fragment)
-                .addToBackStack(null)
-                .commit();
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        updateReturnsList();
     }
 }

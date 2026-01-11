@@ -18,14 +18,11 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.sellion.mobile.R;
-import com.sellion.mobile.managers.CartManager;
-import com.sellion.mobile.entity.OrderModel;
+import com.sellion.mobile.database.AppDatabase;
+import com.sellion.mobile.entity.OrderEntity;
 import com.sellion.mobile.handler.BackPressHandler;
 import com.sellion.mobile.helper.NavigationHelper;
-import com.sellion.mobile.managers.OrderHistoryManager;
-
-import java.util.HashMap;
-import java.util.Map;
+import com.sellion.mobile.managers.CartManager;
 
 public class OrderDetailsFragment extends BaseFragment implements BackPressHandler {
     private TextView tvStoreName;
@@ -43,25 +40,14 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
         View btnSave = view.findViewById(R.id.btnSaveFullOrder);
         tvStoreName = view.findViewById(R.id.tvStoreName);
 
-        if (getArguments() != null) {
-            tvStoreName.setText(getArguments().getString("store_name"));
-        } else {
-            //TODO
-        }
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
                 super.onPageSelected(position);
-                // Если перешли на вкладку корзины (позиция 1)
-                if (position == 1) {
-                    Fragment currentFragment = getChildFragmentManager().findFragmentByTag("f" + viewPager.getId() + ":" + position);
-                    if (currentFragment instanceof CurrentOrderFragment) {
-                        ((CurrentOrderFragment) currentFragment).updateUI();
-                    }
-                }
+                // В 2026 году здесь ПУСТО.
+                // LiveData внутри CurrentOrderFragment сама обновит экран.
             }
         });
-
         // Устанавливаем специальный адаптер для возврата
         OrderDetailsFragment.OrderPagerAdapter adapter = new OrderDetailsFragment.OrderPagerAdapter(this);
         viewPager.setAdapter(adapter);
@@ -98,22 +84,35 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
 
     private void saveOrderToDatabase() {
         String storeName = tvStoreName.getText().toString();
-        Map<String, Integer> currentItems = new HashMap<>(CartManager.getInstance().getCartItems());
 
-        String dateStr = CartManager.getInstance().getDeliveryDate();
-        String payMethod = CartManager.getInstance().getPaymentMethod();
-        boolean isInvoice = CartManager.getInstance().isSeparateInvoice();
+        // 1. Собираем данные из интерфейса и CartManager
+        OrderEntity newOrder = new OrderEntity();
+        newOrder.shopName = storeName;
+        newOrder.items = new java.util.HashMap<>(CartManager.getInstance().getCartItems());
+        newOrder.deliveryDate = CartManager.getInstance().getDeliveryDate();
+        newOrder.paymentMethod = CartManager.getInstance().getPaymentMethod();
+        newOrder.needsSeparateInvoice = CartManager.getInstance().isSeparateInvoice();
+        newOrder.status = "PENDING"; // Статус "Ожидает отправки"
 
-        OrderModel om = new OrderModel(storeName, currentItems, payMethod, dateStr, isInvoice);
-        OrderHistoryManager.getInstance().addOrder(om);
+        // 2. Получаем экземпляр базы данных
+        AppDatabase db = AppDatabase.getInstance(requireContext());
 
-        // ВАЖНО: Сначала очищаем всё
-        CartManager.getInstance().clearCart();
+        // 3. Room запрещает операции в главном потоке (чтобы приложение не зависало)
+        // Используем новый поток для записи в БД
+        new Thread(() -> {
+            db.orderDao().insert(newOrder);
 
-        Toast.makeText(getContext(), "Заказ оформлен!", Toast.LENGTH_SHORT).show();
+            // 4. После записи возвращаемся в главный поток для обновления UI
+            if (getActivity() != null) {
+                getActivity().runOnUiThread(() -> {
+                    CartManager.getInstance().clearCart();
+                    Toast.makeText(getContext(), "Заказ сохранен в базу!", Toast.LENGTH_SHORT).show();
 
-        // ИСПОЛЬЗУЕМ HELPER (как в возвратах), чтобы навигация была одинаковой
-        NavigationHelper.finishAndGoTo(getParentFragmentManager(), new OrdersFragment());
+                    // Используем ваш NavigationHelper для перехода
+                    NavigationHelper.finishAndGoTo(getParentFragmentManager(), new OrdersFragment());
+                });
+            }
+        }).start();
     }
 
 

@@ -20,7 +20,16 @@ public class OrderHistoryItemsAdapter extends RecyclerView.Adapter<OrderHistoryI
 
     public OrderHistoryItemsAdapter(Map<String, Integer> items) {
         this.items = items;
-        this.names = new ArrayList<>(items.keySet());
+        // Если items придет null, создаем пустой список во избежание Crash
+        this.names = (items != null) ? new ArrayList<>(items.keySet()) : new ArrayList<>();
+    }
+
+    @NonNull
+    @Override
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        // Используем тот же макет, что и для категорий/товаров
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_category, parent, false);
+        return new ViewHolder(view);
     }
 
     @Override
@@ -29,15 +38,27 @@ public class OrderHistoryItemsAdapter extends RecyclerView.Adapter<OrderHistoryI
         Integer qty = items.get(name);
         int currentQty = (qty != null) ? qty : 0;
 
-        // Расчет суммы для конкретной строки
+        // Расчет суммы для конкретной строки через справочник
         int price = getPriceForProduct(name);
-        double rowTotal = price * currentQty;
+        double rowTotal = (double) price * currentQty;
 
-        // Формат: Товар — 5 шт. (2,500 ֏)
+        // Формат 2026: Товар — 5 шт. (2,500 ֏)
         String info = String.format("%s — %d шт. (%,.0f ֏)", name, currentQty, rowTotal);
         holder.tvName.setText(info);
     }
 
+    @Override
+    public int getItemCount() {
+        return names.size();
+    }
+
+    public static class ViewHolder extends RecyclerView.ViewHolder {
+        TextView tvName;
+        public ViewHolder(View itemView) {
+            super(itemView);
+            tvName = itemView.findViewById(R.id.tvCategoryName);
+        }
+    }
     private int getPriceForProduct(String name) {
         if (name == null) return 0;
         switch (name) {
@@ -104,27 +125,6 @@ public class OrderHistoryItemsAdapter extends RecyclerView.Adapter<OrderHistoryI
 
             default:
                 return 0;
-        }
-    }
-
-    @Override
-    public int getItemCount() {
-        return names.size();
-    }
-
-    @NonNull
-    @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_category, parent, false);
-        return new ViewHolder(view);
-    }
-
-    public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvName;
-
-        public ViewHolder(View itemView) {
-            super(itemView);
-            tvName = itemView.findViewById(R.id.tvCategoryName);
         }
     }
 }

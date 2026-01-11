@@ -10,38 +10,39 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
-import com.sellion.mobile.entity.OrderModel;
+import com.sellion.mobile.entity.OrderEntity;
 
 import java.util.List;
 import java.util.Map;
 
-public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.ReturnVH> {
+public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderVH> {
 
-    private List<OrderModel> list;
+    private List<OrderEntity> list; // Изменено на OrderEntity
     private OnOrderClickListener listener;
 
     public interface OnOrderClickListener {
-        void onOrderClick(OrderModel o);
+        void onOrderClick(OrderEntity o);
     }
 
-    public OrderAdapter(List<OrderModel> list, OnOrderClickListener l) {
+    public OrderAdapter(List<OrderEntity> list, OnOrderClickListener l) {
         this.list = list;
         this.listener = l;
     }
 
     @NonNull
     @Override
-    public ReturnVH onCreateViewHolder(@NonNull ViewGroup p, int vt) {
+    public OrderVH onCreateViewHolder(@NonNull ViewGroup p, int vt) {
         View view = LayoutInflater.from(p.getContext()).inflate(R.layout.item_order, p, false);
-        return new ReturnVH(view);
+        return new OrderVH(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ReturnVH h, int pos) {
-        OrderModel o = list.get(pos);
+    public void onBindViewHolder(@NonNull OrderVH h, int pos) {
+        OrderEntity o = list.get(pos);
 
         h.tvShopName.setText(o.shopName);
-        // Расчет итоговой суммы
+
+        // Расчет итоговой суммы из Map в Entity
         double total = 0;
         if (o.items != null) {
             for (Map.Entry<String, Integer> entry : o.items.entrySet()) {
@@ -50,8 +51,8 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.ReturnVH> {
         }
         h.tvTotalAmount.setText(String.format("%,.0f ֏", total));
 
-        // Логика статуса
-        if (o.status == OrderModel.Status.SENT) {
+        // Визуализация статуса (LiveData обновит это мгновенно)
+        if ("SENT".equals(o.status)) {
             h.tvStatus.setText("ОТПРАВЛЕН");
             h.tvStatus.setTextColor(Color.parseColor("#2E7D32"));
         } else {
@@ -59,14 +60,9 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.ReturnVH> {
             h.tvStatus.setTextColor(Color.parseColor("#2196F3"));
         }
 
-
         h.itemView.setOnClickListener(v -> {
-            if (listener != null) {
-                listener.onOrderClick(o);
-            }
+            if (listener != null) listener.onOrderClick(o);
         });
-
-
     }
 
     @Override
@@ -74,16 +70,18 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.ReturnVH> {
         return list != null ? list.size() : 0;
     }
 
-    public static class ReturnVH extends RecyclerView.ViewHolder {
+    public static class OrderVH extends RecyclerView.ViewHolder {
         TextView tvShopName, tvStatus, tvTotalAmount;
-
-        public ReturnVH(View v) {
+        public OrderVH(View v) {
             super(v);
             tvShopName = v.findViewById(R.id.tvOrderShopName);
             tvStatus = v.findViewById(R.id.tvOrderStatus);
             tvTotalAmount = v.findViewById(R.id.tvOrderTotalAmount);
         }
     }
+
+
+
 
     private int getPriceForProduct(String name) {
         if (name == null) return 0;

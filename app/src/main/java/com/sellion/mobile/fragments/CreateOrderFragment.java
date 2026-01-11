@@ -16,8 +16,8 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.CreateOrderPagerAdapter;
-import com.sellion.mobile.entity.OrderModel;
-import com.sellion.mobile.managers.OrderHistoryManager;
+import com.sellion.mobile.database.AppDatabase;
+import com.sellion.mobile.entity.OrderEntity;
 
 
 public class CreateOrderFragment extends BaseFragment {
@@ -48,25 +48,36 @@ public class CreateOrderFragment extends BaseFragment {
 
     // Центральный метод обработки выбора клиента
     public void onClientSelected(String storeName) {
-        // 1. Проверка на наличие неотправленного заказа
-        boolean hasPendingOrder = false;
-        for (OrderModel order : OrderHistoryManager.getInstance().getOrders()) {
-            if (order.shopName.equals(storeName) && order.status == OrderModel.Status.PENDING) {
-                hasPendingOrder = true;
-                break;
-            }
-        }
+        // Проверка в фоновом потоке через Room
+        new Thread(() -> {
+            AppDatabase db = AppDatabase.getInstance(requireContext());
 
-        if (hasPendingOrder) {
-            new AlertDialog.Builder(requireContext())
-                    .setTitle("Внимание")
-                    .setMessage("Для магазина '" + storeName + "' уже есть активный заказ. Отредактируйте его в истории или отправьте текущий.")
-                    .setPositiveButton("Понятно", null)
-                    .show();
-        } else {
-            // 2. Если заказа нет — открываем детали
-            openStoreDetails(storeName);
-        }
+            // Получаем все заказы для этого магазина из базы
+            java.util.List<OrderEntity> orders = db.orderDao().getPendingOrdersSync();
+
+            boolean hasPendingOrder = false;
+            for (OrderEntity order : orders) {
+                if (order.shopName.equals(storeName) && "PENDING".equals(order.status)) {
+                    hasPendingOrder = true;
+                    break;
+                }
+            }
+
+            final boolean finalHasPending = hasPendingOrder;
+
+            // Возвращаемся в главный поток для UI
+            requireActivity().runOnUiThread(() -> {
+                if (finalHasPending) {
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle("Внимание")
+                            .setMessage("Для магазина '" + storeName + "' уже есть активный заказ. Отредактируйте его в истории или отправьте текущий.")
+                            .setPositiveButton("Понятно", null)
+                            .show();
+                } else {
+                    openStoreDetails(storeName);
+                }
+            });
+        }).start();
     }
 
     private void openStoreDetails(String storeName) {
