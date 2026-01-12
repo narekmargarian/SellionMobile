@@ -45,13 +45,13 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         // Используем тот же макет, что и в заказах
-        View view = inflater.inflate(R.layout.fragment_order_details, container, false);
+        View view = inflater.inflate(R.layout.fragment_return_details, container, false);
 
-        TabLayout tabLayout = view.findViewById(R.id.storeTabLayout);
-        viewPager = view.findViewById(R.id.orderDetailsViewPager);
-        ImageButton btnBack = view.findViewById(R.id.btnBackToRoute);
-        View btnSave = view.findViewById(R.id.btnSaveFullOrder);
-        tvStoreName = view.findViewById(R.id.tvStoreName);
+        TabLayout tabLayout = view.findViewById(R.id.returnTabLayout);
+        viewPager = view.findViewById(R.id.returnViewPager);
+        ImageButton btnBack = view.findViewById(R.id.btnBackFromReturn);
+        View btnSave = view.findViewById(R.id.btnSaveReturn);
+        tvStoreName = view.findViewById(R.id.tvReturnStoreName);
 
         if (getArguments() != null && getArguments().containsKey("store_name")) {
             tvStoreName.setText(getArguments().getString("store_name"));
@@ -59,7 +59,7 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
             tvStoreName.setText("Неизвестный клиент");
         }
 
-        viewPager.setAdapter(new OrderPagerAdapter(this));
+        viewPager.setAdapter(new ReturnPagerAdapter(this));
         viewPager.setOffscreenPageLimit(2);
 
         // Кнопка сохранить теперь вызывает сохранение ВОЗВРАТА
@@ -157,18 +157,17 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
         }).start();
     }
 
-    private static class OrderPagerAdapter extends FragmentStateAdapter {
-        public OrderPagerAdapter(@NonNull Fragment fragment) { super(fragment); }
+    private static class ReturnPagerAdapter extends FragmentStateAdapter {
+        public ReturnPagerAdapter(@NonNull Fragment fragment) { super(fragment); }
         @Override
         public int getItemCount() { return 3; }
         @NonNull
         @Override
         public Fragment createFragment(int position) {
-            // Переиспользуем те же фрагменты, но они поймут режим через аргументы
             switch (position) {
                 case 0: return new CatalogFragment();
-                case 1: return new CurrentOrderFragment();
-                case 2: return new OrderInfoFragment(); // Здесь должна быть причина возврата
+                case 1: return new CurrentReturnFragment();
+                case 2: return new ReturnInfoFragment();
                 default: return new CatalogFragment();
             }
         }
