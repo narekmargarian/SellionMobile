@@ -18,14 +18,12 @@ public class NavigationHelper {
      * Очищает пошаговую историю, чтобы кнопка "Назад" вела на главный экран.
      */
     public static void finishAndGoTo(FragmentManager fragmentManager, Fragment targetFragment) {
-        // 1. Очищаем все "пошаговые" действия внутри раздела
         fragmentManager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
 
-        // 2. Открываем нужный экран (например, список всех заказов)
         fragmentManager.beginTransaction()
                 .replace(R.id.fragment_container, targetFragment)
-                .addToBackStack(null) // Чтобы из списка вернуться на главный экран
-                .commit();
+                .addToBackStack(null)
+                .commitAllowingStateLoss(); // Добавь это для безопасности в 2026 году
     }
 
     /**

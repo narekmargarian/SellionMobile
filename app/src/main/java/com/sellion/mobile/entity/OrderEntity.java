@@ -17,5 +17,6 @@ public class OrderEntity {
     public String deliveryDate;
     public String paymentMethod;
     public boolean needsSeparateInvoice;
+    public String managerId; // Добавь это поле!
 }
 

@@ -18,19 +18,28 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.sellion.mobile.R;
+import com.sellion.mobile.adapters.ClientAdapter;
+import com.sellion.mobile.api.ApiClient;
+import com.sellion.mobile.api.ApiService;
 import com.sellion.mobile.entity.ClientModel;
+import com.sellion.mobile.helper.NavigationHelper;
 import com.sellion.mobile.managers.ClientManager;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 
 public class ClientsFragment extends BaseFragment {
 
 
+
     private RecyclerView recyclerClients;
     private ClientAdapter adapter;
-    // Теперь берем список из менеджера
-    private List<ClientModel> clientList = ClientManager.getInstance().clientList;
+    private List<ClientModel> clientList = new ArrayList<>();
 
     @Nullable
     @Override
@@ -41,21 +50,41 @@ public class ClientsFragment extends BaseFragment {
         ImageButton btnAdd = view.findViewById(R.id.btnAddClient);
         recyclerClients = view.findViewById(R.id.recyclerClients);
 
-        setupBackButton(btnBack, false);
 
-        // Используем список из ClientManager
-        adapter = new ClientAdapter(clientList, this::showClientInfoDialog);
         recyclerClients.setLayoutManager(new LinearLayoutManager(getContext()));
-        recyclerClients.setAdapter(adapter);
+
+        // Загружаем данные с сервера
+        loadClientsFromServer();
 
         btnAdd.setOnClickListener(v -> showAddClientDialog());
 
+        btnBack.setOnClickListener(v -> NavigationHelper.backToDashboard(getParentFragmentManager()));
         return view;
     }
 
-    // ... (Методы showAddClientDialog и showSuccessDialog остаются без изменений) ...
+    private void loadClientsFromServer() {
+        ApiService api = ApiClient.getClient().create(ApiService.class);
+        api.getClients().enqueue(new Callback<List<ClientModel>>() {
+            @Override
+            public void onResponse(Call<List<ClientModel>> call, Response<List<ClientModel>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    clientList = response.body();
+                    // Обновляем список
+                    adapter = new ClientAdapter(clientList, client -> showClientInfoDialog(client));
+                    recyclerClients.setAdapter(adapter);
+                }
+            }
 
-    // НОВЫЙ метод для показа информации о клиенте в Bottom Sheet
+            @Override
+            public void onFailure(Call<List<ClientModel>> call, Throwable t) {
+                if (getContext() != null) {
+                    Toast.makeText(getContext(), "Ошибка сети: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+
+                }
+            }
+        });
+    }
+
     private void showClientInfoDialog(ClientModel client) {
         View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_client_info, null);
         TextView tvName = dialogView.findViewById(R.id.tvClientInfoName);
@@ -65,15 +94,14 @@ public class ClientsFragment extends BaseFragment {
 
         tvName.setText(client.getName());
         tvAddress.setText(client.getAddress());
-        tvIp.setText(client.getIp());
+        tvIp.setText(client.ownerName + " (ИНН: " + client.inn + ")");
 
-        // Используем BottomSheetDialog для эффекта "карточки" снизу
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
         dialog.setContentView(dialogView);
-
         btnClose.setOnClickListener(v -> dialog.dismiss());
         dialog.show();
     }
+
 
     private void showAddClientDialog() {
         View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_add_client, null);
@@ -109,56 +137,6 @@ public class ClientsFragment extends BaseFragment {
                 .setPositiveButton("Понятно", null)
                 .setIcon(R.drawable.ic_add)
                 .show();
-    }
-
-
-    // Обновляем Адаптер, чтобы он принимал слушателя кликов
-    private static class ClientAdapter extends RecyclerView.Adapter<ClientAdapter.ClientViewHolder> {
-        private final List<ClientModel> clients;
-        private final OnClientClickListener listener;
-
-        public interface OnClientClickListener {
-            void onClientClick(ClientModel client);
-        }
-
-        public ClientAdapter(List<ClientModel> clients, OnClientClickListener listener) {
-            this.clients = clients;
-            this.listener = listener;
-        }
-
-        @NonNull
-        @Override
-        public ClientViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_client, parent, false);
-            return new ClientViewHolder(view);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull ClientViewHolder holder, int position) {
-            ClientModel client = clients.get(position);
-            holder.tvName.setText(client.name);
-            holder.tvAddress.setText(client.address);
-
-            // Добавляем обработчик клика
-            holder.itemView.setOnClickListener(v -> {
-                if (listener != null) listener.onClientClick(client);
-            });
-        }
-
-        @Override
-        public int getItemCount() {
-            return clients.size();
-        }
-
-        static class ClientViewHolder extends RecyclerView.ViewHolder {
-            TextView tvName, tvAddress;
-
-            public ClientViewHolder(@NonNull View itemView) {
-                super(itemView);
-                tvName = itemView.findViewById(R.id.tvClientName);
-                tvAddress = itemView.findViewById(R.id.tvClientAddress);
-            }
-        }
     }
 }
 

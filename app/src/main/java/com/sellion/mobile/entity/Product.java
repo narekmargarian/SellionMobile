@@ -1,11 +1,18 @@
 package com.sellion.mobile.entity;
 
 public class Product {
+
     private String name;
     private int price;
     private int itemsPerBox;
-    private String barcode; // Новое поле для штрих-кода
+    private String barcode;
+    private String category;
 
+    // 1. Пустой конструктор (нужен для Retrofit)
+    public Product() {
+    }
+
+    // 2. Конструктор с 4 параметрами (исправит твою ошибку)
     public Product(String name, int price, int itemsPerBox, String barcode) {
         this.name = name;
         this.price = price;
@@ -13,6 +20,7 @@ public class Product {
         this.barcode = barcode;
     }
 
+    // Геттеры (убедись, что они есть)
     public String getName() {
         return name;
     }
@@ -21,11 +29,15 @@ public class Product {
         return price;
     }
 
-    public int getItemsPerBox() {
-        return itemsPerBox;
+    public String getCategory() {
+        return category;
     }
 
     public String getBarcode() {
         return barcode;
+    }
+
+    public int getItemsPerBox() {
+        return itemsPerBox;
     }
 }

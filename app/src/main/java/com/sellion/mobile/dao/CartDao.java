@@ -1,10 +1,12 @@
-package com.sellion.mobile.entity;
+package com.sellion.mobile.dao;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
+
+import com.sellion.mobile.entity.CartEntity;
 
 import java.util.List;
 

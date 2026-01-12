@@ -1,5 +1,6 @@
 package com.sellion.mobile.fragments;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -24,9 +25,9 @@ import com.sellion.mobile.handler.BackPressHandler;
 import com.sellion.mobile.helper.NavigationHelper;
 import com.sellion.mobile.managers.CartManager;
 import com.sellion.mobile.managers.ReturnManager;
+import com.sellion.mobile.managers.SessionManager;
 
 import java.util.HashMap;
-import java.util.Map;
 
 
 public class ReturnDetailsFragment extends BaseFragment implements BackPressHandler {
@@ -37,7 +38,6 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // Используем XML для оформления деталей возврата
         View view = inflater.inflate(R.layout.fragment_return_details, container, false);
 
         TabLayout tabLayout = view.findViewById(R.id.returnTabLayout);
@@ -46,42 +46,22 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
         View btnSave = view.findViewById(R.id.btnSaveReturn);
         tvStoreName = view.findViewById(R.id.tvReturnStoreName);
 
-        // Получаем имя магазина из аргументов
-        if (getArguments() != null) {
+        // --- ИСПРАВЛЕНИЕ: Получаем имя магазина ---
+        if (getArguments() != null && getArguments().containsKey("store_name")) {
             tvStoreName.setText(getArguments().getString("store_name"));
-
-            // Если мы пришли из режима редактирования, заполняем ReturnManager данными
-            if (getArguments().containsKey("edit_reason")) {
-                ReturnManager.getInstance().setReturnReason(getArguments().getString("edit_reason"));
-                ReturnManager.getInstance().setReturnDate(getArguments().getString("edit_date"));
-            }
         }
 
-        // Обновление списка товаров при переключении на вкладку "Возврат" (позиция 1)
-        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageSelected(int position) {
-                super.onPageSelected(position);
-                // В 2026 году здесь ПУСТО.
-                // LiveData внутри CurrentOrderFragment сама обновит экран.
-            }
-        });
-
-        // Настройка адаптера ViewPager2
-        ReturnPagerAdapter adapter = new ReturnPagerAdapter(this);
-        viewPager.setAdapter(adapter);
+        viewPager.setAdapter(new ReturnPagerAdapter(this));
         viewPager.setOffscreenPageLimit(2);
 
-        // Логика кнопки СОХРАНИТЬ
         btnSave.setOnClickListener(v -> {
             if (CartManager.getInstance().getCartItems().isEmpty()) {
-                Toast.makeText(getContext(), "Список пуст! Добавьте товары.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Список пуст!", Toast.LENGTH_SHORT).show();
             } else {
                 saveReturnToDatabase();
             }
         });
 
-        // Настройка вкладок
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             switch (position) {
                 case 0:
@@ -96,37 +76,51 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
             }
         }).attach();
 
-        // Обработка кнопки назад
-        btnBack.setOnClickListener(v -> onBackPressedHandled());
-        setupBackButton(btnBack, false);
+        // На кнопке "Назад" в тулбаре
+        btnBack.setOnClickListener(v -> NavigationHelper.backToDashboard(getParentFragmentManager()));
 
         return view;
     }
 
     private void saveReturnToDatabase() {
         String storeName = tvStoreName.getText().toString();
-        Map<String, Integer> currentItems = new HashMap<>(CartManager.getInstance().getCartItems());
 
-        // Создаем Entity для Room
         ReturnEntity newReturn = new ReturnEntity();
         newReturn.shopName = storeName;
-        newReturn.items = currentItems;
+        newReturn.items = new HashMap<>(CartManager.getInstance().getCartItems());
         newReturn.returnReason = ReturnManager.getInstance().getReturnReason();
         newReturn.returnDate = ReturnManager.getInstance().getReturnDate();
-        newReturn.status = "PENDING"; // Устанавливаем статус для WorkManager
+        newReturn.status = "PENDING";
+        newReturn.managerId = SessionManager.getInstance().getManagerId();
 
-        // Сохраняем в фоновом потоке
         new Thread(() -> {
-            AppDatabase.getInstance(requireContext())
-                    .returnDao().insert(newReturn);
+            try {
+                // Используем ApplicationContext, чтобы избежать утечек памяти и I/O ошибок
+                Context context = requireContext().getApplicationContext();
+                AppDatabase.getInstance(requireContext().getApplicationContext()).returnDao().insert(newReturn);
 
-            requireActivity().runOnUiThread(() -> {
-                CartManager.getInstance().clearCart();
-                ReturnManager.getInstance().clear();
-                Toast.makeText(getContext(), "Возврат сохранен в базу!", Toast.LENGTH_SHORT).show();
-                // Навигация через Helper
-                NavigationHelper.finishAndGoTo(getParentFragmentManager(), new ReturnsFragment());
-            });
+                // Даем системе время "отпустить" файл базы
+                Thread.sleep(250);
+
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        // Проверка, что фрагмент еще существует (isAdded() — это правильно)
+                        if (!isAdded()) return;
+
+                        // Очищаем корзину и менеджер возвратов
+                        CartManager.getInstance().clearCart();
+                        ReturnManager.getInstance().clear();
+
+                        Toast.makeText(requireContext().getApplicationContext(), "Возврат сохранен!", Toast.LENGTH_SHORT).show();
+
+                        // ИСПОЛЬЗУЕМ HELPER ДЛЯ ПРАВИЛЬНОЙ НАВИГАЦИИ
+                        // Это очистит стек и откроет список возвратов
+                        NavigationHelper.finishAndGoTo(getParentFragmentManager(), new ReturnsFragment());
+                    });
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }).start();
     }
 
@@ -134,6 +128,7 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
     public void onBackPressedHandled() {
         showSaveReturnDialog();
     }
+
 
     protected void showSaveReturnDialog() {
         if (!CartManager.getInstance().getCartItems().isEmpty()) {

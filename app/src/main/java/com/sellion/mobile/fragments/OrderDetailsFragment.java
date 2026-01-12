@@ -1,5 +1,6 @@
 package com.sellion.mobile.fragments;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -23,6 +24,7 @@ import com.sellion.mobile.entity.OrderEntity;
 import com.sellion.mobile.handler.BackPressHandler;
 import com.sellion.mobile.helper.NavigationHelper;
 import com.sellion.mobile.managers.CartManager;
+import com.sellion.mobile.managers.SessionManager;
 
 public class OrderDetailsFragment extends BaseFragment implements BackPressHandler {
     private TextView tvStoreName;
@@ -31,7 +33,6 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // Используем тот же XML, что и в заказе
         View view = inflater.inflate(R.layout.fragment_order_details, container, false);
 
         TabLayout tabLayout = view.findViewById(R.id.storeTabLayout);
@@ -40,21 +41,18 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
         View btnSave = view.findViewById(R.id.btnSaveFullOrder);
         tvStoreName = view.findViewById(R.id.tvStoreName);
 
-        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageSelected(int position) {
-                super.onPageSelected(position);
-                // В 2026 году здесь ПУСТО.
-                // LiveData внутри CurrentOrderFragment сама обновит экран.
-            }
-        });
-        // Устанавливаем специальный адаптер для возврата
-        OrderDetailsFragment.OrderPagerAdapter adapter = new OrderDetailsFragment.OrderPagerAdapter(this);
-        viewPager.setAdapter(adapter);
+        // --- ИСПРАВЛЕНИЕ: Получаем имя магазина из переданных аргументов ---
+        if (getArguments() != null && getArguments().containsKey("store_name")) {
+            String name = getArguments().getString("store_name");
+            tvStoreName.setText(name);
+        } else {
+            tvStoreName.setText("Неизвестный клиент");
+        }
+        // ------------------------------------------------------------------
+
+        viewPager.setAdapter(new OrderPagerAdapter(this));
         viewPager.setOffscreenPageLimit(2);
 
-
-        // Кнопка ОФОРМИТЬ ВОЗВРАТ
         btnSave.setOnClickListener(v -> {
             if (CartManager.getInstance().getCartItems().isEmpty()) {
                 Toast.makeText(getContext(), "Список пуст! Добавьте товары.", Toast.LENGTH_SHORT).show();
@@ -77,52 +75,60 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
             }
         }).attach();
 
-        setupBackButton(btnBack, false);
+        // На кнопке "Назад" в тулбаре
+        btnBack.setOnClickListener(v -> NavigationHelper.backToDashboard(getParentFragmentManager()));
+
         return view;
     }
 
-
     private void saveOrderToDatabase() {
+        // Берем текст, который мы установили в onCreateView
         String storeName = tvStoreName.getText().toString();
 
-        // 1. Собираем данные из интерфейса и CartManager
         OrderEntity newOrder = new OrderEntity();
+
+        // Получаем ID менеджера (убедись, что он не null)
+        String mId = SessionManager.getInstance().getManagerId();
+        newOrder.managerId = (mId != null) ? mId : "unknown";
+
         newOrder.shopName = storeName;
         newOrder.items = new java.util.HashMap<>(CartManager.getInstance().getCartItems());
         newOrder.deliveryDate = CartManager.getInstance().getDeliveryDate();
         newOrder.paymentMethod = CartManager.getInstance().getPaymentMethod();
         newOrder.needsSeparateInvoice = CartManager.getInstance().isSeparateInvoice();
-        newOrder.status = "PENDING"; // Статус "Ожидает отправки"
+        newOrder.status = "PENDING";
 
-        // 2. Получаем экземпляр базы данных
-        AppDatabase db = AppDatabase.getInstance(requireContext());
-
-        // 3. Room запрещает операции в главном потоке (чтобы приложение не зависало)
-        // Используем новый поток для записи в БД
         new Thread(() -> {
-            db.orderDao().insert(newOrder);
+            try {
+                // Используем ApplicationContext для безопасности
+                Context appCtx = requireContext().getApplicationContext();
+                AppDatabase.getInstance(requireContext().getApplicationContext()).orderDao().insert(newOrder);
 
-            // 4. После записи возвращаемся в главный поток для обновления UI
-            if (getActivity() != null) {
-                getActivity().runOnUiThread(() -> {
-                    CartManager.getInstance().clearCart();
-                    Toast.makeText(getContext(), "Заказ сохранен в базу!", Toast.LENGTH_SHORT).show();
+                Thread.sleep(200);
 
-                    // Используем ваш NavigationHelper для перехода
-                    NavigationHelper.finishAndGoTo(getParentFragmentManager(), new OrdersFragment());
-                });
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        // 1. Очищаем корзину
+                        CartManager.getInstance().clearCart();
+
+                        Toast.makeText(appCtx, "Заказ сохранен!", Toast.LENGTH_SHORT).show();
+
+                        // 2. ИСПОЛЬЗУЕМ HELPER (Очищает историю и открывает список)
+                        // Теперь кнопка "Назад" из списка заказов сразу вернет на Главный экран
+                        NavigationHelper.finishAndGoTo(getParentFragmentManager(), new OrdersFragment());
+                    });
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }).start();
     }
 
-
     @Override
     public void onBackPressedHandled() {
         showSaveReturnDialog();
-
     }
 
-    // Адаптер вкладок специально для возврата
     private static class OrderPagerAdapter extends FragmentStateAdapter {
         public OrderPagerAdapter(@NonNull Fragment fragment) {
             super(fragment);
@@ -138,19 +144,17 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
         public Fragment createFragment(int position) {
             switch (position) {
                 case 0:
-                    return new CatalogFragment();      // Ваш обычный каталог
+                    return new CatalogFragment();
                 case 1:
-                    return new CurrentOrderFragment(); // Ваша обычная корзина
+                    return new CurrentOrderFragment();
                 case 2:
-                    return new OrderInfoFragment();  // НОВЫЙ фрагмент с причинами (Enum)
+                    return new OrderInfoFragment();
                 default:
                     return new CatalogFragment();
             }
         }
     }
 
-
-    // Логика диалога сохранения (как в заказе)
     protected void showSaveReturnDialog() {
         if (!CartManager.getInstance().getCartItems().isEmpty()) {
             new AlertDialog.Builder(requireContext())
@@ -159,8 +163,7 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
                     .setPositiveButton("Да, сохранить", (dialog, which) -> saveOrderToDatabase())
                     .setNegativeButton("Нет", (dialog, which) -> {
                         CartManager.getInstance().clearCart();
-                        // Возвращаемся к выбору клиента
-                        getParentFragmentManager().popBackStack();
+                        NavigationHelper.backToDashboard(getParentFragmentManager());
                     })
                     .setNeutralButton("Отмена", null)
                     .show();
@@ -169,6 +172,4 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
             getParentFragmentManager().popBackStack();
         }
     }
-
-
 }

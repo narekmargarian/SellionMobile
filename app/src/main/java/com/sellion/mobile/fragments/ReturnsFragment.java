@@ -47,6 +47,7 @@ public class ReturnsFragment extends BaseFragment {
 
         // Запуск наблюдения за базой данных
         observeReturns();
+        btnBack.setOnClickListener(v -> NavigationHelper.backToDashboard(getParentFragmentManager()));
 
         return view;
     }

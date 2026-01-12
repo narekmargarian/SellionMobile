@@ -14,4 +14,5 @@ public class ReturnEntity {
     public String returnReason;
     public String returnDate;
     public String status; // PENDING, SENT
+    public String managerId; // Добавь это поле!
 }

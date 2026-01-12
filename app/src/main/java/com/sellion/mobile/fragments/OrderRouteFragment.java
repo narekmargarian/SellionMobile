@@ -6,6 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -16,16 +17,25 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.ClientAdapter;
+import com.sellion.mobile.api.ApiClient;
+import com.sellion.mobile.api.ApiService;
+import com.sellion.mobile.entity.ClientModel;
 import com.sellion.mobile.managers.ClientManager;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class OrderRouteFragment extends Fragment {
     private final String[] daysOfWeek = {"Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"};
-    private int selectedDayIndex; // Убрали инициализацию = 1
+    private int selectedDayIndex;
     private RecyclerView recyclerView;
     private TextView tvCurrentDay;
+    private List<ClientModel> allClientsFromServer = new ArrayList<>();
 
     @Nullable
     @Override
@@ -37,57 +47,68 @@ public class OrderRouteFragment extends Fragment {
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // --- НОВАЯ ЛОГИКА ОПРЕДЕЛЕНИЯ ТЕКУЩЕГО ДНЯ (СЕГОДНЯ СУББОТА 10.01.2026) ---
+        // Логика определения дня недели
         Calendar calendar = Calendar.getInstance();
-        int dayOfWeekNum = calendar.get(Calendar.DAY_OF_WEEK); // В Java: 1=Вс, 2=Пн, 7=Сб
-
-        // Определяем правильный индекс для нашего массива
+        int dayOfWeekNum = calendar.get(Calendar.DAY_OF_WEEK);
         switch (dayOfWeekNum) {
-            case Calendar.MONDAY:
-                selectedDayIndex = 0;
-                break;
-            case Calendar.TUESDAY:
-                selectedDayIndex = 1;
-                break;
-            case Calendar.WEDNESDAY:
-                selectedDayIndex = 2;
-                break;
-            case Calendar.THURSDAY:
-                selectedDayIndex = 3;
-                break;
-            case Calendar.FRIDAY:
-                selectedDayIndex = 4;
-                break;
-            case Calendar.SATURDAY:
-                selectedDayIndex = 5;
-                break; // Сегодняшний день
-            default:
-                selectedDayIndex = 0; // Воскресенье или ошибка -> Понедельник
+            case Calendar.MONDAY: selectedDayIndex = 0; break;
+            case Calendar.TUESDAY: selectedDayIndex = 1; break;
+            case Calendar.WEDNESDAY: selectedDayIndex = 2; break;
+            case Calendar.THURSDAY: selectedDayIndex = 3; break;
+            case Calendar.FRIDAY: selectedDayIndex = 4; break;
+            case Calendar.SATURDAY: selectedDayIndex = 5; break;
+            default: selectedDayIndex = 0;
         }
-        // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
 
         tvCurrentDay.setText(daysOfWeek[selectedDayIndex]);
-        loadClientsForDay(selectedDayIndex);
+
+        // Сначала загружаем ВСЕХ клиентов с сервера
+        loadAllClients();
 
         selectDay.setOnClickListener(v -> new AlertDialog.Builder(requireContext())
                 .setTitle("День маршрута")
                 .setItems(daysOfWeek, (dialog, which) -> {
                     selectedDayIndex = which;
                     tvCurrentDay.setText(daysOfWeek[which]);
-                    loadClientsForDay(which);
+                    filterClientsByDay(selectedDayIndex); // Фильтруем уже загруженные данные
                 }).show());
 
         return view;
     }
 
-    private void loadClientsForDay(int dayIndex) {
-        // ... (остальной код метода без изменений) ...
-        List<String> allClients = ClientManager.getInstance().getStoreNames();
-        int start = Math.min(dayIndex * 8, allClients.size());
-        int end = Math.min(start + 8, allClients.size());
-        List<String> dayClients = allClients.subList(start, end);
+    private void loadAllClients() {
+        ApiService api = ApiClient.getClient().create(ApiService.class);
+        api.getClients().enqueue(new Callback<List<ClientModel>>() {
+            @Override
+            public void onResponse(Call<List<ClientModel>> call, Response<List<ClientModel>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    allClientsFromServer = response.body();
+                    filterClientsByDay(selectedDayIndex); // Показываем клиентов на текущий день
+                }
+            }
 
-        ClientAdapter adapter = new ClientAdapter(dayClients, name -> {
+            @Override
+            public void onFailure(Call<List<ClientModel>> call, Throwable t) {
+                if (getContext() != null) Toast.makeText(getContext(), "Ошибка сети", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void filterClientsByDay(int dayIndex) {
+        String targetDay = daysOfWeek[dayIndex];
+        List<ClientModel> filteredList = new ArrayList<>();
+
+        for (ClientModel client : allClientsFromServer) {
+            // В 2026 году мы проверяем поле routeDay, которое пришло из MySQL
+            if (targetDay.trim().equalsIgnoreCase(client.routeDay.trim())) {
+                filteredList.add(client);
+            }
+        }
+
+        // Исправление ошибки: передаем список объектов и достаем имя при клике
+        ClientAdapter adapter = new ClientAdapter(filteredList, client -> {
+            String name = client.getName(); // Теперь ошибки не будет
+
             Fragment parent = getParentFragment();
             if (parent instanceof CreateOrderFragment) {
                 ((CreateOrderFragment) parent).onClientSelected(name);

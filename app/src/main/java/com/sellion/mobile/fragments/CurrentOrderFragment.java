@@ -79,7 +79,6 @@ public class CurrentOrderFragment extends BaseFragment {
             int price = getPriceForProduct(item.productName);
             totalAmount += (price * item.quantity);
             // Создаем временный объект Product для корректного отображения в адаптере
-            selectedProducts.add(new Product(item.productName, price, 0, ""));
         }
 
         tvTotalSum.setText(String.format("%,.0f ֏", totalAmount));

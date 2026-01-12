@@ -9,19 +9,21 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
+import com.sellion.mobile.entity.ClientModel;
 
 import java.util.List;
 
 public class ClientAdapter extends RecyclerView.Adapter<ClientAdapter.VH> {
 
+    // 1. Изменяем интерфейс: теперь он передает объект ClientModel целиком
     public interface OnClientClick {
-        void onClick(String clientName);
+        void onClick(ClientModel client);
     }
 
-    private final List<String> clients;
+    private final List<ClientModel> clients; // Теперь список моделей, а не строк
     private final OnClientClick listener;
 
-    public ClientAdapter(List<String> clients, OnClientClick listener) {
+    public ClientAdapter(List<ClientModel> clients, OnClientClick listener) {
         this.clients = clients;
         this.listener = listener;
     }
@@ -29,6 +31,7 @@ public class ClientAdapter extends RecyclerView.Adapter<ClientAdapter.VH> {
     @NonNull
     @Override
     public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        // Убедитесь, что используете правильный макет (item_client)
         View v = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_client, parent, false);
         return new VH(v);
@@ -36,22 +39,31 @@ public class ClientAdapter extends RecyclerView.Adapter<ClientAdapter.VH> {
 
     @Override
     public void onBindViewHolder(@NonNull VH holder, int position) {
-        String name = clients.get(position);
-        holder.tvName.setText(name);
-        holder.itemView.setOnClickListener(v -> listener.onClick(name));
+        ClientModel client = clients.get(position);
+
+        // Устанавливаем имя магазина
+        holder.tvName.setText(client.getName());
+
+        // Если в макете есть поле для адреса, можно добавить и его:
+        // holder.tvAddress.setText(client.getAddress());
+
+        // 2. Передаем весь объект в слушатель
+        holder.itemView.setOnClickListener(v -> listener.onClick(client));
     }
 
     @Override
     public int getItemCount() {
-        return clients.size();
+        return clients != null ? clients.size() : 0;
     }
 
     static class VH extends RecyclerView.ViewHolder {
         TextView tvName;
+        // TextView tvAddress; // Добавьте, если нужно
 
         VH(View v) {
             super(v);
             tvName = v.findViewById(R.id.tvClientName);
+            // tvAddress = v.findViewById(R.id.tvClientAddress);
         }
     }
 }

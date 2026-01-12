@@ -19,6 +19,7 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.OrderAdapter;
 import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.OrderEntity;
+import com.sellion.mobile.helper.NavigationHelper;
 
 public class OrdersFragment extends BaseFragment {
 
@@ -45,7 +46,8 @@ public class OrdersFragment extends BaseFragment {
                 getParentFragmentManager().popBackStack();
             }
         });
-        setupBackButton(btnBack, false);
+        btnBack.setOnClickListener(v -> NavigationHelper.backToDashboard(getParentFragmentManager()));
+
 
         // Кнопка создания нового заказа
         btnAddOrder.setOnClickListener(v -> {

@@ -7,7 +7,11 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -17,6 +21,8 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
 import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.ProductAdapter;
+import com.sellion.mobile.api.ApiClient;
+import com.sellion.mobile.api.ApiService;
 import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.CartEntity;
 import com.sellion.mobile.entity.Product;
@@ -26,87 +32,97 @@ import java.util.ArrayList;
 import java.util.List;
 
 
+
 public class ProductFragment extends BaseFragment {
     private ProductAdapter adapter;
     private boolean isOrderMode = false;
     private boolean isActuallyReturn = false;
-
+    private String currentCategory;
+    private List<Product> allProducts = new ArrayList<>(); // Храним загруженные товары
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_product, container, false);
 
-
         if (getArguments() != null) {
             isOrderMode = getArguments().getBoolean("is_order_mode", false);
             isActuallyReturn = getArguments().getBoolean("is_actually_return", false);
+            currentCategory = getArguments().getString("category_name");
         }
 
-        AppDatabase.getInstance(requireContext()).cartDao().getCartItemsLive().observe(getViewLifecycleOwner(), cartItems -> {
-            if (adapter != null) {
-                adapter.setItemsInCart(cartItems); // Обновляем список "синих" товаров
-            }
-        });
-
-        String category = getArguments() != null ? getArguments().getString("category_name") : "Товары";
-
         TextView tvTitle = view.findViewById(R.id.tvCategoryTitle);
-        tvTitle.setText(category);
+        tvTitle.setText(currentCategory);
 
         ImageButton btnBack = view.findViewById(R.id.btnBackProducts);
         setupBackButton(btnBack, false);
 
         RecyclerView rv = view.findViewById(R.id.recyclerViewProducts);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
-        if (category != null) {
 
-            List<Product> productList = getProductsByCategory(category);
-            adapter = new ProductAdapter(productList, product -> {
-                if (isOrderMode || isActuallyReturn) {
-                    showQuantityDialog(product);
-                } else {
-                    showProductInfo(product);
-                }
-            });
-
-
-        } else {
-            // TODO: 10.01.2026
-        }
-
-
+        // Инициализируем пустой адаптер
+        adapter = new ProductAdapter(new ArrayList<>(), product -> {
+            if (isOrderMode || isActuallyReturn) {
+                showQuantityDialog(product);
+            } else {
+                showProductInfo(product);
+            }
+        });
         rv.setAdapter(adapter);
+
+        // Подписываемся на Room для обновления цветов корзины
+        AppDatabase.getInstance(requireContext()).cartDao().getCartItemsLive().observe(getViewLifecycleOwner(), cartItems -> {
+            if (adapter != null) adapter.setItemsInCart(cartItems);
+        });
+
+        // ЗАГРУЗКА ДАННЫХ С СЕРВЕРА
+        loadProductsFromServer();
+        setupBackButton(btnBack, false);
         return view;
     }
 
-    // ... метод getProductsByCategory остается без изменений ...
-
-    private void showProductInfo(Product product) {
-        BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
-        View view = getLayoutInflater().inflate(R.layout.dialog_product_info, null);
-        dialog.setContentView(view);
+    private void loadProductsFromServer() {
 
 
-        TextView tvTitle = view.findViewById(R.id.tvInfoName);
-        TextView tvInfoPrice = view.findViewById(R.id.tvInfoPrice);
-        TextView tvBarcode = view.findViewById(R.id.tvInfoBarcode);
-        TextView tvInfoDescription = view.findViewById(R.id.tvInfoDescription);
-        TextView tvBoxCount = view.findViewById(R.id.tvInfoBoxCount);
-        MaterialButton btnConfirm = view.findViewById(R.id.btnCloseInfo);
+        ApiService api = ApiClient.getClient().create(ApiService.class);
+        api.getProducts().enqueue(new Callback<List<Product>>() {
+            @Override
+            public void onResponse(Call<List<Product>> call, Response<List<Product>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    allProducts = response.body();
+                    filterAndDisplayProducts();
+                } else {
+                    Toast.makeText(getContext(), "Ошибка сервера: " + response.code(), Toast.LENGTH_SHORT).show();
+                }
+            }
 
-        String info = "Здесь будет детальное описание: вес, количество в коробке, срок годности и остаток на складе.";
+            @Override
+            public void onFailure(Call<List<Product>> call, Throwable t) {
+                Toast.makeText(getContext(), "Ошибка сети: " + t.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
+    }
 
-        tvTitle.setText(product.getName());
-        tvInfoPrice.setText("Цена: " + product.getPrice());
-        tvBarcode.setText("Штрих код: " + product.getBarcode());
-        tvInfoDescription.setText(info);
-        tvBoxCount.setText("В упаковке: " + product.getItemsPerBox());
+    private void filterAndDisplayProducts() {
+        // ПРОВЕРКА: Если пользователь уже вышел из фрагмента, ничего не делаем
+        if (getView() == null) return;
 
+        List<Product> filteredList = new ArrayList<>();
+        for (Product p : allProducts) {
+            if (currentCategory != null && currentCategory.equalsIgnoreCase(p.getCategory())) {
+                filteredList.add(p);
+            }
+        }
 
-        btnConfirm.setText("Закрыть");
-        btnConfirm.setOnClickListener(v -> dialog.dismiss());
-        dialog.show();
+        adapter = new ProductAdapter(filteredList, product -> {
+            if (isOrderMode || isActuallyReturn) showQuantityDialog(product);
+            else showProductInfo(product);
+        });
+
+        RecyclerView rv = getView().findViewById(R.id.recyclerViewProducts);
+        if (rv != null) {
+            rv.setAdapter(adapter);
+        }
     }
 
     private void showQuantityDialog(Product product) {
@@ -156,7 +172,7 @@ public class ProductFragment extends BaseFragment {
                 });
             }
         }).start();
-        // ----------------------------------------------------------------
+
 
         btnPlus.setOnClickListener(v -> {
             String s = etQuantity.getText().toString();
@@ -188,59 +204,31 @@ public class ProductFragment extends BaseFragment {
         dialog.show();
     }
 
-    private List<Product> getProductsByCategory(String category) {
-        List<Product> productList = new ArrayList<>();
+    private void showProductInfo(Product product) {
+        BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
+        View view = getLayoutInflater().inflate(R.layout.dialog_product_info, null);
+        dialog.setContentView(view);
 
-        // В 2026 году используем switch для фильтрации товаров по категориям
-        switch (category) {
-            case "Сладкое":
-                productList.add(new Product("Шарики Манго в какао-глазури ВМ", 930, 12, "46450123456701"));
-                productList.add(new Product("Шарики Манго в белой глазури ВМ", 930, 12, "4601234567021"));
-                productList.add(new Product("Шарики Банано в глазури ВМ", 730, 12, "46012345612702"));
-                productList.add(new Product("Шарики Имбирь сладкий в глазури ВМ", 930, 12, "4601234256702"));
-                break;
 
-            case "Чипсы":
-                productList.add(new Product("Чипсы кокосовые ВМ Оригинальные", 730, 12, "4601234856704"));
-                productList.add(new Product("Чипсы кокосовые ВМ Соленая карамель", 730, 12, "4601234456704"));
-                productList.add(new Product("Чипсы кокосовые Costa Cocosta", 430, 12, "4601234456704"));
-                productList.add(new Product("Чипсы кокосовые Costa Cocosta Васаби", 430, 12, "4601234566705"));
-                break;
+        TextView tvTitle = view.findViewById(R.id.tvInfoName);
+        TextView tvInfoPrice = view.findViewById(R.id.tvInfoPrice);
+        TextView tvBarcode = view.findViewById(R.id.tvInfoBarcode);
+        TextView tvInfoDescription = view.findViewById(R.id.tvInfoDescription);
+        TextView tvBoxCount = view.findViewById(R.id.tvInfoBoxCount);
+        MaterialButton btnConfirm = view.findViewById(R.id.btnCloseInfo);
 
-            case "Чай":
-                productList.add(new Product("Чай ВМ Лемонграсс и ананас", 1690, 10, "44601234411556706"));
-                productList.add(new Product("Чай ВМ зеленый с фруктами", 1690, 10, "4604123456706"));
-                productList.add(new Product("Чай ВМ черный Мята и апельсин", 1690, 10, "1460123456706"));
-                productList.add(new Product("Чай ВМ черный Черника и манго", 1990, 10, "4601233456707"));
-                productList.add(new Product("Чай ВМ черный Шишки и саган-дайля", 1990, 10, "4601233456707"));
-                productList.add(new Product("Чай ВМ зеленый Жасмин и манго", 1990, 10, "4601233456707"));
-                productList.add(new Product("Чай ВМ черный Цветочное манго", 590, 12, "4601233456707"));
-                productList.add(new Product("Чай ВМ черный Шишки и клюква", 790, 12, "4601233456707"));
-                productList.add(new Product("Чай ВМ черный Нежная черника", 790, 12, "4601233456707"));
-                productList.add(new Product("Чай ВМ черный Ассам Цейлон", 1190, 14, "4601233456707"));
-                productList.add(new Product("Чай ВМ черный \"Хвойный\"", 790, 12, "4601233456707"));
-                productList.add(new Product("Чай ВМ черный \"Русский березовый\"", 790, 12, "4601233456707"));
-                productList.add(new Product("Чай ВМ черный Шишки и малина", 790, 12, "4601233456707"));
-                break;
+        String info = "Здесь будет детальное описание: вес, количество в коробке, срок годности и остаток на складе.";
 
-            case "Сухофрукты":
-                productList.add(new Product("Сух. Манго сушеное Вкусы мира", 1490, 12, "44601234411556706"));
-                productList.add(new Product("Сух. Манго сушеное ВМ Чили", 1490, 12, "4604123456706"));
-                productList.add(new Product("Сух. Папайя сушеная Вкусы мира", 1190, 12, "1460123456706"));
-                productList.add(new Product("Сух. Манго шарики из сушеного манго", 1190, 12, "4601233456707"));
-                productList.add(new Product("Сух. Манго Сушеное LikeDay (250г)", 2490, 14, "4601233456707"));
-                productList.add(new Product("Сух. Манго Сушеное LikeDay (100г)", 1190, 12, "4601233456707"));
-                productList.add(new Product("Сух.Бананы вяленые Вкусы мира", 1190, 12, "4601233456707"));
-                productList.add(new Product("Сух.Джекфрут сушеный Вкусы мира", 1190, 12, "4601233456707"));
-                productList.add(new Product("Сух.Ананас сушеный Вкусы мира", 1190, 12, "4601233456707"));
-                break;
+        tvTitle.setText(product.getName());
+        tvInfoPrice.setText("Цена: " + product.getPrice());
+        tvBarcode.setText("Штрих код: " + product.getBarcode());
+        tvInfoDescription.setText(info);
+        tvBoxCount.setText("В упаковке: " + product.getItemsPerBox());
 
-            default:
-                // Если категория не найдена, возвращаем пустой список или тестовый товар
-                productList.add(new Product("Тестовый товар", 0, 0, "0000000000000"));
-                break;
-        }
-        return productList;
+
+        btnConfirm.setText("Закрыть");
+        btnConfirm.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
     }
 
 }

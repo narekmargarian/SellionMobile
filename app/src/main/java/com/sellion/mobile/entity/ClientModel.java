@@ -1,31 +1,28 @@
 package com.sellion.mobile.entity;
 
 public class ClientModel {
+    public int id;
     public String name;
     public String address;
-    public String ip;
+    public String ownerName;
+    public String inn;
+    public String phone;
+    public String routeDay;
+    public double debt;
 
-    public ClientModel(String name, String address, String ip) {
+    // Пустой конструктор для Retrofit
+    public ClientModel() {}
+
+    public String getName() { return name; }
+    public String getAddress() { return address; }
+    public String getIp() { return ownerName; } // Оставляем getIp для совместимости с вашим старым кодом
+
+
+
+    public ClientModel(String name, String address, String inn) {
         this.name = name;
         this.address = address;
-        this.ip = ip;
-    }
-
-    @Override
-    public String toString() {
-        return name; // Чтобы отображалось имя магазина в списках/диалогах
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public String getIp() {
-        return ip;
+        this.inn = inn;
     }
 }
 
