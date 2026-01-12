@@ -1,6 +1,7 @@
 package com.sellion.mobile.managers;
 
 import android.content.Context;
+import android.util.Log;
 
 import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.CartEntity;
@@ -31,6 +32,10 @@ public class CartManager {
     }
 
     public static CartManager getInstance() {
+        if (instance == null) {
+            Log.e("CartManager", "Instance is null! Did you forget to call init()?");
+            //todo exeption
+        }
         return instance;
     }
 

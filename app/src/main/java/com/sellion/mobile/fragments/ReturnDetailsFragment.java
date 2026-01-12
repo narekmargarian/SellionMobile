@@ -20,6 +20,7 @@ import com.google.android.material.tabs.TabLayoutMediator;
 import com.sellion.mobile.R;
 import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.CartEntity;
+import com.sellion.mobile.entity.OrderEntity;
 import com.sellion.mobile.entity.ReturnEntity;
 import com.sellion.mobile.handler.BackPressHandler;
 import com.sellion.mobile.helper.NavigationHelper;
@@ -40,86 +41,80 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_return_details, container, false);
+        View view = inflater.inflate(R.layout.fragment_order_details, container, false);
 
-        TabLayout tabLayout = view.findViewById(R.id.returnTabLayout);
-        viewPager = view.findViewById(R.id.returnViewPager);
-        ImageButton btnBack = view.findViewById(R.id.btnBackFromReturn);
-        View btnSave = view.findViewById(R.id.btnSaveReturn);
-        tvStoreName = view.findViewById(R.id.tvReturnStoreName);
+        TabLayout tabLayout = view.findViewById(R.id.storeTabLayout);
+        viewPager = view.findViewById(R.id.orderDetailsViewPager);
+        ImageButton btnBack = view.findViewById(R.id.btnBackToRoute);
+        View btnSave = view.findViewById(R.id.btnSaveFullOrder);
+        tvStoreName = view.findViewById(R.id.tvStoreName);
 
         if (getArguments() != null && getArguments().containsKey("store_name")) {
-            tvStoreName.setText(getArguments().getString("store_name"));
+            String name = getArguments().getString("store_name");
+            tvStoreName.setText(name);
+        } else {
+            tvStoreName.setText("Неизвестный клиент");
         }
 
-        viewPager.setAdapter(new ReturnPagerAdapter(this));
+        viewPager.setAdapter(new OrderPagerAdapter(this));
         viewPager.setOffscreenPageLimit(2);
 
-        // Кнопка Сохранить
-        btnSave.setOnClickListener(v -> saveReturnToDatabase());
+        btnSave.setOnClickListener(v -> saveOrderToDatabase());
 
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             switch (position) {
                 case 0: tab.setText("Товары"); break;
-                case 1: tab.setText("Возврат"); break;
-                case 2: tab.setText("Причина"); break;
+                case 1: tab.setText("Заказ"); break;
+                case 2: tab.setText("О Заказе"); break;
             }
         }).attach();
 
-        // Кнопка Назад вызывает логику BackPressHandler
+        // Важно: вызываем handleBack(false), чтобы сработал BackPressHandler
         btnBack.setOnClickListener(v -> handleBack(false));
-
         return view;
     }
 
-    private void saveReturnToDatabase() {
-        // Получаем ID возврата, если мы в режиме редактирования
-        final int returnIdToUpdate = getArguments() != null ? getArguments().getInt("return_id_to_update", -1) : -1;
+    private void saveOrderToDatabase() {
+        // Получаем ID заказа, если мы пришли из режима редактирования
+        final int orderIdToUpdate = getArguments() != null ? getArguments().getInt("order_id_to_update", -1) : -1;
 
         new Thread(() -> {
             AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
             List<CartEntity> cartItems = db.cartDao().getCartItemsSync();
 
             if (cartItems == null || cartItems.isEmpty()) {
-                if (getActivity() != null) {
-                    getActivity().runOnUiThread(() ->
-                            Toast.makeText(getContext(), "Список возврата пуст!", Toast.LENGTH_SHORT).show());
-                }
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(getContext(), "Корзина пуста!", Toast.LENGTH_SHORT).show());
                 return;
             }
 
-            ReturnEntity newReturn = new ReturnEntity();
-            // Если редактируем — сохраняем старый ID для замены записи в БД
-            if (returnIdToUpdate != -1) {
-                newReturn.id = returnIdToUpdate;
+            OrderEntity order = new OrderEntity();
+            // Если это редактирование, присваиваем существующий ID, чтобы Room сделал UPDATE вместо INSERT
+            if (orderIdToUpdate != -1) {
+                order.id = orderIdToUpdate;
             }
 
-            newReturn.shopName = tvStoreName.getText().toString();
-            newReturn.managerId = SessionManager.getInstance().getManagerId();
-            newReturn.status = "PENDING";
+            order.shopName = tvStoreName.getText().toString();
+            order.status = "PENDING";
+            order.managerId = SessionManager.getInstance().getManagerId();
 
-            // СОХРАНЯЕМ ПАРАМЕТРЫ (чтобы не было null в деталях)
-            newReturn.returnReason = ReturnManager.getInstance().getReturnReason();
-            newReturn.returnDate = ReturnManager.getInstance().getReturnDate();
+            // СОХРАНЯЕМ ВСЕ ПАРАМЕТРЫ (чтобы в истории не было null)
+            order.deliveryDate = CartManager.getInstance().getDeliveryDate();
+            order.paymentMethod = CartManager.getInstance().getPaymentMethod();
+            order.needsSeparateInvoice = CartManager.getInstance().isSeparateInvoice();
 
-            Map<String, Integer> itemsMap = new HashMap<>();
-            for (CartEntity ci : cartItems) {
-                itemsMap.put(ci.productName, ci.quantity);
-            }
-            newReturn.items = itemsMap;
+            Map<String, Integer> map = new HashMap<>();
+            for (CartEntity item : cartItems) map.put(item.productName, item.quantity);
+            order.items = map;
 
-            // Room обновит запись, если ID совпадет
-            db.returnDao().insert(newReturn);
+            // Благодаря OnConflictStrategy.REPLACE, если ID совпадет, запись обновится
+            db.orderDao().insert(order);
 
-            if (getActivity() != null) {
-                getActivity().runOnUiThread(() -> {
-                    CartManager.getInstance().clearCart();
-                    ReturnManager.getInstance().clear();
-                    Toast.makeText(getContext(), "Возврат сохранен!", Toast.LENGTH_SHORT).show();
-                    // Переход к списку возвратов с очисткой стека
-                    NavigationHelper.finishAndGoTo(getParentFragmentManager(), new ReturnsFragment());
-                });
-            }
+            requireActivity().runOnUiThread(() -> {
+                CartManager.getInstance().clearCart();
+                // Возвращаемся в список заказов
+                NavigationHelper.finishAndGoTo(getParentFragmentManager(), new OrdersFragment());
+            });
         }).start();
     }
 
@@ -133,33 +128,30 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
             AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
             boolean isEmpty = db.cartDao().getCartItemsSync().isEmpty();
 
-            if (getActivity() != null) {
-                getActivity().runOnUiThread(() -> {
-                    if (!isEmpty) {
-                        new AlertDialog.Builder(requireContext())
-                                .setTitle("Завершение возврата")
-                                .setMessage("Сохранить изменения перед выходом?")
-                                .setPositiveButton("Да", (d, w) -> saveReturnToDatabase())
-                                .setNegativeButton("Нет", (d, w) -> {
-                                    CartManager.getInstance().clearCart();
-                                    ReturnManager.getInstance().clear();
-                                    // Шаг назад к выбору клиента
-                                    if (isAdded()) getParentFragmentManager().popBackStack();
-                                })
-                                .setNeutralButton("Отмена", null)
-                                .show();
-                    } else {
-                        CartManager.getInstance().clearCart();
-                        ReturnManager.getInstance().clear();
-                        if (isAdded()) getParentFragmentManager().popBackStack();
-                    }
-                });
-            }
+            requireActivity().runOnUiThread(() -> {
+                if (!isEmpty) {
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle("Завершение")
+                            .setMessage("Сохранить изменения перед выходом?")
+                            .setPositiveButton("Да", (d, w) -> saveOrderToDatabase())
+                            .setNegativeButton("Нет", (dialog, which) -> {
+                                CartManager.getInstance().clearCart();
+                                if (isAdded()) {
+                                    getParentFragmentManager().popBackStack();
+                                }
+                            })
+                            .setNeutralButton("Отмена", null)
+                            .show();
+                } else {
+                    CartManager.getInstance().clearCart();
+                    getParentFragmentManager().popBackStack();
+                }
+            });
         }).start();
     }
 
-    private static class ReturnPagerAdapter extends FragmentStateAdapter {
-        public ReturnPagerAdapter(@NonNull Fragment fragment) { super(fragment); }
+    private static class OrderPagerAdapter extends FragmentStateAdapter {
+        public OrderPagerAdapter(@NonNull Fragment fragment) { super(fragment); }
         @Override
         public int getItemCount() { return 3; }
         @NonNull
@@ -167,8 +159,8 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
         public Fragment createFragment(int position) {
             switch (position) {
                 case 0: return new CatalogFragment();
-                case 1: return new CurrentReturnFragment();
-                case 2: return new ReturnInfoFragment();
+                case 1: return new CurrentOrderFragment();
+                case 2: return new OrderInfoFragment();
                 default: return new CatalogFragment();
             }
         }

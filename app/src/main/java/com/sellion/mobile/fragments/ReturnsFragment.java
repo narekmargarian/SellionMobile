@@ -47,7 +47,17 @@ public class ReturnsFragment extends BaseFragment {
 
         // Запуск наблюдения за базой данных
         observeReturns();
-        setupBackButton(btnBack, true); // true — значит выход на главный экран
+//        setupBackButton(btnBack, true); // true — значит выход на главный экран
+
+
+
+
+        btnBack.setOnClickListener(v -> {
+            // Очищаем стек и выходим на главный экран
+            NavigationHelper.backToDashboard(getParentFragmentManager());
+        });
+
+
         return view;
     }
 

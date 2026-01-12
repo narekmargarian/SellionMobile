@@ -65,9 +65,9 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
                 case 2: tab.setText("О Заказе"); break;
             }
         }).attach();
+        btnBack.setOnClickListener(v -> onBackPressedHandled());
+        setupBackButton(btnBack, false);
 
-        // Важно: вызываем handleBack(false), чтобы сработал BackPressHandler
-        btnBack.setOnClickListener(v -> handleBack(false));
         return view;
     }
 

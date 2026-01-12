@@ -9,43 +9,33 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
+import com.sellion.mobile.R;
 import com.sellion.mobile.handler.BackPressHandler;
 import com.sellion.mobile.helper.NavigationHelper;
 
 
 public abstract class BaseFragment extends Fragment {
-    protected void setupBackButton(View btnBack, boolean returnToDashboard) {
+    protected void setupBackButton(View btnBack, boolean returnToRoot) {
         if (btnBack != null) {
-            btnBack.setOnClickListener(v -> handleBack(returnToDashboard));
+            btnBack.setOnClickListener(v -> handleBack(returnToRoot));
         }
     }
 
-    // Единая точка входа для навигации назад
-    protected void handleBack(boolean returnToDashboard) {
-        // Защита: если фрагмент не активен, ничего не делаем (избегаем краша контейнера)
-        if (!isAdded() || !isResumed() || isRemoving()) return;
-
+    protected void handleBack(boolean returnToRoot) {
         FragmentManager fm = getParentFragmentManager();
 
-        // 1. Проверяем, должен ли фрагмент показать диалог (OrderDetails/ReturnDetails)
         if (this instanceof BackPressHandler) {
             ((BackPressHandler) this).onBackPressedHandled();
             return;
         }
 
-        // 2. Если нужно жестко выйти на Dashboard (например, из списка клиентов)
-        if (returnToDashboard) {
-            NavigationHelper.backToDashboard(fm);
+        if (returnToRoot) {
+            fm.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+            fm.beginTransaction()
+                    .replace(R.id.fragment_container, new DashboardFragment())
+                    .commit();
         } else {
-            // 3. Стандартный шаг назад по стеку
-            if (fm.getBackStackEntryCount() > 0) {
-                fm.popBackStack();
-            } else {
-                // Если мы уже в корне (на Dashboard) — закрываем Activity (выход из приложения)
-                if (getActivity() != null) {
-                    getActivity().finish();
-                }
-            }
+            fm.popBackStack();
         }
     }
 
@@ -53,14 +43,13 @@ public abstract class BaseFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // Связываем физическую кнопку телефона с нашей логикой handleBack
+        // Регистрация системной кнопки "Назад" через жизненный цикл View
         requireActivity().getOnBackPressedDispatcher().addCallback(
                 getViewLifecycleOwner(),
                 new OnBackPressedCallback(true) {
                     @Override
                     public void handleOnBackPressed() {
-                        // Эта строка вызывает handleBack(false)
-                        BaseFragment.this.handleBack(false);
+                        handleBack(false);
                     }
                 });
     }

@@ -8,34 +8,33 @@ import com.sellion.mobile.fragments.DashboardFragment;
 
 public class NavigationHelper {
 
-    public static void openSection(FragmentManager fragmentManager, Fragment targetFragment) {
-        fragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, targetFragment)
-                .addToBackStack(null)
-                .commit();
-    }
-
-    public static void finishAndGoTo(FragmentManager fragmentManager, Fragment targetFragment) {
-        // Очищаем стек ПЕРЕД транзакцией
-        if (fragmentManager.getBackStackEntryCount() > 0) {
-            fragmentManager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
-        }
-
-        fragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, targetFragment)
-                .commitAllowingStateLoss();
-    }
-
-    public static void backToDashboard(FragmentManager fragmentManager) {
-        if (fragmentManager.getBackStackEntryCount() > 0) {
-            // Очищаем стек до самого первого фрагмента (Dashboard)
-            // Система САМА покажет Dashboard, который уже там лежит
-            fragmentManager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
-        } else {
-            // Если стек уже пуст, используем безопасную транзакцию
+        public static void openSection(FragmentManager fragmentManager, Fragment targetFragment) {
             fragmentManager.beginTransaction()
-                    .replace(R.id.fragment_container, new DashboardFragment())
-                    .commitAllowingStateLoss();
+                    .replace(R.id.fragment_container, targetFragment)
+                    .addToBackStack(null) // Чтобы вернуться на Dashboard
+                    .commit();
         }
+
+        /**
+         * Финальный переход после СОХРАНЕНИЯ.
+         * Очищает пошаговую историю, чтобы кнопка "Назад" вела на главный экран.
+         */
+        public static void finishAndGoTo(FragmentManager fragmentManager, Fragment targetFragment) {
+            // 1. Очищаем все "пошаговые" действия внутри раздела
+            fragmentManager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+
+            // 2. Открываем нужный экран (например, список всех заказов)
+            fragmentManager.beginTransaction()
+                    .replace(R.id.fragment_container, targetFragment)
+                    .addToBackStack(null) // Чтобы из списка вернуться на главный экран
+                    .commit();
+        }
+
+        /**
+         * Просто выход назад с очисткой стека (например, при нажатии "Отмена")
+         */
+        public static void backToDashboard(FragmentManager fragmentManager) {
+            fragmentManager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+        }
+
     }
-}

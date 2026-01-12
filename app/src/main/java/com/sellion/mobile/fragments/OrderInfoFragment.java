@@ -36,7 +36,6 @@ public class OrderInfoFragment extends BaseFragment {
         CheckBox checkboxSeparateInvoice = view.findViewById(R.id.checkboxSeparateInvoice);
         LinearLayout layoutSelectDeliveryDate = view.findViewById(R.id.layoutSelectDeliveryDate);
 
-        // --- ВОССТАНОВЛЕНИЕ ДАННЫХ ПРИ ВХОДЕ ---
 
         // 1. Проверяем дату
         String savedDate = CartManager.getInstance().getDeliveryDate();

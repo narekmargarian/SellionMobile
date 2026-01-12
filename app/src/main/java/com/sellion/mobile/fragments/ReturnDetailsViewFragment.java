@@ -110,9 +110,9 @@ public class ReturnDetailsViewFragment extends BaseFragment {
             }
         });
 
-        // Исправлено: используем handleBack для консистентности навигации 2026
-        btnBack.setOnClickListener(v -> handleBack(false));
+        btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
         setupBackButton(btnBack, false);
+
         return view;
     }
 
