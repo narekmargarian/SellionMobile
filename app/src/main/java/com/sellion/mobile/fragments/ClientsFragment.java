@@ -21,6 +21,8 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.ClientAdapter;
 import com.sellion.mobile.api.ApiClient;
 import com.sellion.mobile.api.ApiService;
+import com.sellion.mobile.database.AppDatabase;
+import com.sellion.mobile.entity.ClientEntity;
 import com.sellion.mobile.model.ClientModel;
 import com.sellion.mobile.helper.NavigationHelper;
 
@@ -33,8 +35,6 @@ import retrofit2.Response;
 
 
 public class ClientsFragment extends BaseFragment {
-
-
 
     private RecyclerView recyclerClients;
     private ClientAdapter adapter;
@@ -49,39 +49,49 @@ public class ClientsFragment extends BaseFragment {
         ImageButton btnAdd = view.findViewById(R.id.btnAddClient);
         recyclerClients = view.findViewById(R.id.recyclerClients);
 
-
         recyclerClients.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // Загружаем данные с сервера
-        loadClientsFromServer();
+        // ИЗМЕНЕНО: Теперь загружаем данные из локальной базы Room
+        loadClientsFromLocalDB();
 
         btnAdd.setOnClickListener(v -> showAddClientDialog());
 
-        setupBackButton(btnBack, true); // true — значит выход на главный экран
+        setupBackButton(btnBack, true); // Выход на Dashboard
         return view;
     }
 
-    private void loadClientsFromServer() {
-        ApiService api = ApiClient.getClient().create(ApiService.class);
-        api.getClients().enqueue(new Callback<List<ClientModel>>() {
-            @Override
-            public void onResponse(Call<List<ClientModel>> call, Response<List<ClientModel>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    clientList = response.body();
-                    // Обновляем список
-                    adapter = new ClientAdapter(clientList, client -> showClientInfoDialog(client));
-                    recyclerClients.setAdapter(adapter);
-                }
+    private void loadClientsFromLocalDB() {
+        // Запускаем фоновый поток для работы с Room
+        new Thread(() -> {
+            AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
+            // Получаем список сущностей из БД
+            List<ClientEntity> entities = db.clientDao().getAllClientsSync();
+
+            // Преобразуем ClientEntity в ClientModel для адаптера
+            List<ClientModel> models = new ArrayList<>();
+            for (ClientEntity e : entities) {
+                // Используем конструктор, который подходит под ваш ClientModel
+                ClientModel model = new ClientModel();
+                model.id = e.id;
+                model.name = e.name;
+                model.address = e.address;
+                model.debt = e.debt;
+                model.inn = e.inn;
+                model.ownerName = e.ownerName;
+                model.routeDay = e.routeDay;
+                models.add(model);
             }
 
-            @Override
-            public void onFailure(Call<List<ClientModel>> call, Throwable t) {
-                if (getContext() != null) {
-                    Toast.makeText(getContext(), "Ошибка сети: " + t.getMessage(), Toast.LENGTH_SHORT).show();
-
+            // Обновляем UI в основном потоке
+            requireActivity().runOnUiThread(() -> {
+                clientList = models;
+                if (clientList.isEmpty()) {
+                    Toast.makeText(getContext(), "Список пуст. Загрузите данные в Синхронизации.", Toast.LENGTH_LONG).show();
                 }
-            }
-        });
+                adapter = new ClientAdapter(clientList, client -> showClientInfoDialog(client));
+                recyclerClients.setAdapter(adapter);
+            });
+        }).start();
     }
 
     private void showClientInfoDialog(ClientModel client) {
@@ -101,10 +111,8 @@ public class ClientsFragment extends BaseFragment {
         dialog.show();
     }
 
-
     private void showAddClientDialog() {
         View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_add_client, null);
-
         EditText etName = dialogView.findViewById(R.id.etShopName);
         EditText etAddress = dialogView.findViewById(R.id.etShopAddress);
 
@@ -120,7 +128,6 @@ public class ClientsFragment extends BaseFragment {
                         ClientModel newClient = new ClientModel(name, address, "");
                         clientList.add(newClient);
                         adapter.notifyItemInserted(clientList.size() - 1);
-
                         showSuccessDialog();
                     } else {
                         Toast.makeText(getContext(), "Введите все данные!", Toast.LENGTH_SHORT).show();
@@ -138,6 +145,4 @@ public class ClientsFragment extends BaseFragment {
                 .show();
     }
 }
-
-
 

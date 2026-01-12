@@ -3,6 +3,7 @@ package com.sellion.mobile.fragments;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -52,6 +53,10 @@ public class SyncFragment extends BaseFragment {
     private ActivityResultLauncher<Intent> cameraLauncher;
     private AlertDialog progressDialog;
 
+    // Константы для хранения состояния загрузки
+    private static final String PREFS_NAME = "SyncSettings";
+    private static final String KEY_IS_LOADED = "is_data_loaded";
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -67,9 +72,15 @@ public class SyncFragment extends BaseFragment {
         ivPreview = view.findViewById(R.id.ivPhotoPreview);
         btnUploadPhoto = view.findViewById(R.id.btnUploadPhoto);
 
-        setupBackButton(btnBack, true); // true — значит выход на главный экран
+        // Проверяем статус при входе: загружены ли данные
+        updateStatusText();
+
+        setupBackButton(btnBack, true);
         btnSend.setOnClickListener(v -> sendDocuments());
-        btnLoad.setOnClickListener(v -> loadDocuments());
+
+        // Кнопка загрузки теперь имеет проверку
+        btnLoad.setOnClickListener(v -> checkBeforeLoading());
+
         btnClear.setOnClickListener(v -> clearData());
         btnPhoto.setOnClickListener(v -> takePhotoReport());
         btnVersion.setOnClickListener(v -> Toast.makeText(getContext(), "Версия 2026.01.12", Toast.LENGTH_SHORT).show());
@@ -82,6 +93,144 @@ public class SyncFragment extends BaseFragment {
 
         return view;
     }
+
+    private void updateStatusText() {
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        if (prefs.getBoolean(KEY_IS_LOADED, false)) {
+            tvStatus.setText("Данные загружены. Работа в локальном режиме.");
+            tvStatus.setTextColor(android.graphics.Color.parseColor("#2E7D32")); // Зеленый
+        } else {
+            tvStatus.setText("Требуется первичная загрузка документов!");
+            tvStatus.setTextColor(android.graphics.Color.RED);
+        }
+    }
+
+    // Проверка: нужно ли скачивать данные или они уже есть
+    private void checkBeforeLoading() {
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        boolean alreadyLoaded = prefs.getBoolean(KEY_IS_LOADED, false);
+
+        if (alreadyLoaded) {
+            new MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Внимание")
+                    .setMessage("Данные уже загружены. Вы хотите ОЧИСТИТЬ текущую базу и загрузить новые данные из офиса?")
+                    .setPositiveButton("Обновить всё", (d, w) -> loadDocuments())
+                    .setNegativeButton("Отмена", null)
+                    .show();
+        } else {
+            loadDocuments();
+        }
+    }
+
+    private void loadDocuments() {
+        progressDialog = new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Синхронизация")
+                .setMessage("Очистка базы и загрузка новых данных...")
+                .setCancelable(false)
+                .create();
+        progressDialog.show();
+
+        // ШАГ 1: Полная очистка всех таблиц в фоновом потоке
+        new Thread(() -> {
+            AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
+            db.clearAllTables(); // Это удалит товары, клиентов, заказы и корзину
+
+            // ШАГ 2: Запуск цепочки загрузки
+            requireActivity().runOnUiThread(() -> {
+                ApiService api = ApiClient.getClient().create(ApiService.class);
+                loadProductsIntoApp(api, requireContext().getApplicationContext());
+            });
+        }).start();
+    }
+
+    private void loadProductsIntoApp(ApiService api, Context appContext) {
+        api.getProducts().enqueue(new Callback<List<Product>>() {
+            @Override
+            public void onResponse(Call<List<Product>> call, Response<List<Product>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    new Thread(() -> {
+                        try {
+                            List<ProductEntity> entities = new ArrayList<>();
+                            for (Product p : response.body()) {
+                                entities.add(new ProductEntity(p.getName(), p.getPrice(), p.getItemsPerBox(), p.getBarcode(), p.getCategory()));
+                            }
+                            AppDatabase.getInstance(appContext).productDao().insertAll(entities);
+
+                            // Переход к следующему шагу
+                            loadClientsIntoApp(api, appContext);
+                        } catch (Exception e) {
+                            dismissProgress();
+                        }
+                    }).start();
+                } else {
+                    dismissProgress();
+                    Toast.makeText(appContext, "Ошибка загрузки товаров", Toast.LENGTH_SHORT).show();
+                }
+            }
+            @Override public void onFailure(Call<List<Product>> call, Throwable t) { dismissProgress(); }
+        });
+    }
+
+    private void loadClientsIntoApp(ApiService api, Context appContext) {
+        api.getClients().enqueue(new Callback<List<ClientModel>>() {
+            @Override
+            public void onResponse(Call<List<ClientModel>> call, Response<List<ClientModel>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    new Thread(() -> {
+                        try {
+                            List<ClientEntity> entities = new ArrayList<>();
+                            for (ClientModel m : response.body()) {
+                                ClientEntity e = new ClientEntity();
+                                e.id = m.id; e.name = m.name; e.debt = m.debt;
+                                e.address = m.getAddress(); e.inn = m.inn;
+                                e.ownerName = m.ownerName; e.routeDay = m.routeDay;
+                                entities.add(e);
+                            }
+                            AppDatabase.getInstance(appContext).clientDao().insertAll(entities);
+
+                            // ФИНАЛ: Сохраняем флаг успешной загрузки
+                            SharedPreferences.Editor editor = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit();
+                            editor.putBoolean(KEY_IS_LOADED, true);
+                            editor.apply();
+
+                            if (getActivity() != null) {
+                                getActivity().runOnUiThread(() -> {
+                                    progressDialog.dismiss();
+                                    updateStatusText();
+                                    Toast.makeText(appContext, "База обновлена и готова к работе!", Toast.LENGTH_SHORT).show();
+                                });
+                            }
+                        } catch (Exception e) { dismissProgress(); }
+                    }).start();
+                }
+            }
+            @Override public void onFailure(Call<List<ClientModel>> call, Throwable t) { dismissProgress(); }
+        });
+    }
+
+    private void dismissProgress() {
+        if (getActivity() != null) getActivity().runOnUiThread(() -> progressDialog.dismiss());
+    }
+
+    private void clearData() {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Очистка")
+                .setMessage("Это удалит ВСЕ данные из телефона. Вы уверены?")
+                .setPositiveButton("Да, удалить", (d, w) -> {
+                    new Thread(() -> {
+                        AppDatabase.getInstance(requireContext()).clearAllTables();
+                        requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().clear().apply();
+                        requireActivity().runOnUiThread(() -> {
+                            updateStatusText();
+                            Toast.makeText(getContext(), "Все данные удалены", Toast.LENGTH_SHORT).show();
+                        });
+                    }).start();
+                })
+                .setNegativeButton("Отмена", null)
+                .show();
+    }
+
+    // ... методы takePhotoReport и sendDocuments остаются без изменений ...
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -99,6 +248,7 @@ public class SyncFragment extends BaseFragment {
                 }
         );
     }
+
 
     private void takePhotoReport() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
@@ -123,130 +273,5 @@ public class SyncFragment extends BaseFragment {
                         tvStatus.setTextColor(android.graphics.Color.parseColor("#2E7D32"));
                     }
                 });
-    }
-
-    // --- ГЛАВНАЯ ЦЕПОЧКА ЗАГРУЗКИ ---
-    private void loadDocuments() {
-        progressDialog = new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Загрузка")
-                .setMessage("Связь с офисом... Обновление данных.")
-                .setCancelable(false)
-                .create();
-        progressDialog.show();
-
-        ApiService api = ApiClient.getClient().create(ApiService.class);
-        final Context appContext = requireContext().getApplicationContext();
-
-        // ШАГ 1: Начинаем с загрузки товаров в Room
-        loadProductsIntoApp(api, appContext);
-    }
-
-    private void loadProductsIntoApp(ApiService api, Context appContext) {
-        api.getProducts().enqueue(new Callback<List<Product>>() {
-            @Override
-            public void onResponse(Call<List<Product>> call, Response<List<Product>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    new Thread(() -> {
-                        try {
-                            List<ProductEntity> entities = new ArrayList<>();
-                            for (Product p : response.body()) {
-                                entities.add(new ProductEntity(
-                                        p.getName(),
-                                        p.getPrice(), // Здесь теперь double
-                                        p.getItemsPerBox(),
-                                        p.getBarcode(),
-                                        p.getCategory()
-                                ));
-                            }
-                            // Сохраняем товары (с ценами!) в Room
-                            AppDatabase.getInstance(appContext).productDao().insertAll(entities);
-
-                            // ШАГ 2: После товаров грузим клиентов
-                            loadClientsIntoApp(api, appContext);
-
-                        } catch (Exception e) {
-                            if (getActivity() != null) getActivity().runOnUiThread(() -> progressDialog.dismiss());
-                        }
-                    }).start();
-                } else {
-                    progressDialog.dismiss();
-                    Toast.makeText(appContext, "Ошибка сервера (товары)", Toast.LENGTH_SHORT).show();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<List<Product>> call, Throwable t) {
-                progressDialog.dismiss();
-                Toast.makeText(appContext, "Ошибка сети", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    private void loadClientsIntoApp(ApiService api, Context appContext) {
-        api.getClients().enqueue(new Callback<List<ClientModel>>() {
-            @Override
-            public void onResponse(Call<List<ClientModel>> call, Response<List<ClientModel>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    new Thread(() -> {
-                        try {
-                            List<ClientEntity> entities = new ArrayList<>();
-                            for (ClientModel m : response.body()) {
-                                ClientEntity e = new ClientEntity();
-                                e.id = m.id;
-                                e.name = m.name;
-                                e.debt = m.debt;
-                                e.address = m.getAddress();
-                                e.inn = m.inn;
-                                e.ownerName = m.ownerName;
-                                e.routeDay = m.routeDay;
-                                entities.add(e);
-                            }
-                            // Сохраняем клиентов в Room
-                            AppDatabase.getInstance(appContext).clientDao().insertAll(entities);
-
-                            if (getActivity() != null) {
-                                getActivity().runOnUiThread(() -> {
-                                    progressDialog.dismiss();
-                                    tvStatus.setText("Данные обновлены: " + new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date()));
-                                    Toast.makeText(appContext, "Все данные успешно загружены!", Toast.LENGTH_SHORT).show();
-                                });
-                            }
-                        } catch (Exception e) {
-                            if (getActivity() != null) getActivity().runOnUiThread(() -> progressDialog.dismiss());
-                        }
-                    }).start();
-                } else {
-                    if (getActivity() != null) getActivity().runOnUiThread(() -> progressDialog.dismiss());
-                }
-            }
-
-            @Override
-            public void onFailure(Call<List<ClientModel>> call, Throwable t) {
-                if (getActivity() != null) getActivity().runOnUiThread(() -> progressDialog.dismiss());
-            }
-        });
-    }
-
-    private void clearData() {
-        final Context appContext = requireContext().getApplicationContext();
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Очистка базы")
-                .setMessage("Удалить все локальные заказы и возвраты?")
-                .setPositiveButton("Да", (d, w) -> {
-                    new Thread(() -> {
-                        AppDatabase db = AppDatabase.getInstance(appContext);
-                        db.orderDao().deleteAll();
-                        db.returnDao().deleteAll();
-                        if (getActivity() != null) {
-                            getActivity().runOnUiThread(() -> {
-                                tvStatus.setText("Локальная база очищена");
-                                tvStatus.setTextColor(android.graphics.Color.RED);
-                                Toast.makeText(appContext, "Данные удалены", Toast.LENGTH_SHORT).show();
-                            });
-                        }
-                    }).start();
-                })
-                .setNegativeButton("Нет", null)
-                .show();
     }
 }

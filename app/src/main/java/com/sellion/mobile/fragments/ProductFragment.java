@@ -25,6 +25,7 @@ import com.sellion.mobile.api.ApiClient;
 import com.sellion.mobile.api.ApiService;
 import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.CartEntity;
+import com.sellion.mobile.entity.ProductEntity;
 import com.sellion.mobile.model.Product;
 import com.sellion.mobile.managers.CartManager;
 
@@ -57,19 +58,18 @@ public class ProductFragment extends BaseFragment {
         RecyclerView rv = view.findViewById(R.id.recyclerViewProducts);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // Начальная инициализация адаптера
         adapter = new ProductAdapter(new ArrayList<>(), product -> {
             if (isOrderMode || isActuallyReturn) showQuantityDialog(product);
             else showProductInfo(product);
         });
         rv.setAdapter(adapter);
 
-        // Обновление цветов через LiveData
         AppDatabase.getInstance(requireContext()).cartDao().getCartItemsLive().observe(getViewLifecycleOwner(), cartItems -> {
             if (adapter != null) adapter.setItemsInCart(cartItems);
         });
 
-        loadProductsFromServer();
+        // ИЗМЕНЕНО: Теперь загружаем из локальной базы данных
+        loadProductsFromLocalDB();
 
         ImageButton btnBack = view.findViewById(R.id.btnBackProducts);
         setupBackButton(btnBack, false);
@@ -77,21 +77,28 @@ public class ProductFragment extends BaseFragment {
         return view;
     }
 
-    private void loadProductsFromServer() {
-        ApiService api = ApiClient.getClient().create(ApiService.class);
-        api.getProducts().enqueue(new Callback<List<Product>>() {
-            @Override
-            public void onResponse(Call<List<Product>> call, Response<List<Product>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    allProducts = response.body();
-                    filterAndDisplayProducts();
+    private void loadProductsFromLocalDB() {
+        // Фоновый поток для Room
+        new Thread(() -> {
+            AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
+            // Получаем сущности из базы (те, что скачали в SyncFragment)
+            List<ProductEntity> entities = db.productDao().getAllProductsSync();
+
+            List<Product> products = new ArrayList<>();
+            for (ProductEntity e : entities) {
+                // Преобразуем Entity обратно в модель Product
+                products.add(new Product(e.name, e.price, e.itemsPerBox, e.barcode, e.category));
+            }
+
+            // Обновляем UI
+            requireActivity().runOnUiThread(() -> {
+                allProducts = products;
+                if (allProducts.isEmpty()) {
+                    Toast.makeText(getContext(), "Товары не загружены. Сделайте синхронизацию!", Toast.LENGTH_LONG).show();
                 }
-            }
-            @Override
-            public void onFailure(Call<List<Product>> call, Throwable t) {
-                if (getContext() != null) Toast.makeText(getContext(), "Ошибка сети", Toast.LENGTH_SHORT).show();
-            }
-        });
+                filterAndDisplayProducts();
+            });
+        }).start();
     }
 
     private void filterAndDisplayProducts() {
@@ -103,6 +110,7 @@ public class ProductFragment extends BaseFragment {
             }
         }
 
+        // Обновляем список в существующем адаптере или создаем новый
         adapter = new ProductAdapter(filteredList, product -> {
             if (isOrderMode || isActuallyReturn) showQuantityDialog(product);
             else showProductInfo(product);
@@ -111,6 +119,9 @@ public class ProductFragment extends BaseFragment {
         RecyclerView rv = getView().findViewById(R.id.recyclerViewProducts);
         if (rv != null) rv.setAdapter(adapter);
     }
+
+    // Методы showQuantityDialog и showProductInfo остаются без изменений,
+    // так как они и так работали с локальными данными и диалогами.
 
     private void showQuantityDialog(Product product) {
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
@@ -175,7 +186,7 @@ public class ProductFragment extends BaseFragment {
             dialog.dismiss();
         });
 
-        dialog.show(); // БЫЛО ПРОПУЩЕНО
+        dialog.show();
     }
 
     private void showProductInfo(Product product) {

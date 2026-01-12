@@ -22,6 +22,9 @@ public class CartManager {
     private String paymentMethod = "Наличный расчет";
     private boolean isSeparateInvoice = false;
 
+    // ДОБАВЛЕНО: Поле для причины возврата
+    private String returnReason = "Не указана";
+
     private CartManager(Context context) {
         db = AppDatabase.getInstance(context);
     }
@@ -34,12 +37,10 @@ public class CartManager {
     public static CartManager getInstance() {
         if (instance == null) {
             Log.e("CartManager", "Instance is null! Did you forget to call init()?");
-            //todo exeption
         }
         return instance;
     }
 
-    // ТЕПЕРЬ ПРИНИМАЕМ ЦЕНУ ИЗ PRODUCT
     public void addProduct(String itemName, int quantity, double price) {
         executor.execute(() -> {
             if (quantity <= 0) {
@@ -69,6 +70,7 @@ public class CartManager {
         deliveryDate = "";
         paymentMethod = "Наличный расчет";
         isSeparateInvoice = false;
+        returnReason = "Не указана"; // Очищаем причину при очистке корзины
     }
 
     public String getDeliveryDate() { return deliveryDate; }
@@ -77,4 +79,8 @@ public class CartManager {
     public void setPaymentMethod(String m) { this.paymentMethod = m; }
     public boolean isSeparateInvoice() { return isSeparateInvoice; }
     public void setSeparateInvoice(boolean s) { this.isSeparateInvoice = s; }
+
+    // ДОБАВЛЕНО: Геттер и Сеттер для причины возврата
+    public String getReturnReason() { return returnReason; }
+    public void setReturnReason(String reason) { this.returnReason = reason; }
 }

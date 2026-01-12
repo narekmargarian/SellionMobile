@@ -28,8 +28,11 @@ import com.sellion.mobile.managers.CartManager;
 import com.sellion.mobile.managers.ReturnManager;
 import com.sellion.mobile.managers.SessionManager;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 
@@ -41,6 +44,7 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        // Используем тот же макет, что и в заказах
         View view = inflater.inflate(R.layout.fragment_order_details, container, false);
 
         TabLayout tabLayout = view.findViewById(R.id.storeTabLayout);
@@ -50,8 +54,7 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
         tvStoreName = view.findViewById(R.id.tvStoreName);
 
         if (getArguments() != null && getArguments().containsKey("store_name")) {
-            String name = getArguments().getString("store_name");
-            tvStoreName.setText(name);
+            tvStoreName.setText(getArguments().getString("store_name"));
         } else {
             tvStoreName.setText("Неизвестный клиент");
         }
@@ -59,24 +62,26 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
         viewPager.setAdapter(new OrderPagerAdapter(this));
         viewPager.setOffscreenPageLimit(2);
 
-        btnSave.setOnClickListener(v -> saveOrderToDatabase());
+        // Кнопка сохранить теперь вызывает сохранение ВОЗВРАТА
+        btnSave.setOnClickListener(v -> saveReturnToDatabase());
 
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             switch (position) {
                 case 0: tab.setText("Товары"); break;
-                case 1: tab.setText("Заказ"); break;
-                case 2: tab.setText("О Заказе"); break;
+                case 1: tab.setText("Возврат"); break;
+                case 2: tab.setText("Причина"); break;
             }
         }).attach();
 
-        // Важно: вызываем handleBack(false), чтобы сработал BackPressHandler
-        btnBack.setOnClickListener(v -> handleBack(false));
+        // Обработка кнопки назад через интерфейс
+        btnBack.setOnClickListener(v -> onBackPressedHandled());
+
         return view;
     }
 
-    private void saveOrderToDatabase() {
-        // Получаем ID заказа, если мы пришли из режима редактирования
-        final int orderIdToUpdate = getArguments() != null ? getArguments().getInt("order_id_to_update", -1) : -1;
+    private void saveReturnToDatabase() {
+        // Получаем ID, если это редактирование существующего возврата
+        final int returnIdToUpdate = getArguments() != null ? getArguments().getInt("return_id_to_update", -1) : -1;
 
         new Thread(() -> {
             AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
@@ -84,36 +89,39 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
 
             if (cartItems == null || cartItems.isEmpty()) {
                 requireActivity().runOnUiThread(() ->
-                        Toast.makeText(getContext(), "Корзина пуста!", Toast.LENGTH_SHORT).show());
+                        Toast.makeText(getContext(), "Список возврата пуст!", Toast.LENGTH_SHORT).show());
                 return;
             }
 
-            OrderEntity order = new OrderEntity();
-            // Если это редактирование, присваиваем существующий ID, чтобы Room сделал UPDATE вместо INSERT
-            if (orderIdToUpdate != -1) {
-                order.id = orderIdToUpdate;
+            // ИСПРАВЛЕНО: Используем ReturnEntity вместо OrderEntity
+            ReturnEntity ret = new ReturnEntity();
+            if (returnIdToUpdate != -1) {
+                ret.id = returnIdToUpdate;
             }
 
-            order.shopName = tvStoreName.getText().toString();
-            order.status = "PENDING";
-            order.managerId = SessionManager.getInstance().getManagerId();
+            ret.shopName = tvStoreName.getText().toString();
+            ret.status = "PENDING";
+            ret.managerId = SessionManager.getInstance().getManagerId();
 
-            // СОХРАНЯЕМ ВСЕ ПАРАМЕТРЫ (чтобы в истории не было null)
-            order.deliveryDate = CartManager.getInstance().getDeliveryDate();
-            order.paymentMethod = CartManager.getInstance().getPaymentMethod();
-            order.needsSeparateInvoice = CartManager.getInstance().isSeparateInvoice();
+            // Текущая дата для возврата
+            ret.returnDate = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(new Date());
 
+            // Берем причину возврата (обычно из CartManager или спец. поля)
+            ret.returnReason = CartManager.getInstance().getReturnReason();
+
+            // Собираем товары
             Map<String, Integer> map = new HashMap<>();
             for (CartEntity item : cartItems) map.put(item.productName, item.quantity);
-            order.items = map;
+            ret.items = map;
 
-            // Благодаря OnConflictStrategy.REPLACE, если ID совпадет, запись обновится
-            db.orderDao().insert(order);
+            // ИСПРАВЛЕНО: Сохраняем именно в returnDao
+            db.returnDao().insert(ret);
 
             requireActivity().runOnUiThread(() -> {
                 CartManager.getInstance().clearCart();
-                // Возвращаемся в список заказов
-                NavigationHelper.finishAndGoTo(getParentFragmentManager(), new OrdersFragment());
+                // Возвращаемся в список возвратов (или Dashboard)
+                Toast.makeText(getContext(), "Возврат сохранен локально", Toast.LENGTH_SHORT).show();
+                NavigationHelper.finishAndGoTo(getParentFragmentManager(), new ReturnsFragment());
             });
         }).start();
     }
@@ -129,16 +137,15 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
             boolean isEmpty = db.cartDao().getCartItemsSync().isEmpty();
 
             requireActivity().runOnUiThread(() -> {
+                if (!isAdded()) return;
                 if (!isEmpty) {
                     new AlertDialog.Builder(requireContext())
                             .setTitle("Завершение")
-                            .setMessage("Сохранить изменения перед выходом?")
-                            .setPositiveButton("Да", (d, w) -> saveOrderToDatabase())
+                            .setMessage("Сохранить возврат перед выходом?")
+                            .setPositiveButton("Да", (d, w) -> saveReturnToDatabase())
                             .setNegativeButton("Нет", (dialog, which) -> {
                                 CartManager.getInstance().clearCart();
-                                if (isAdded()) {
-                                    getParentFragmentManager().popBackStack();
-                                }
+                                getParentFragmentManager().popBackStack();
                             })
                             .setNeutralButton("Отмена", null)
                             .show();
@@ -157,10 +164,11 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
         @NonNull
         @Override
         public Fragment createFragment(int position) {
+            // Переиспользуем те же фрагменты, но они поймут режим через аргументы
             switch (position) {
                 case 0: return new CatalogFragment();
                 case 1: return new CurrentOrderFragment();
-                case 2: return new OrderInfoFragment();
+                case 2: return new OrderInfoFragment(); // Здесь должна быть причина возврата
                 default: return new CatalogFragment();
             }
         }

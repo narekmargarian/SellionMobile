@@ -53,31 +53,7 @@ public class CurrentReturnFragment extends BaseFragment {
         return view;
     }
 
-    public void updateUI(List<CartEntity> cartItems) {
-        selectedProducts.clear();
-        double totalAmount = 0;
 
-        if (cartItems == null || cartItems.isEmpty()) {
-            tvTotalSum.setText("0 ֏");
-            if (tvEmptyOrder != null) {
-                tvEmptyOrder.setVisibility(View.VISIBLE);
-                tvEmptyOrder.setText("Пусто");
-            }
-            adapter.notifyDataSetChanged();
-            return;
-        }
-
-        if (tvEmptyOrder != null) tvEmptyOrder.setVisibility(View.GONE);
-
-        for (CartEntity item : cartItems) {
-            totalAmount += (item.price * item.quantity);
-            // Важно: сохраняем цену в объекте Product для диалога редактирования
-            selectedProducts.add(new Product(item.productName, item.price, 0, ""));
-        }
-
-        tvTotalSum.setText(String.format("%,.0f ֏", totalAmount));
-        adapter.notifyDataSetChanged();
-    }
 
     private void initSwipeToDelete() {
         ItemTouchHelper.SimpleCallback simpleItemTouchCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
@@ -157,5 +133,31 @@ public class CurrentReturnFragment extends BaseFragment {
             }
         });
         dialog.show();
+    }
+
+    public void updateUI(List<CartEntity> cartItems) {
+        selectedProducts.clear();
+        double totalAmount = 0;
+
+        if (cartItems == null || cartItems.isEmpty()) {
+            tvTotalSum.setText("0 ֏");
+            if (tvEmptyOrder != null) {
+                tvEmptyOrder.setVisibility(View.VISIBLE);
+                tvEmptyOrder.setText("Пусто");
+            }
+            adapter.notifyDataSetChanged();
+            return;
+        }
+
+        if (tvEmptyOrder != null) tvEmptyOrder.setVisibility(View.GONE);
+
+        for (CartEntity item : cartItems) {
+            totalAmount += (item.price * item.quantity);
+            // ИСПРАВЛЕННАЯ СТРОКА (добавлена еще одна пустая строка в конце):
+            selectedProducts.add(new Product(item.productName, item.price, 0, "", ""));
+        }
+
+        tvTotalSum.setText(String.format("%,.0f ֏", totalAmount));
+        adapter.notifyDataSetChanged();
     }
 }
