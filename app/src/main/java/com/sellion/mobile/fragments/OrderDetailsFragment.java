@@ -1,6 +1,5 @@
 package com.sellion.mobile.fragments;
 
-import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -60,9 +59,15 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
 
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             switch (position) {
-                case 0: tab.setText("Товары"); break;
-                case 1: tab.setText("Заказ"); break;
-                case 2: tab.setText("О Заказе"); break;
+                case 0:
+                    tab.setText("Товары");
+                    break;
+                case 1:
+                    tab.setText("Заказ");
+                    break;
+                case 2:
+                    tab.setText("О Заказе");
+                    break;
             }
         }).attach();
         btnBack.setOnClickListener(v -> onBackPressedHandled());
@@ -72,7 +77,6 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
     }
 
     private void saveOrderToDatabase() {
-        // Получаем ID заказа, если мы пришли из режима редактирования
         final int orderIdToUpdate = getArguments() != null ? getArguments().getInt("order_id_to_update", -1) : -1;
 
         new Thread(() -> {
@@ -80,36 +84,39 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
             List<CartEntity> cartItems = db.cartDao().getCartItemsSync();
 
             if (cartItems == null || cartItems.isEmpty()) {
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(getContext(), "Корзина пуста!", Toast.LENGTH_SHORT).show());
+                requireActivity().runOnUiThread(() -> Toast.makeText(getContext(), "Корзина пуста!", Toast.LENGTH_SHORT).show());
                 return;
             }
 
             OrderEntity order = new OrderEntity();
-            // Если это редактирование, присваиваем существующий ID, чтобы Room сделал UPDATE вместо INSERT
-            if (orderIdToUpdate != -1) {
-                order.id = orderIdToUpdate;
-            }
+            if (orderIdToUpdate != -1) order.id = orderIdToUpdate;
 
             order.shopName = tvStoreName.getText().toString();
             order.status = "PENDING";
             order.managerId = SessionManager.getInstance().getManagerId();
-
-            // СОХРАНЯЕМ ВСЕ ПАРАМЕТРЫ (чтобы в истории не было null)
             order.deliveryDate = CartManager.getInstance().getDeliveryDate();
             order.paymentMethod = CartManager.getInstance().getPaymentMethod();
             order.needsSeparateInvoice = CartManager.getInstance().isSeparateInvoice();
 
-            Map<String, Integer> map = new HashMap<>();
-            for (CartEntity item : cartItems) map.put(item.productName, item.quantity);
-            order.items = map;
 
-            // Благодаря OnConflictStrategy.REPLACE, если ID совпадет, запись обновится
+            // РАСЧЕТ ИТОГОВОЙ СУММЫ ПЕРЕД СОХРАНЕНИЕМ
+            double total = 0;
+            Map<String, Integer> map = new HashMap<>();
+            for (CartEntity item : cartItems) {
+                map.put(item.productName, item.quantity);
+                total += (item.price * item.quantity); // Считаем сумму
+            }
+            order.items = map;
+            order.totalAmount = total; // СОХРАНЯЕМ СУММУ В ПОЛЕ
+
+
+
+
             db.orderDao().insert(order);
 
             requireActivity().runOnUiThread(() -> {
                 CartManager.getInstance().clearCart();
-                // Возвращаемся в список заказов
+                Toast.makeText(getContext(), "Заказ сохранен локально", Toast.LENGTH_SHORT).show();
                 NavigationHelper.finishAndGoTo(getParentFragmentManager(), new OrdersFragment());
             });
         }).start();
@@ -148,17 +155,27 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
     }
 
     private static class OrderPagerAdapter extends FragmentStateAdapter {
-        public OrderPagerAdapter(@NonNull Fragment fragment) { super(fragment); }
+        public OrderPagerAdapter(@NonNull Fragment fragment) {
+            super(fragment);
+        }
+
         @Override
-        public int getItemCount() { return 3; }
+        public int getItemCount() {
+            return 3;
+        }
+
         @NonNull
         @Override
         public Fragment createFragment(int position) {
             switch (position) {
-                case 0: return new CatalogFragment();
-                case 1: return new CurrentOrderFragment();
-                case 2: return new OrderInfoFragment();
-                default: return new CatalogFragment();
+                case 0:
+                    return new CatalogFragment();
+                case 1:
+                    return new CurrentOrderFragment();
+                case 2:
+                    return new OrderInfoFragment();
+                default:
+                    return new CatalogFragment();
             }
         }
     }

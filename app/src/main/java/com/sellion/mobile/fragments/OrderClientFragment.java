@@ -16,6 +16,8 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.ClientAdapter;
 import com.sellion.mobile.api.ApiClient;
 import com.sellion.mobile.api.ApiService;
+import com.sellion.mobile.database.AppDatabase;
+import com.sellion.mobile.entity.ClientEntity;
 import com.sellion.mobile.model.ClientModel;
 
 import java.util.ArrayList;
@@ -27,8 +29,7 @@ import retrofit2.Response;
 
 public class OrderClientFragment extends Fragment {
 
-    RecyclerView rv;
-    private List<ClientModel> clientList = new ArrayList<>();
+    private RecyclerView rv;
 
     @Nullable
     @Override
@@ -37,40 +38,33 @@ public class OrderClientFragment extends Fragment {
         rv = view.findViewById(R.id.OrderRecyclerClients);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        loadClients();
-
+        loadClientsFromDb();
         return view;
     }
 
-    private void loadClients() {
-        ApiService api = ApiClient.getClient().create(ApiService.class);
-        api.getClients().enqueue(new Callback<List<ClientModel>>() {
-            @Override
-            public void onResponse(Call<List<ClientModel>> call, Response<List<ClientModel>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    clientList = response.body();
+    private void loadClientsFromDb() {
+        new Thread(() -> {
+            AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
+            List<ClientEntity> entities = db.clientDao().getAllClientsSync();
 
-                    // Создаем адаптер с новым списком объектов
-                    ClientAdapter adapter = new ClientAdapter(clientList, client -> {
-                        // ИСПРАВЛЕНИЕ: берем имя из объекта client.getName()
-                        String name = client.getName();
-
-                        Fragment parent = getParentFragment();
-                        if (parent instanceof CreateOrderFragment) {
-                            ((CreateOrderFragment) parent).onClientSelected(name);
-                        } else if (parent instanceof CreateReturnFragment) {
-                            ((CreateReturnFragment) parent).onClientSelected(name);
-                        }
-                    });
-                    rv.setAdapter(adapter);
-                }
+            List<ClientModel> models = new ArrayList<>();
+            for (ClientEntity e : entities) {
+                ClientModel m = new ClientModel();
+                m.id = e.id; m.name = e.name; m.address = e.address;
+                models.add(m);
             }
 
-            @Override
-            public void onFailure(Call<List<ClientModel>> call, Throwable t) {
-                if (getContext() != null)
-                    Toast.makeText(getContext(), "Ошибка сети", Toast.LENGTH_SHORT).show();
-            }
-        });
+            requireActivity().runOnUiThread(() -> {
+                ClientAdapter adapter = new ClientAdapter(models, client -> {
+                    Fragment parent = getParentFragment();
+                    if (parent instanceof CreateOrderFragment) {
+                        ((CreateOrderFragment) parent).onClientSelected(client.getName());
+                    } else if (parent instanceof CreateReturnFragment) {
+                        ((CreateReturnFragment) parent).onClientSelected(client.getName());
+                    }
+                });
+                rv.setAdapter(adapter);
+            });
+        }).start();
     }
 }

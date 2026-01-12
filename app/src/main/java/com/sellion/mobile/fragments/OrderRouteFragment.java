@@ -19,6 +19,8 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.ClientAdapter;
 import com.sellion.mobile.api.ApiClient;
 import com.sellion.mobile.api.ApiService;
+import com.sellion.mobile.database.AppDatabase;
+import com.sellion.mobile.entity.ClientEntity;
 import com.sellion.mobile.model.ClientModel;
 
 import java.util.ArrayList;
@@ -34,7 +36,6 @@ public class OrderRouteFragment extends Fragment {
     private int selectedDayIndex;
     private RecyclerView recyclerView;
     private TextView tvCurrentDay;
-    private List<ClientModel> allClientsFromServer = new ArrayList<>();
 
     @Nullable
     @Override
@@ -46,7 +47,7 @@ public class OrderRouteFragment extends Fragment {
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // Логика определения дня недели
+        // Определение текущего дня
         Calendar calendar = Calendar.getInstance();
         int dayOfWeekNum = calendar.get(Calendar.DAY_OF_WEEK);
         switch (dayOfWeekNum) {
@@ -61,60 +62,46 @@ public class OrderRouteFragment extends Fragment {
 
         tvCurrentDay.setText(daysOfWeek[selectedDayIndex]);
 
-        // Сначала загружаем ВСЕХ клиентов с сервера
-        loadAllClients();
+        // Загружаем из локальной БД
+        loadRouteFromDb();
 
         selectDay.setOnClickListener(v -> new AlertDialog.Builder(requireContext())
                 .setTitle("День маршрута")
                 .setItems(daysOfWeek, (dialog, which) -> {
                     selectedDayIndex = which;
                     tvCurrentDay.setText(daysOfWeek[which]);
-                    filterClientsByDay(selectedDayIndex); // Фильтруем уже загруженные данные
+                    loadRouteFromDb();
                 }).show());
 
         return view;
     }
 
-    private void loadAllClients() {
-        ApiService api = ApiClient.getClient().create(ApiService.class);
-        api.getClients().enqueue(new Callback<List<ClientModel>>() {
-            @Override
-            public void onResponse(Call<List<ClientModel>> call, Response<List<ClientModel>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    allClientsFromServer = response.body();
-                    filterClientsByDay(selectedDayIndex); // Показываем клиентов на текущий день
+    private void loadRouteFromDb() {
+        new Thread(() -> {
+            AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
+            List<ClientEntity> allClients = db.clientDao().getAllClientsSync();
+            String targetDay = daysOfWeek[selectedDayIndex];
+
+            List<ClientModel> filteredList = new ArrayList<>();
+            for (ClientEntity e : allClients) {
+                if (e.routeDay != null && e.routeDay.trim().equalsIgnoreCase(targetDay.trim())) {
+                    ClientModel m = new ClientModel();
+                    m.id = e.id; m.name = e.name; m.address = e.address;
+                    filteredList.add(m);
                 }
             }
 
-            @Override
-            public void onFailure(Call<List<ClientModel>> call, Throwable t) {
-                if (getContext() != null) Toast.makeText(getContext(), "Ошибка сети", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    private void filterClientsByDay(int dayIndex) {
-        String targetDay = daysOfWeek[dayIndex];
-        List<ClientModel> filteredList = new ArrayList<>();
-
-        for (ClientModel client : allClientsFromServer) {
-            // В 2026 году мы проверяем поле routeDay, которое пришло из MySQL
-            if (targetDay.trim().equalsIgnoreCase(client.routeDay.trim())) {
-                filteredList.add(client);
-            }
-        }
-
-        // Исправление ошибки: передаем список объектов и достаем имя при клике
-        ClientAdapter adapter = new ClientAdapter(filteredList, client -> {
-            String name = client.getName(); // Теперь ошибки не будет
-
-            Fragment parent = getParentFragment();
-            if (parent instanceof CreateOrderFragment) {
-                ((CreateOrderFragment) parent).onClientSelected(name);
-            } else if (parent instanceof CreateReturnFragment) {
-                ((CreateReturnFragment) parent).onClientSelected(name);
-            }
-        });
-        recyclerView.setAdapter(adapter);
+            requireActivity().runOnUiThread(() -> {
+                ClientAdapter adapter = new ClientAdapter(filteredList, client -> {
+                    Fragment parent = getParentFragment();
+                    if (parent instanceof CreateOrderFragment) {
+                        ((CreateOrderFragment) parent).onClientSelected(client.getName());
+                    } else if (parent instanceof CreateReturnFragment) {
+                        ((CreateReturnFragment) parent).onClientSelected(client.getName());
+                    }
+                });
+                recyclerView.setAdapter(adapter);
+            });
+        }).start();
     }
 }

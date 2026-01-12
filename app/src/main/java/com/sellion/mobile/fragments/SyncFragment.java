@@ -29,20 +29,15 @@ import com.sellion.mobile.api.ApiClient;
 import com.sellion.mobile.api.ApiService;
 import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.ClientEntity;
+import com.sellion.mobile.entity.OrderEntity;
 import com.sellion.mobile.entity.ProductEntity;
+import com.sellion.mobile.entity.ReturnEntity;
 import com.sellion.mobile.model.ClientModel;
 import com.sellion.mobile.model.Product;
-import com.sellion.mobile.helper.NavigationHelper;
-import com.sellion.mobile.sync.SyncWorker;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
-import retrofit2.Call;
-import retrofit2.Callback;
 import retrofit2.Response;
 
 public class SyncFragment extends BaseFragment {
@@ -123,90 +118,99 @@ public class SyncFragment extends BaseFragment {
     }
 
     private void loadDocuments() {
-        progressDialog = new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Синхронизация")
-                .setMessage("Очистка базы и загрузка новых данных...")
+        // 1. Показываем современный диалог загрузки
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_progress, null);
+        TextView tvMessage = dialogView.findViewById(R.id.tvProgressMessage);
+        tvMessage.setText("Загрузка данных из офиса...");
+
+        AlertDialog progressDialog = new MaterialAlertDialogBuilder(requireContext())
+                .setView(dialogView)
                 .setCancelable(false)
                 .create();
         progressDialog.show();
 
-        // ШАГ 1: Полная очистка всех таблиц в фоновом потоке
+        // 2. Начинаем цепочку загрузки в фоновом потоке
         new Thread(() -> {
-            AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
-            db.clearAllTables(); // Это удалит товары, клиентов, заказы и корзину
-
-            // ШАГ 2: Запуск цепочки загрузки
-            requireActivity().runOnUiThread(() -> {
+            try {
+                AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
                 ApiService api = ApiClient.getClient().create(ApiService.class);
-                loadProductsIntoApp(api, requireContext().getApplicationContext());
-            });
+
+                // Очищаем старые данные перед загрузкой новых
+                db.clearAllTables();
+
+                // ШАГ 1: Загружаем товары
+                Response<List<Product>> productResponse = api.getProducts().execute();
+                if (productResponse.isSuccessful() && productResponse.body() != null) {
+                    List<ProductEntity> productEntities = new ArrayList<>();
+                    for (Product p : productResponse.body()) {
+                        productEntities.add(new ProductEntity(p.getName(), p.getPrice(), p.getItemsPerBox(), p.getBarcode(), p.getCategory()));
+                    }
+                    db.productDao().insertAll(productEntities);
+                } else {
+                    throw new Exception("Ошибка загрузки товаров (Код: " + productResponse.code() + ")");
+                }
+
+                // ШАГ 2: Загружаем клиентов
+                Response<List<ClientModel>> clientResponse = api.getClients().execute();
+                if (clientResponse.isSuccessful() && clientResponse.body() != null) {
+                    List<ClientEntity> clientEntities = new ArrayList<>();
+                    for (ClientModel m : clientResponse.body()) {
+                        ClientEntity e = new ClientEntity();
+                        e.id = m.id;
+                        e.name = m.name;
+                        e.debt = m.debt;
+                        e.address = m.getAddress();
+                        e.inn = m.inn;
+                        e.ownerName = m.ownerName;
+                        e.routeDay = m.routeDay;
+                        clientEntities.add(e);
+                    }
+                    db.clientDao().insertAll(clientEntities);
+                } else {
+                    throw new Exception("Ошибка загрузки клиентов (Код: " + clientResponse.code() + ")");
+                }
+
+                // ФИНАЛ: Успех
+                SharedPreferences.Editor editor = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit();
+                editor.putBoolean(KEY_IS_LOADED, true);
+                editor.apply();
+
+                requireActivity().runOnUiThread(() -> {
+                    progressDialog.dismiss();
+                    updateStatusText();
+                    new MaterialAlertDialogBuilder(requireContext())
+                            .setTitle("Синхронизация завершена")
+                            .setMessage("База данных успешно обновлена. Можно приступать к работе.")
+                            .setPositiveButton("Понятно", null)
+                            .show();
+                });
+
+            } catch (java.io.IOException e) {
+                // Ошибка сети (сервер выключен)
+                requireActivity().runOnUiThread(() -> {
+                    progressDialog.dismiss();
+                    showSyncError("Сервер недоступен. Проверьте подключение к офисной сети.");
+                });
+            } catch (Exception e) {
+                // Любая другая ошибка
+                requireActivity().runOnUiThread(() -> {
+                    progressDialog.dismiss();
+                    showSyncError("Упс . Что то пошло не так.");
+                    Log.e("SyncFragment", "Ошибка при синхронизации: " + e.getMessage());
+                });
+            }
         }).start();
     }
 
-    private void loadProductsIntoApp(ApiService api, Context appContext) {
-        api.getProducts().enqueue(new Callback<List<Product>>() {
-            @Override
-            public void onResponse(Call<List<Product>> call, Response<List<Product>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    new Thread(() -> {
-                        try {
-                            List<ProductEntity> entities = new ArrayList<>();
-                            for (Product p : response.body()) {
-                                entities.add(new ProductEntity(p.getName(), p.getPrice(), p.getItemsPerBox(), p.getBarcode(), p.getCategory()));
-                            }
-                            AppDatabase.getInstance(appContext).productDao().insertAll(entities);
-
-                            // Переход к следующему шагу
-                            loadClientsIntoApp(api, appContext);
-                        } catch (Exception e) {
-                            dismissProgress();
-                        }
-                    }).start();
-                } else {
-                    dismissProgress();
-                    Toast.makeText(appContext, "Ошибка загрузки товаров", Toast.LENGTH_SHORT).show();
-                }
-            }
-            @Override public void onFailure(Call<List<Product>> call, Throwable t) { dismissProgress(); }
-        });
+    private void showSyncError(String message) {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Ошибка загрузки")
+                .setMessage(message)
+                .setPositiveButton("ОК", null)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
     }
 
-    private void loadClientsIntoApp(ApiService api, Context appContext) {
-        api.getClients().enqueue(new Callback<List<ClientModel>>() {
-            @Override
-            public void onResponse(Call<List<ClientModel>> call, Response<List<ClientModel>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    new Thread(() -> {
-                        try {
-                            List<ClientEntity> entities = new ArrayList<>();
-                            for (ClientModel m : response.body()) {
-                                ClientEntity e = new ClientEntity();
-                                e.id = m.id; e.name = m.name; e.debt = m.debt;
-                                e.address = m.getAddress(); e.inn = m.inn;
-                                e.ownerName = m.ownerName; e.routeDay = m.routeDay;
-                                entities.add(e);
-                            }
-                            AppDatabase.getInstance(appContext).clientDao().insertAll(entities);
-
-                            // ФИНАЛ: Сохраняем флаг успешной загрузки
-                            SharedPreferences.Editor editor = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit();
-                            editor.putBoolean(KEY_IS_LOADED, true);
-                            editor.apply();
-
-                            if (getActivity() != null) {
-                                getActivity().runOnUiThread(() -> {
-                                    progressDialog.dismiss();
-                                    updateStatusText();
-                                    Toast.makeText(appContext, "База обновлена и готова к работе!", Toast.LENGTH_SHORT).show();
-                                });
-                            }
-                        } catch (Exception e) { dismissProgress(); }
-                    }).start();
-                }
-            }
-            @Override public void onFailure(Call<List<ClientModel>> call, Throwable t) { dismissProgress(); }
-        });
-    }
 
     private void dismissProgress() {
         if (getActivity() != null) getActivity().runOnUiThread(() -> progressDialog.dismiss());
@@ -260,18 +264,84 @@ public class SyncFragment extends BaseFragment {
     }
 
     private void sendDocuments() {
-        androidx.work.OneTimeWorkRequest syncRequest =
-                new androidx.work.OneTimeWorkRequest.Builder(SyncWorker.class).build();
+        // Создаем современный диалог прогресса
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_progress, null);
+        AlertDialog progressDialog = new MaterialAlertDialogBuilder(requireContext())
+                .setView(dialogView)
+                .setCancelable(false)
+                .create();
 
-        androidx.work.WorkManager.getInstance(requireContext()).enqueue(syncRequest);
+        progressDialog.show();
 
-        androidx.work.WorkManager.getInstance(requireContext())
-                .getWorkInfoByIdLiveData(syncRequest.getId())
-                .observe(getViewLifecycleOwner(), workInfo -> {
-                    if (workInfo != null && workInfo.getState().isFinished()) {
-                        tvStatus.setText("Синхронизация завершена. Данные на сервере!");
-                        tvStatus.setTextColor(android.graphics.Color.parseColor("#2E7D32"));
+        new Thread(() -> {
+            AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
+            ApiService api = ApiClient.getClient().create(ApiService.class);
+
+            // Получаем данные, которые еще не отправлены
+            List<OrderEntity> pendingOrders = db.orderDao().getPendingOrdersSync();
+            List<ReturnEntity> pendingReturns = db.returnDao().getPendingReturnsSync();
+
+            if (pendingOrders.isEmpty() && pendingReturns.isEmpty()) {
+                requireActivity().runOnUiThread(() -> {
+                    progressDialog.dismiss();
+                    Toast.makeText(getContext(), "Нет новых данных для отправки", Toast.LENGTH_SHORT).show();
+                });
+                return;
+            }
+
+            try {
+                boolean allOk = true;
+
+                // 1. Отправка Заказов
+                if (!pendingOrders.isEmpty()) {
+                    Response<okhttp3.ResponseBody> response = api.sendOrders(pendingOrders).execute();
+                    if (response.isSuccessful()) {
+                        db.orderDao().markAllAsSent();
+                    } else {
+                        allOk = false;
+                    }
+                }
+
+                // 2. Отправка Возвратов
+                if (!pendingReturns.isEmpty()) {
+                    Response<okhttp3.ResponseBody> response = api.sendReturns(pendingReturns).execute();
+                    if (response.isSuccessful()) {
+                        db.returnDao().markAllAsSent();
+                    } else {
+                        allOk = false;
+                    }
+                }
+
+                boolean finalStatus = allOk;
+                requireActivity().runOnUiThread(() -> {
+                    progressDialog.dismiss();
+                    if (finalStatus) {
+                        new MaterialAlertDialogBuilder(requireContext())
+                                .setTitle("Успешно")
+                                .setMessage("Данные успешно синхронизированы с офисом.")
+                                .setPositiveButton("ОК", null)
+                                .show();
+                    } else {
+                        new MaterialAlertDialogBuilder(requireContext())
+                                .setTitle("Ошибка сервера")
+                                .setMessage("Сервер ответил ошибкой. Попробуйте позже.")
+                                .setPositiveButton("Понятно", null)
+                                .show();
                     }
                 });
+
+            } catch (java.io.IOException e) {
+                // ОШИБКА: Сервер выключен или нет интернета
+                requireActivity().runOnUiThread(() -> {
+                    progressDialog.dismiss();
+                    new MaterialAlertDialogBuilder(requireContext())
+                            .setTitle("Связь отсутствует")
+                            .setMessage("Не удалось подключиться к серверу.\n\nПроверьте:\n1. Включен ли сервер в офисе\n2. Работает ли интернет на телефоне")
+                            .setPositiveButton("Попробовать позже", null)
+                            .setIcon(android.R.drawable.ic_dialog_alert)
+                            .show();
+                });
+            }
+        }).start();
     }
 }
