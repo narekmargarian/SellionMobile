@@ -10,6 +10,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
+import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.OrderEntity;
 
 import java.util.List;
@@ -39,25 +40,29 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderVH> {
     @Override
     public void onBindViewHolder(@NonNull OrderVH h, int pos) {
         OrderEntity o = list.get(pos);
-
         h.tvShopName.setText(o.shopName);
 
-        // Расчет итоговой суммы из Map в Entity
-        double total = 0;
-        if (o.items != null) {
-            for (Map.Entry<String, Integer> entry : o.items.entrySet()) {
-                total += (entry.getValue() * getPriceForProduct(entry.getKey()));
+        // Расчет суммы через БД в фоновом потоке
+        new Thread(() -> {
+            double total = 0;
+            AppDatabase db = AppDatabase.getInstance(h.itemView.getContext().getApplicationContext());
+            if (o.items != null) {
+                for (Map.Entry<String, Integer> entry : o.items.entrySet()) {
+                    // Ищем цену в таблице товаров по имени
+                    double priceFromDb = db.productDao().getPriceByName(entry.getKey());
+                    total += (entry.getValue() * priceFromDb);
+                }
             }
-        }
-        h.tvTotalAmount.setText(String.format("%,.0f ֏", total));
+            final String totalStr = String.format("%,.0f ֏", total);
+            h.tvTotalAmount.post(() -> h.tvTotalAmount.setText(totalStr));
+        }).start();
 
-        // Визуализация статуса (LiveData обновит это мгновенно)
         if ("SENT".equals(o.status)) {
             h.tvStatus.setText("ОТПРАВЛЕН");
-            h.tvStatus.setTextColor(Color.parseColor("#2E7D32"));
+            h.tvStatus.setTextColor(android.graphics.Color.parseColor("#2E7D32"));
         } else {
             h.tvStatus.setText("ОЖИДАЕТ");
-            h.tvStatus.setTextColor(Color.parseColor("#2196F3"));
+            h.tvStatus.setTextColor(android.graphics.Color.parseColor("#2196F3"));
         }
 
         h.itemView.setOnClickListener(v -> {
@@ -83,72 +88,7 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderVH> {
 
 
 
-    private int getPriceForProduct(String name) {
-        if (name == null) return 0;
-        switch (name) {
-            case "Чипсы кокосовые ВМ Оригинальные":
-                return 730;
-            case "Чипсы кокосовые ВМ Соленая карамель":
-                return 730;
-            case "Чипсы кокосовые Costa Cocosta":
-                return 430;
-            case "Чипсы кокосовые Costa Cocosta Васаби":
-                return 430;
-            case "Шарики Манго в какао-глазури ВМ":
-                return 930;
-            case "Шарики Манго в белой глазури ВМ":
-                return 930;
-            case "Шарики Банано в глазури ВМ":
-                return 730;
-            case "Шарики Имбирь сладкий в глазури ВМ":
-                return 930;
-            case "Чай ВМ Лемонграсс и ананас":
-                return 1690;
-            case "Чай ВМ зеленый с фруктами":
-                return 1690;
-            case "Чай ВМ черный Мята и апельсин":
-                return 1690;
-            case "Чай ВМ черный Черника и манго":
-                return 1990;
-            case "Чай ВМ черный Шишки и саган-дайля":
-                return 1990;
-            case "Чай ВМ зеленый Жасмин и манго":
-                return 1990;
-            case "Чай ВМ черный Цветочное манго":
-                return 590;
-            case "Чай ВМ черный Шишки и клюква":
-                return 790;
-            case "Чай ВМ черный Нежная черника":
-                return 790;
-            case "Чай ВМ черный Ассам Цейлон":
-                return 1190;
-            case "Чай ВМ черный \"Хвойный\"":
-                return 790;
-            case "Чай ВМ черный \"Русский березовый\"":
-                return 790;
-            case "Чай ВМ черный Шишки и малина":
-                return 790;
-            case "Сух. Манго сушеное Вкусы мира":
-                return 1490;
-            case "Сух. Манго сушеное ВМ Чили":
-                return 1490;
-            case "Сух. Папайя сушеная Вкусы мира":
-                return 1190;
-            case "Сух. Манго шарики из сушеного манго":
-                return 1190;
-            case "Сух. Манго Сушеное LikeDay (250г)":
-                return 2490;
-            case "Сух. Манго Сушеное LikeDay (100г)":
-                return 1190;
-            case "Сух.Бананы вяленые Вкусы мира":
-                return 1190;
-            case "Сух.Джекфрут сушеный Вкусы мира":
-                return 1190;
-            case "Сух.Ананас сушеный Вкусы мира":
-            default:
-                return 0;
-        }
-    }
+
 }
 
 

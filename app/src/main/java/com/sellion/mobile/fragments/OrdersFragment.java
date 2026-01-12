@@ -40,13 +40,7 @@ public class OrdersFragment extends BaseFragment {
         // Настройка заголовка Toolbar
         setupToolbarTitle(view);
 
-        // Настройка кнопки назад
-        btnBack.setOnClickListener(v -> {
-            if (getParentFragmentManager().getBackStackEntryCount() > 0) {
-                getParentFragmentManager().popBackStack();
-            }
-        });
-        btnBack.setOnClickListener(v -> NavigationHelper.backToDashboard(getParentFragmentManager()));
+        setupBackButton(btnBack, true); // true — значит выход на главный экран
 
 
         // Кнопка создания нового заказа

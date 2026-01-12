@@ -38,7 +38,7 @@ public class ReturnsFragment extends BaseFragment {
         // Настройка заголовка в Toolbar
         setupToolbarTitle(view);
 
-        btnBack.setOnClickListener(v -> NavigationHelper.backToDashboard(getParentFragmentManager()));
+
 
         btnAddReturn.setOnClickListener(v -> getParentFragmentManager().beginTransaction()
                 .replace(R.id.fragment_container, new CreateReturnFragment())
@@ -47,8 +47,7 @@ public class ReturnsFragment extends BaseFragment {
 
         // Запуск наблюдения за базой данных
         observeReturns();
-        btnBack.setOnClickListener(v -> NavigationHelper.backToDashboard(getParentFragmentManager()));
-
+        setupBackButton(btnBack, true); // true — значит выход на главный экран
         return view;
     }
 

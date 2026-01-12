@@ -39,6 +39,7 @@ public class CatalogFragment extends BaseFragment {
 
         // Проверяем, находимся ли мы в любом процессе оформления
 
+        setupBackButton(btnBack, true); // true — значит выход на главный экран
 
         if (orderMode || isReturn) {
             btnBack.setVisibility(View.GONE);

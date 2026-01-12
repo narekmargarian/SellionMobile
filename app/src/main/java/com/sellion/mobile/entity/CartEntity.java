@@ -10,9 +10,11 @@ public class CartEntity {
 
     public String productName;
     public int quantity;
+    public double price; // Изменено на double
 
-    public CartEntity(String productName, int quantity) {
+    public CartEntity(String productName, int quantity, double price) {
         this.productName = productName;
         this.quantity = quantity;
+        this.price = price;
     }
 }

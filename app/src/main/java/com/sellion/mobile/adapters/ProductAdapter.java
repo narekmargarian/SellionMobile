@@ -11,8 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
 import com.sellion.mobile.entity.CartEntity;
-import com.sellion.mobile.entity.Product;
-import com.sellion.mobile.managers.CartManager;
+import com.sellion.mobile.model.Product;
 
 import java.util.HashSet;
 import java.util.List;
@@ -56,15 +55,12 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Product product = products.get(position);
 
-        // ИСПРАВЛЕНИЕ ОШИБКИ ФОРМАТИРОВАНИЯ:
-        // Используем String.valueOf для цены, чтобы избежать конфликта типов в getString
         String name = product.getName();
-        String price = String.format("%,d ֏", product.getPrice());
+        // ИСПРАВЛЕНИЕ: %,.0f корректно обработает Double и добавит разделители тысяч
+        String price = String.format("%,.0f ֏", product.getPrice());
 
-        // В strings.xml должно быть: <string name="product_format">%1$s — %2$s</string>
         holder.tvName.setText(name + " — " + price);
 
-        // ИСПРАВЛЕНИЕ hasProduct: Проверяем наличие в нашем сете
         if (itemsInCart.contains(product.getName())) {
             holder.tvName.setTextColor(Color.BLUE);
         } else {

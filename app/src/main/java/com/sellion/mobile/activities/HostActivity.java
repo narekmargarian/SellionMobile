@@ -19,33 +19,9 @@ public class HostActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_host);
 
-        // Инициализация корзины для работы с Room
         CartManager.init(getApplicationContext());
-
         String managerId = getIntent().getStringExtra("MANAGER_ID");
         SessionManager.getInstance().setManagerId(managerId);
-
-        // --- НОВЫЙ СПОСОБ ОБРАБОТКИ КНОПКИ НАЗАД (AndroidX) ---
-        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
-            @Override
-            public void handleOnBackPressed() {
-                Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
-
-                // Проверяем, реализует ли фрагмент наш интерфейс BackPressHandler
-                if (fragment instanceof BackPressHandler) {
-                    ((BackPressHandler) fragment).onBackPressedHandled();
-                } else {
-                    // Если в стеке есть фрагменты — возвращаемся назад
-                    if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
-                        getSupportFragmentManager().popBackStack();
-                    } else {
-                        // Если стека нет — закрываем Activity (выход из приложения)
-                        finish();
-                    }
-                }
-            }
-        });
-        // -------------------------------------------------------
 
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
@@ -53,4 +29,5 @@ public class HostActivity extends AppCompatActivity {
                     .commit();
         }
     }
+    // Системная кнопка "Назад" теперь управляется фрагментами автоматически!
 }

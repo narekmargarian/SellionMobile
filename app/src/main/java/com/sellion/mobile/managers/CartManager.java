@@ -34,23 +34,22 @@ public class CartManager {
         return instance;
     }
 
-    public void addProduct(String itemName, int quantity) {
+    // ТЕПЕРЬ ПРИНИМАЕМ ЦЕНУ ИЗ PRODUCT
+    public void addProduct(String itemName, int quantity, double price) {
         executor.execute(() -> {
             if (quantity <= 0) {
                 db.cartDao().removeItem(itemName);
             } else {
-                db.cartDao().addOrUpdate(new CartEntity(itemName, quantity));
+                db.cartDao().addOrUpdate(new CartEntity(itemName, quantity, price));
             }
         });
     }
 
-    // ИСПРАВЛЕНО: Безопасное получение данных из БД для 2026 года
     public Map<String, Integer> getCartItems() {
         Map<String, Integer> map = new HashMap<>();
         try {
-            // Room не даст вызвать это в MainThread, поэтому используем Future
             Future<List<CartEntity>> future = executor.submit(() -> db.cartDao().getCartItemsSync());
-            List<CartEntity> items = future.get(); // Ждем результат
+            List<CartEntity> items = future.get();
             for (CartEntity item : items) {
                 map.put(item.productName, item.quantity);
             }

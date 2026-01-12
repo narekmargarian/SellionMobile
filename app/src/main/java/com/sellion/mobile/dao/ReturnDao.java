@@ -1,4 +1,4 @@
-package com.sellion.mobile.entity;
+package com.sellion.mobile.dao;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
@@ -6,10 +6,14 @@ import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 
+import com.sellion.mobile.entity.ReturnEntity;
+
 import java.util.List;
 
 @Dao
 public interface ReturnDao {
+    // OnConflictStrategy.REPLACE — если ID уже есть в базе, Room обновит строку.
+    // Если ID нет (равен 0), Room создаст новую запись.
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insert(ReturnEntity ret);
 
@@ -24,4 +28,8 @@ public interface ReturnDao {
 
     @Query("DELETE FROM returns")
     void deleteAll();
+
+    // Дополнительный метод для удаления конкретного возврата, если понадобится
+    @Query("DELETE FROM returns WHERE id = :id")
+    void deleteById(int id);
 }

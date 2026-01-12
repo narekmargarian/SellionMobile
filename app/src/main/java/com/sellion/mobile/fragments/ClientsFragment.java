@@ -21,9 +21,8 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.ClientAdapter;
 import com.sellion.mobile.api.ApiClient;
 import com.sellion.mobile.api.ApiService;
-import com.sellion.mobile.entity.ClientModel;
+import com.sellion.mobile.model.ClientModel;
 import com.sellion.mobile.helper.NavigationHelper;
-import com.sellion.mobile.managers.ClientManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -58,7 +57,7 @@ public class ClientsFragment extends BaseFragment {
 
         btnAdd.setOnClickListener(v -> showAddClientDialog());
 
-        btnBack.setOnClickListener(v -> NavigationHelper.backToDashboard(getParentFragmentManager()));
+        setupBackButton(btnBack, true); // true — значит выход на главный экран
         return view;
     }
 

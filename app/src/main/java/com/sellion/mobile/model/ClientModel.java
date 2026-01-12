@@ -1,4 +1,4 @@
-package com.sellion.mobile.entity;
+package com.sellion.mobile.model;
 
 public class ClientModel {
     public int id;

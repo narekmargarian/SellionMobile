@@ -20,7 +20,7 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.CartAdapter;
 import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.CartEntity;
-import com.sellion.mobile.entity.Product;
+import com.sellion.mobile.model.Product;
 import com.sellion.mobile.managers.CartManager;
 
 import java.util.ArrayList;
@@ -47,32 +47,32 @@ public class CurrentReturnFragment extends BaseFragment {
 
         initSwipeToDelete();
 
-        // --- ИСПРАВЛЕНО: Ссылка на метод через :: без скобок ---
         AppDatabase.getInstance(requireContext()).cartDao().getCartItemsLive()
                 .observe(getViewLifecycleOwner(), this::updateUI);
 
         return view;
     }
 
-    // Метод должен быть public или package-private для доступа из LiveData
-    void updateUI(List<CartEntity> cartItems) {
+    public void updateUI(List<CartEntity> cartItems) {
         selectedProducts.clear();
         double totalAmount = 0;
 
         if (cartItems == null || cartItems.isEmpty()) {
             tvTotalSum.setText("0 ֏");
-            tvEmptyOrder.setVisibility(View.VISIBLE);
-            tvEmptyOrder.setText("В возврате пока ничего нет");
+            if (tvEmptyOrder != null) {
+                tvEmptyOrder.setVisibility(View.VISIBLE);
+                tvEmptyOrder.setText("Пусто");
+            }
             adapter.notifyDataSetChanged();
             return;
         }
 
-        tvEmptyOrder.setVisibility(View.GONE);
+        if (tvEmptyOrder != null) tvEmptyOrder.setVisibility(View.GONE);
 
         for (CartEntity item : cartItems) {
-            int price = getPriceForProduct(item.productName);
-            totalAmount += (price * item.quantity);
-            selectedProducts.add(new Product(item.productName, price, 0, ""));
+            totalAmount += (item.price * item.quantity);
+            // Важно: сохраняем цену в объекте Product для диалога редактирования
+            selectedProducts.add(new Product(item.productName, item.price, 0, ""));
         }
 
         tvTotalSum.setText(String.format("%,.0f ֏", totalAmount));
@@ -91,7 +91,8 @@ public class CurrentReturnFragment extends BaseFragment {
                 int position = viewHolder.getAbsoluteAdapterPosition();
                 if (position != RecyclerView.NO_POSITION) {
                     Product productToDelete = selectedProducts.get(position);
-                    CartManager.getInstance().addProduct(productToDelete.getName(), 0);
+                    // ИСПРАВЛЕНИЕ 1: Добавлена цена (productToDelete.getPrice())
+                    CartManager.getInstance().addProduct(productToDelete.getName(), 0, productToDelete.getPrice());
                 }
             }
 
@@ -122,7 +123,6 @@ public class CurrentReturnFragment extends BaseFragment {
 
         tvTitle.setText(product.getName());
 
-        // Получаем текущее количество для установки в EditText
         new Thread(() -> {
             List<CartEntity> items = AppDatabase.getInstance(requireContext()).cartDao().getCartItemsSync();
             int qty = 1;
@@ -151,78 +151,11 @@ public class CurrentReturnFragment extends BaseFragment {
         btnConfirm.setOnClickListener(v -> {
             String qStr = etQuantity.getText().toString();
             if (!qStr.isEmpty()) {
-                CartManager.getInstance().addProduct(product.getName(), Integer.parseInt(qStr));
+                // ИСПРАВЛЕНИЕ 2: Добавлена цена (product.getPrice())
+                CartManager.getInstance().addProduct(product.getName(), Integer.parseInt(qStr), product.getPrice());
                 dialog.dismiss();
             }
         });
         dialog.show();
     }
-
-    private int getPriceForProduct(String name) {
-        if (name == null) return 0;
-        switch (name) {
-            case "Чипсы кокосовые ВМ Оригинальные":
-                return 730;
-            case "Чипсы кокосовые ВМ Соленая карамель":
-                return 730;
-            case "Чипсы кокосовые Costa Cocosta":
-                return 430;
-            case "Чипсы кокосовые Costa Cocosta Васаби":
-                return 430;
-            case "Шарики Манго в какао-глазури ВМ":
-                return 930;
-            case "Шарики Манго в белой глазури ВМ":
-                return 930;
-            case "Шарики Банано в глазури ВМ":
-                return 730;
-            case "Шарики Имбирь сладкий в глазури ВМ":
-                return 930;
-            case "Чай ВМ Лемонграсс и ананас":
-                return 1690;
-            case "Чай ВМ зеленый с фруктами":
-                return 1690;
-            case "Чай ВМ черный Мята и апельсин":
-                return 1690;
-            case "Чай ВМ черный Черника и манго":
-                return 1990;
-            case "Чай ВМ черный Шишки и саган-дайля":
-                return 1990;
-            case "Чай ВМ зеленый Жасмин и манго":
-                return 1990;
-            case "Чай ВМ черный Цветочное манго":
-                return 590;
-            case "Чай ВМ черный Шишки и клюква":
-                return 790;
-            case "Чай ВМ черный Нежная черника":
-                return 790;
-            case "Чай ВМ черный Ассам Цейлон":
-                return 1190;
-            case "Чай ВМ черный \"Хвойный\"":
-                return 790;
-            case "Чай ВМ черный \"Русский березовый\"":
-                return 790;
-            case "Чай ВМ черный Шишки и малина":
-                return 790;
-            case "Сух. Манго сушеное Вкусы мира":
-                return 1490;
-            case "Сух. Манго сушеное ВМ Чили":
-                return 1490;
-            case "Сух. Папайя сушеная Вкусы мира":
-                return 1190;
-            case "Сух. Манго шарики из сушеного манго":
-                return 1190;
-            case "Сух. Манго Сушеное LikeDay (250г)":
-                return 2490;
-            case "Сух. Манго Сушеное LikeDay (100г)":
-                return 1190;
-            case "Сух.Бананы вяленые Вкусы мира":
-                return 1190;
-            case "Сух.Джекфрут сушеный Вкусы мира":
-                return 1190;
-            case "Сух.Ананас сушеный Вкусы мира":
-            default:
-                return 0;
-        }
-    }
-
 }

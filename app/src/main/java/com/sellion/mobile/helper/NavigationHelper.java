@@ -4,33 +4,38 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
 import com.sellion.mobile.R;
+import com.sellion.mobile.fragments.DashboardFragment;
 
 public class NavigationHelper {
+
     public static void openSection(FragmentManager fragmentManager, Fragment targetFragment) {
         fragmentManager.beginTransaction()
                 .replace(R.id.fragment_container, targetFragment)
-                .addToBackStack(null) // Чтобы вернуться на Dashboard
+                .addToBackStack(null)
                 .commit();
     }
 
-    /**
-     * Финальный переход после СОХРАНЕНИЯ.
-     * Очищает пошаговую историю, чтобы кнопка "Назад" вела на главный экран.
-     */
     public static void finishAndGoTo(FragmentManager fragmentManager, Fragment targetFragment) {
-        fragmentManager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+        // Очищаем стек ПЕРЕД транзакцией
+        if (fragmentManager.getBackStackEntryCount() > 0) {
+            fragmentManager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+        }
 
         fragmentManager.beginTransaction()
                 .replace(R.id.fragment_container, targetFragment)
-                .addToBackStack(null)
-                .commitAllowingStateLoss(); // Добавь это для безопасности в 2026 году
+                .commitAllowingStateLoss();
     }
 
-    /**
-     * Просто выход назад с очисткой стека (например, при нажатии "Отмена")
-     */
     public static void backToDashboard(FragmentManager fragmentManager) {
-        fragmentManager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+        if (fragmentManager.getBackStackEntryCount() > 0) {
+            // Очищаем стек до самого первого фрагмента (Dashboard)
+            // Система САМА покажет Dashboard, который уже там лежит
+            fragmentManager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+        } else {
+            // Если стек уже пуст, используем безопасную транзакцию
+            fragmentManager.beginTransaction()
+                    .replace(R.id.fragment_container, new DashboardFragment())
+                    .commitAllowingStateLoss();
+        }
     }
-
 }

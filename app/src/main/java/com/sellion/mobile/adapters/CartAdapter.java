@@ -10,7 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
 import com.sellion.mobile.managers.CartManager;
-import com.sellion.mobile.entity.Product;
+import com.sellion.mobile.model.Product;
 
 import java.util.List;
 
@@ -38,27 +38,20 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Product product = selectedProducts.get(position);
 
-        // 1. Получаем количество из менеджера корзины
         Integer qty = CartManager.getInstance().getCartItems().get(product.getName());
         int currentQty = (qty != null) ? qty : 0;
 
-        // 2. Считаем сумму для текущей строки (Цена * Количество)
-        // В 2026 году важно показывать менеджеру, сколько стоит каждая позиция
         double itemTotal = product.getPrice() * currentQty;
 
-        // 3. Форматируем числа (добавляем разделители тысяч для Драма)
-        String quantityText = String.valueOf(currentQty);
+        // ИСПРАВЛЕНИЕ: %,.0f вместо %,.0d
         String priceText = String.format("%,.0f", itemTotal);
 
-        // 4. Устанавливаем итоговый текст
-        // Пример: Шоколад Аленка — 3 шт. (1,500 ֏)
-        holder.tvName.setText(product.getName() + " — " + quantityText + " шт. (" + priceText + " ֏)");
+        holder.tvName.setText(product.getName() + " — " + currentQty + " шт. (" + priceText + " ֏)");
 
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onItemClick(product);
         });
     }
-
     @Override
     public int getItemCount() {
         return selectedProducts != null ? selectedProducts.size() : 0;

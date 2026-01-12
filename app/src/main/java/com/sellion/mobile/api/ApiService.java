@@ -1,8 +1,8 @@
 package com.sellion.mobile.api;
 
-import com.sellion.mobile.entity.ClientModel;
+import com.sellion.mobile.model.ClientModel;
 import com.sellion.mobile.entity.OrderEntity;
-import com.sellion.mobile.entity.Product;
+import com.sellion.mobile.model.Product;
 import com.sellion.mobile.entity.ReturnEntity;
 
 import java.util.List;
@@ -26,4 +26,7 @@ public interface ApiService {
 
     @POST("api/returns/sync")
     Call<okhttp3.ResponseBody> sendReturns(@Body List<ReturnEntity> returns);
+
+
+
 }

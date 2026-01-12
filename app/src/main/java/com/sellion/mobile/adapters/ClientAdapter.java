@@ -9,7 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
-import com.sellion.mobile.entity.ClientModel;
+import com.sellion.mobile.model.ClientModel;
 
 import java.util.List;
 

@@ -38,7 +38,7 @@ public class DebtsFragment extends BaseFragment {
                         recyclerView.setAdapter(adapter);
                     }
                 });
-        btnBack.setOnClickListener(v -> NavigationHelper.backToDashboard(getParentFragmentManager()));
+        setupBackButton(btnBack, true); // true — значит выход на главный экран
         return view;
     }
 

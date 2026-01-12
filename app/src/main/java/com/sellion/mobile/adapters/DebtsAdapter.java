@@ -11,8 +11,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
 import com.sellion.mobile.entity.ClientEntity;
-import com.sellion.mobile.entity.ClientModel;
-import com.sellion.mobile.entity.DebtModel;
 
 import java.util.List;
 

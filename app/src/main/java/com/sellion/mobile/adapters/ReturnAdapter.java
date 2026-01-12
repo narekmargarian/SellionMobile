@@ -10,6 +10,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
+import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.ReturnEntity;
 
 import java.util.List;
@@ -38,40 +39,7 @@ public class ReturnAdapter  extends RecyclerView.Adapter<ReturnAdapter.ReturnVH>
         return new ReturnVH(v);
     }
 
-    @Override
-    public void onBindViewHolder(@NonNull ReturnVH holder, int position) {
-        ReturnEntity item = list.get(position);
 
-        holder.tvShopName.setText(item.shopName);
-
-        // 1. Расчет суммы возврата на основе данных из Room
-        double total = 0;
-        if (item.items != null) {
-            for (Map.Entry<String, Integer> entry : item.items.entrySet()) {
-                total += (entry.getValue() * getPriceForProduct(entry.getKey()));
-            }
-        }
-
-        // Форматирование суммы (Разделители тысяч, символ драма)
-        holder.tvTotalAmount.setText(String.format("%,.0f ֏", total));
-
-        // 2. Логика статуса (Синхронизировано с WorkManager)
-        // В 2026 году мы используем строковые константы "SENT" и "PENDING"
-        if ("SENT".equals(item.status)) {
-            holder.tvStatus.setText("ОТПРАВЛЕН");
-            holder.tvStatus.setTextColor(Color.parseColor("#2E7D32")); // Темно-зеленый
-        } else {
-            holder.tvStatus.setText("ОЖИДАЕТ");
-            holder.tvStatus.setTextColor(Color.parseColor("#2196F3")); // Синий
-        }
-
-        // Клик для открытия деталей возврата
-        holder.itemView.setOnClickListener(v -> {
-            if (listener != null) {
-                listener.onItemClick(item);
-            }
-        });
-    }
 
     @Override
     public int getItemCount() {
@@ -92,70 +60,51 @@ public class ReturnAdapter  extends RecyclerView.Adapter<ReturnAdapter.ReturnVH>
         this.list = newList;
         notifyDataSetChanged();
     }
-    private int getPriceForProduct(String name) {
-        if (name == null) return 0;
-        switch (name) {
-            case "Чипсы кокосовые ВМ Оригинальные":
-                return 730;
-            case "Чипсы кокосовые ВМ Соленая карамель":
-                return 730;
-            case "Чипсы кокосовые Costa Cocosta":
-                return 430;
-            case "Чипсы кокосовые Costa Cocosta Васаби":
-                return 430;
-            case "Шарики Манго в какао-глазури ВМ":
-                return 930;
-            case "Шарики Манго в белой глазури ВМ":
-                return 930;
-            case "Шарики Банано в глазури ВМ":
-                return 730;
-            case "Шарики Имбирь сладкий в глазури ВМ":
-                return 930;
-            case "Чай ВМ Лемонграсс и ананас":
-                return 1690;
-            case "Чай ВМ зеленый с фруктами":
-                return 1690;
-            case "Чай ВМ черный Мята и апельсин":
-                return 1690;
-            case "Чай ВМ черный Черника и манго":
-                return 1990;
-            case "Чай ВМ черный Шишки и саган-дайля":
-                return 1990;
-            case "Чай ВМ зеленый Жасмин и манго":
-                return 1990;
-            case "Чай ВМ черный Цветочное манго":
-                return 590;
-            case "Чай ВМ черный Шишки и клюква":
-                return 790;
-            case "Чай ВМ черный Нежная черника":
-                return 790;
-            case "Чай ВМ черный Ассам Цейлон":
-                return 1190;
-            case "Чай ВМ черный \"Хвойный\"":
-                return 790;
-            case "Чай ВМ черный \"Русский березовый\"":
-                return 790;
-            case "Чай ВМ черный Шишки и малина":
-                return 790;
-            case "Сух. Манго сушеное Вкусы мира":
-                return 1490;
-            case "Сух. Манго сушеное ВМ Чили":
-                return 1490;
-            case "Сух. Папайя сушеная Вкусы мира":
-                return 1190;
-            case "Сух. Манго шарики из сушеного манго":
-                return 1190;
-            case "Сух. Манго Сушеное LikeDay (250г)":
-                return 2490;
-            case "Сух. Манго Сушеное LikeDay (100г)":
-                return 1190;
-            case "Сух.Бананы вяленые Вкусы мира":
-                return 1190;
-            case "Сух.Джекфрут сушеный Вкусы мира":
-                return 1190;
-            case "Сух.Ананас сушеный Вкусы мира":
-            default:
-                return 0;
+
+
+
+
+    @Override
+    public void onBindViewHolder(@NonNull ReturnVH holder, int position) {
+        ReturnEntity item = list.get(position);
+
+        holder.tvShopName.setText(item.shopName);
+
+        // 1. Расчет суммы возврата в фоновом потоке, через базу данных
+        new Thread(() -> {
+            double total = 0;
+            // Получаем доступ к базе данных
+            AppDatabase db = AppDatabase.getInstance(holder.itemView.getContext().getApplicationContext());
+
+            if (item.items != null) {
+                for (Map.Entry<String, Integer> entry : item.items.entrySet()) {
+                    // Ищем актуальную цену в таблице товаров по имени
+                    double priceFromDb = db.productDao().getPriceByName(entry.getKey());
+                    total += (entry.getValue() * priceFromDb);
+                }
+            }
+
+            final String totalStr = String.format("%,.0f ֏", total);
+
+            // Обновляем UI в главном потоке после расчета
+            holder.tvTotalAmount.post(() -> holder.tvTotalAmount.setText(totalStr));
+
+        }).start();
+
+        // 2. Логика статуса
+        if ("SENT".equals(item.status)) {
+            holder.tvStatus.setText("ОТПРАВЛЕН");
+            holder.tvStatus.setTextColor(android.graphics.Color.parseColor("#2E7D32")); // Темно-зеленый
+        } else {
+            holder.tvStatus.setText("ОЖИДАЕТ");
+            holder.tvStatus.setTextColor(android.graphics.Color.parseColor("#2196F3")); // Синий
         }
+
+        // Клик для открытия деталей возврата
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onItemClick(item);
+            }
+        });
     }
 }

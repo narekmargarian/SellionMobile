@@ -16,7 +16,7 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.ClientAdapter;
 import com.sellion.mobile.api.ApiClient;
 import com.sellion.mobile.api.ApiService;
-import com.sellion.mobile.entity.ClientModel;
+import com.sellion.mobile.model.ClientModel;
 
 import java.util.ArrayList;
 import java.util.List;
