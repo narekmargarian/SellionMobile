@@ -74,7 +74,7 @@ public class CurrentOrderFragment extends BaseFragment {
         for (CartEntity item : cartItems) {
             totalAmount += (item.price * item.quantity);
             // ИСПРАВЛЕНО: Добавлен 5-й параметр (пустая строка для категории)
-            selectedProducts.add(new Product(item.productName, item.price, 0, "", ""));
+            selectedProducts.add(new Product(item.productName, item.price, 0, "", "",0));
         }
 
         tvTotalSum.setText(String.format("%,.0f ֏", totalAmount));

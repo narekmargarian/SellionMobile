@@ -154,7 +154,7 @@ public class CurrentReturnFragment extends BaseFragment {
         for (CartEntity item : cartItems) {
             totalAmount += (item.price * item.quantity);
             // ИСПРАВЛЕННАЯ СТРОКА (добавлена еще одна пустая строка в конце):
-            selectedProducts.add(new Product(item.productName, item.price, 0, "", ""));
+            selectedProducts.add(new Product(item.productName, item.price, 0, "", "",0));
         }
 
         tvTotalSum.setText(String.format("%,.0f ֏", totalAmount));

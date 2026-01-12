@@ -2,24 +2,26 @@ package com.sellion.mobile.model;
 
 
 public class Product {
-    
+
     private String name;
     private Double price;
     private Integer itemsPerBox;
     private String barcode;
     private String category;
+    // ДОБАВЛЕНО: Поле для остатка
+    private Integer stockQuantity;
 
-    // 1. Пустой конструктор для Retrofit
     public Product() {
     }
 
-    // 2. Исправленный конструктор с 5 параметрами
-    public Product(String name, Double price, Integer itemsPerBox, String barcode, String category) {
+    // Обновленный конструктор (теперь 6 параметров)
+    public Product(String name, Double price, Integer itemsPerBox, String barcode, String category, Integer stockQuantity) {
         this.name = name;
         this.price = price;
         this.itemsPerBox = itemsPerBox;
         this.barcode = barcode;
-        this.category = category; // Теперь категория будет сохраняться
+        this.category = category;
+        this.stockQuantity = stockQuantity;
     }
 
     // Геттеры
@@ -41,5 +43,10 @@ public class Product {
 
     public Integer getItemsPerBox() {
         return itemsPerBox;
+    }
+
+    // ДОБАВЛЕНО: Геттер для остатка
+    public int getStockQuantity() {
+        return stockQuantity != null ? stockQuantity : 0;
     }
 }

@@ -58,17 +58,20 @@ public class ProductFragment extends BaseFragment {
         RecyclerView rv = view.findViewById(R.id.recyclerViewProducts);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 
+        // ИСПРАВЛЕНО: передаем флаг отображения остатков (только если это заказ и НЕ возврат)
+        boolean showStock = isOrderMode && !isActuallyReturn;
+
         adapter = new ProductAdapter(new ArrayList<>(), product -> {
             if (isOrderMode || isActuallyReturn) showQuantityDialog(product);
             else showProductInfo(product);
-        });
+        }, showStock);
+
         rv.setAdapter(adapter);
 
         AppDatabase.getInstance(requireContext()).cartDao().getCartItemsLive().observe(getViewLifecycleOwner(), cartItems -> {
             if (adapter != null) adapter.setItemsInCart(cartItems);
         });
 
-        // ИЗМЕНЕНО: Теперь загружаем из локальной базы данных
         loadProductsFromLocalDB();
 
         ImageButton btnBack = view.findViewById(R.id.btnBackProducts);
@@ -78,19 +81,16 @@ public class ProductFragment extends BaseFragment {
     }
 
     private void loadProductsFromLocalDB() {
-        // Фоновый поток для Room
         new Thread(() -> {
             AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
-            // Получаем сущности из базы (те, что скачали в SyncFragment)
             List<ProductEntity> entities = db.productDao().getAllProductsSync();
 
             List<Product> products = new ArrayList<>();
             for (ProductEntity e : entities) {
-                // Преобразуем Entity обратно в модель Product
-                products.add(new Product(e.name, e.price, e.itemsPerBox, e.barcode, e.category));
+                // ИСПРАВЛЕНО: Добавлен stockQuantity в конструктор Product
+                products.add(new Product(e.name, e.price, e.itemsPerBox, e.barcode, e.category, e.stockQuantity));
             }
 
-            // Обновляем UI
             requireActivity().runOnUiThread(() -> {
                 allProducts = products;
                 if (allProducts.isEmpty()) {
@@ -110,18 +110,17 @@ public class ProductFragment extends BaseFragment {
             }
         }
 
-        // Обновляем список в существующем адаптере или создаем новый
+        // ИСПРАВЛЕНО: передаем флаг отображения остатков в конструктор
+        boolean showStock = isOrderMode && !isActuallyReturn;
+
         adapter = new ProductAdapter(filteredList, product -> {
             if (isOrderMode || isActuallyReturn) showQuantityDialog(product);
             else showProductInfo(product);
-        });
+        }, showStock);
 
         RecyclerView rv = getView().findViewById(R.id.recyclerViewProducts);
         if (rv != null) rv.setAdapter(adapter);
     }
-
-    // Методы showQuantityDialog и showProductInfo остаются без изменений,
-    // так как они и так работали с локальными данными и диалогами.
 
     private void showQuantityDialog(Product product) {
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
@@ -131,6 +130,9 @@ public class ProductFragment extends BaseFragment {
 
         TextView tvTitle = view.findViewById(R.id.tvSheetTitle);
         EditText etQuantity = view.findViewById(R.id.etSheetQuantity);
+
+        // УДАЛЕНО: tvStock (остаток в диалоге больше не показываем)
+
         View btnPlus = view.findViewById(R.id.btnPlus);
         View btnMinus = view.findViewById(R.id.btnMinus);
         com.google.android.material.button.MaterialButton btnConfirm = view.findViewById(R.id.btnConfirm);
@@ -163,7 +165,13 @@ public class ProductFragment extends BaseFragment {
         btnPlus.setOnClickListener(v -> {
             String s = etQuantity.getText().toString();
             int val = Integer.parseInt(s.isEmpty() ? "0" : s);
-            etQuantity.setText(String.valueOf(val + 1));
+
+            // Оставляем только логику ограничения (без текста)
+            if (!isActuallyReturn && val >= product.getStockQuantity()) {
+                Toast.makeText(getContext(), "Достигнут лимит склада", Toast.LENGTH_SHORT).show();
+            } else {
+                etQuantity.setText(String.valueOf(val + 1));
+            }
         });
 
         btnMinus.setOnClickListener(v -> {
@@ -182,8 +190,13 @@ public class ProductFragment extends BaseFragment {
         btnConfirm.setOnClickListener(v -> {
             String qtyS = etQuantity.getText().toString();
             int qty = qtyS.isEmpty() ? 0 : Integer.parseInt(qtyS);
-            CartManager.getInstance().addProduct(product.getName(), qty, product.getPrice());
-            dialog.dismiss();
+
+            if (!isActuallyReturn && qty > product.getStockQuantity()) {
+                Toast.makeText(getContext(), "Недостаточно на складе", Toast.LENGTH_SHORT).show();
+            } else {
+                CartManager.getInstance().addProduct(product.getName(), qty, product.getPrice());
+                dialog.dismiss();
+            }
         });
 
         dialog.show();
@@ -193,10 +206,14 @@ public class ProductFragment extends BaseFragment {
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
         View view = getLayoutInflater().inflate(R.layout.dialog_product_info, null);
         dialog.setContentView(view);
-        ((TextView)view.findViewById(R.id.tvInfoName)).setText(product.getName());
-        ((TextView)view.findViewById(R.id.tvInfoPrice)).setText("Цена: " + product.getPrice() + " ֏");
-        ((TextView)view.findViewById(R.id.tvInfoBarcode)).setText("Штрих код: " + product.getBarcode());
-        ((TextView)view.findViewById(R.id.tvInfoBoxCount)).setText("В упаковке: " + product.getItemsPerBox());
+
+        ((TextView) view.findViewById(R.id.tvInfoName)).setText(product.getName());
+        ((TextView) view.findViewById(R.id.tvInfoPrice)).setText("Цена: " + product.getPrice() + " ֏");
+        ((TextView) view.findViewById(R.id.tvInfoBarcode)).setText("Штрих код: " + product.getBarcode());
+        ((TextView) view.findViewById(R.id.tvInfoBoxCount)).setText("В упаковке: " + product.getItemsPerBox());
+
+        // УДАЛЕНО: Любое упоминание остатка в инфо-диалоге
+
         view.findViewById(R.id.btnCloseInfo).setOnClickListener(v -> dialog.dismiss());
         dialog.show();
     }

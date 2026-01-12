@@ -37,6 +37,12 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.ViewHo
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         String category = mData.get(position);
         holder.textView.setText(category);
+
+        // ИСПРАВЛЕНО: Скрываем поле остатка, так как это список категорий
+        if (holder.tvStock != null) {
+            holder.tvStock.setVisibility(View.GONE);
+        }
+
         holder.itemView.setOnClickListener(v -> mListener.onItemClick(category));
     }
 
@@ -47,11 +53,12 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.ViewHo
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView textView;
+        TextView tvStock; // ИСПРАВЛЕНО: Добавлено поле для остатка
 
         public ViewHolder(View itemView) {
             super(itemView);
             textView = itemView.findViewById(R.id.tvCategoryName);
+            tvStock = itemView.findViewById(R.id.tvStockQuantity); // ИСПРАВЛЕНО: Привязка нового ID
         }
     }
 }
-

@@ -84,34 +84,57 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
             List<CartEntity> cartItems = db.cartDao().getCartItemsSync();
 
             if (cartItems == null || cartItems.isEmpty()) {
-                requireActivity().runOnUiThread(() -> Toast.makeText(getContext(), "Корзина пуста!", Toast.LENGTH_SHORT).show());
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(getContext(), "Корзина пуста!", Toast.LENGTH_SHORT).show());
                 return;
             }
 
+            // 1. ПРОВЕРКА ОСТАТКОВ ПЕРЕД СОХРАНЕНИЕМ
+            StringBuilder outOfStockItems = new StringBuilder();
+            for (CartEntity item : cartItems) {
+                // Получаем актуальный остаток из локальной таблицы продуктов
+                int currentStock = db.productDao().getStockByName(item.productName);
+                if (item.quantity > currentStock) {
+                    outOfStockItems.append("• ").append(item.productName)
+                            .append(": в заказе ").append(item.quantity)
+                            .append(", на складе ").append(currentStock).append("\n");
+                }
+            }
+
+            // Если есть товары с превышением остатка — показываем диалог и выходим
+            if (outOfStockItems.length() > 0) {
+                requireActivity().runOnUiThread(() -> {
+                    new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                            .setTitle("Недостаточно товара")
+                            .setMessage("Следующие позиции превышают остаток на складе:\n\n" + outOfStockItems.toString()
+                                    + "\nПожалуйста, исправьте количество во вкладке 'Заказ'.")
+                            .setPositiveButton("Понятно", null)
+                            .show();
+                });
+                return;
+            }
+
+            // 2. ФОРМИРОВАНИЕ ЗАКАЗА
             OrderEntity order = new OrderEntity();
             if (orderIdToUpdate != -1) order.id = orderIdToUpdate;
 
             order.shopName = tvStoreName.getText().toString();
             order.status = "PENDING";
-            order.managerId = SessionManager.getInstance().getManagerId();
+            order.managerId = com.sellion.mobile.managers.SessionManager.getInstance().getManagerId();
             order.deliveryDate = CartManager.getInstance().getDeliveryDate();
             order.paymentMethod = CartManager.getInstance().getPaymentMethod();
             order.needsSeparateInvoice = CartManager.getInstance().isSeparateInvoice();
 
-
-            // РАСЧЕТ ИТОГОВОЙ СУММЫ ПЕРЕД СОХРАНЕНИЕМ
             double total = 0;
             Map<String, Integer> map = new HashMap<>();
             for (CartEntity item : cartItems) {
                 map.put(item.productName, item.quantity);
-                total += (item.price * item.quantity); // Считаем сумму
+                total += (item.price * item.quantity);
             }
             order.items = map;
-            order.totalAmount = total; // СОХРАНЯЕМ СУММУ В ПОЛЕ
+            order.totalAmount = total;
 
-
-
-
+            // 3. ЗАПИСЬ В БД
             db.orderDao().insert(order);
 
             requireActivity().runOnUiThread(() -> {

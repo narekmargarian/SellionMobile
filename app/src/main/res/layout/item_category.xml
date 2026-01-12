@@ -6,16 +6,34 @@
     android:background="#FFFFFF"
     android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/tvCategoryName"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:text="Название"
-        android:textColor="#000000"
-        android:textSize="18sp" />
+        android:orientation="vertical"
+        android:padding="16dp">
 
-    <!-- Тонкая серая линия-разделитель между пунктами -->
+        <!-- Название товара и цена -->
+        <TextView
+            android:id="@+id/tvCategoryName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Название товара"
+            android:textColor="#000000"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <!-- НОВОЕ: Отображение остатка на складе -->
+        <TextView
+            android:id="@+id/tvStockQuantity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Остаток: 0 шт."
+            android:textColor="#757575"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- Тонкая серая линия-разделитель -->
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"

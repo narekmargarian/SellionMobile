@@ -20,6 +20,10 @@ public interface ProductDao {
     @Query("SELECT price FROM products WHERE name = :productName LIMIT 1")
     double getPriceByName(String productName);
 
+    // НОВЫЙ МЕТОД ДЛЯ ПРОВЕРКИ ОСТАТКА
+    @Query("SELECT stockQuantity FROM products WHERE name = :productName LIMIT 1")
+    int getStockByName(String productName);
+
     @Query("DELETE FROM products")
     void deleteAll();
 }

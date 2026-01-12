@@ -80,7 +80,6 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
     }
 
     private void saveReturnToDatabase() {
-        // Получаем ID, если это редактирование существующего возврата
         final int returnIdToUpdate = getArguments() != null ? getArguments().getInt("return_id_to_update", -1) : -1;
 
         new Thread(() -> {
@@ -93,7 +92,6 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
                 return;
             }
 
-            // ИСПРАВЛЕНО: Используем ReturnEntity вместо OrderEntity
             ReturnEntity ret = new ReturnEntity();
             if (returnIdToUpdate != -1) {
                 ret.id = returnIdToUpdate;
@@ -101,25 +99,27 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
 
             ret.shopName = tvStoreName.getText().toString();
             ret.status = "PENDING";
-            ret.managerId = SessionManager.getInstance().getManagerId();
 
-            // Текущая дата для возврата
+            // 1. Устанавливаем ID менеджера из сессии
+            ret.managerId = com.sellion.mobile.managers.SessionManager.getInstance().getManagerId();
+
             ret.returnDate = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(new Date());
-
-            // Берем причину возврата (обычно из CartManager или спец. поля)
             ret.returnReason = CartManager.getInstance().getReturnReason();
 
-            // Собираем товары
+            // 2. Считаем итоговую сумму возврата
             Map<String, Integer> map = new HashMap<>();
-            for (CartEntity item : cartItems) map.put(item.productName, item.quantity);
+            double total = 0;
+            for (CartEntity item : cartItems) {
+                map.put(item.productName, item.quantity);
+                total += (item.price * item.quantity); // Суммируем
+            }
             ret.items = map;
+            ret.totalAmount = total; // Сохраняем сумму в Entity
 
-            // ИСПРАВЛЕНО: Сохраняем именно в returnDao
             db.returnDao().insert(ret);
 
             requireActivity().runOnUiThread(() -> {
                 CartManager.getInstance().clearCart();
-                // Возвращаемся в список возвратов (или Dashboard)
                 Toast.makeText(getContext(), "Возврат сохранен локально", Toast.LENGTH_SHORT).show();
                 NavigationHelper.finishAndGoTo(getParentFragmentManager(), new ReturnsFragment());
             });

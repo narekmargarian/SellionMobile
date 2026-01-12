@@ -9,10 +9,13 @@ import java.util.Map;
 public class ReturnEntity {
     @PrimaryKey(autoGenerate = true)
     public int id;
+
     public String shopName;
     public Map<String, Integer> items;
     public String returnReason;
     public String returnDate;
     public String status; // PENDING, SENT
-    public String managerId; // Добавь это поле!
+
+    public String managerId;   // КТО отправил
+    public double totalAmount; // СУММА возврата
 }

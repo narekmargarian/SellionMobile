@@ -143,7 +143,13 @@ public class SyncFragment extends BaseFragment {
                 if (productResponse.isSuccessful() && productResponse.body() != null) {
                     List<ProductEntity> productEntities = new ArrayList<>();
                     for (Product p : productResponse.body()) {
-                        productEntities.add(new ProductEntity(p.getName(), p.getPrice(), p.getItemsPerBox(), p.getBarcode(), p.getCategory()));
+                        productEntities.add(new ProductEntity(
+                                p.getName(),
+                                p.getPrice(),
+                                p.getItemsPerBox(),
+                                p.getBarcode(),
+                                p.getCategory(),
+                                p.getStockQuantity()));
                     }
                     db.productDao().insertAll(productEntities);
                 } else {
