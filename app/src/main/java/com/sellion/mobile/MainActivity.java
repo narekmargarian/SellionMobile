@@ -3,6 +3,7 @@ package com.sellion.mobile;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.AutoCompleteTextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -15,6 +16,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.sellion.mobile.activities.HostActivity;
+import com.sellion.mobile.managers.SessionManager;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -37,27 +39,30 @@ public class MainActivity extends AppCompatActivity {
         }
 
         final TextInputLayout textInputLayout = findViewById(R.id.textInputLayoutManager);
-        final TextInputEditText etManager = findViewById(R.id.editTextManager);
+        final AutoCompleteTextView etManager = findViewById(R.id.editTextManager);
         final String[] managers = {"1011", "1012", "1013", "1014", "1015"};
 
         View.OnClickListener showDialog = v -> {
-            // Используем Material-диалог со светлой темой
             new MaterialAlertDialogBuilder(MainActivity.this)
                     .setTitle("Выберите менеджера")
                     .setItems(managers, (dialog, which) -> {
                         String selectedManager = managers[which];
                         etManager.setText(selectedManager);
 
-                        // Переход в HostActivity
+                        // Сохраняем в сессию, чтобы DashboardFragment его увидел
+                        SessionManager.getInstance().setManagerId(selectedManager);
+
                         Intent intent = new Intent(MainActivity.this, HostActivity.class);
                         intent.putExtra("MANAGER_ID", selectedManager);
                         startActivity(intent);
+                        finish(); // Закрываем экран входа
                     })
                     .show();
         };
 
-        // Клик работает и по самому полю, и по иконкам рядом
         etManager.setOnClickListener(showDialog);
         textInputLayout.setOnClickListener(showDialog);
+// ОБЯЗАТЕЛЬНО: Клик по иконке стрелочки выпадающего списка
+        textInputLayout.setEndIconOnClickListener(showDialog);
     }
 }

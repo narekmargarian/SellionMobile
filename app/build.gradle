@@ -49,5 +49,6 @@ dependencies {
     implementation libs.lifecycle.livedata
     implementation libs.work.runtime
     implementation libs.gson
+    implementation libs.material.v1120
 
 }

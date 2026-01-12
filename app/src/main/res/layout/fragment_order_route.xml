@@ -3,50 +3,59 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:background="#F8F9FA">
 
-    <!-- Шапка -->
+    <!-- Шапка (Toolbar) -->
     <androidx.appcompat.widget.Toolbar
+        android:id="@+id/orderToolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="#FFFFFF"
-        android:elevation="4dp">
+        app:elevation="2dp">
 
         <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:layout_marginEnd="16dp">
 
-
-
-            <!-- Выбор дня недели по центру -->
+            <!-- Кнопка-капсула выбора дня по центру -->
             <LinearLayout
                 android:id="@+id/OrderLayoutSelectDay"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="40dp"
                 android:layout_centerInParent="true"
-                android:orientation="horizontal"
+                android:background="@drawable/bg_pill_selector"
                 android:clickable="true"
-                android:focusable="true">
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp">
 
                 <TextView
                     android:id="@+id/OrderTvCurrentDay"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium"
                     android:text="Понедельник"
                     android:textColor="#1B1B1F"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
+                    android:textSize="17sp" />
 
                 <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:layout_gravity="center_vertical"
-                    android:layout_marginStart="4dp"
-                    android:src="@drawable/ic_more" /> <!-- Твоя иконка точек или стрелка вниз -->
+                    android:id="@+id/OrderIvArrow"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_marginStart="6dp"
+                    android:alpha="0.7"
+                    android:src="@drawable/ic_chevron_down"
+                    app:tint="#1B1B1F" />
             </LinearLayout>
+
         </RelativeLayout>
     </androidx.appcompat.widget.Toolbar>
+
+
 
     <!-- Список магазинов на выбранный день -->
     <androidx.recyclerview.widget.RecyclerView

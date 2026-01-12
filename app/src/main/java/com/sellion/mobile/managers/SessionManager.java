@@ -16,4 +16,9 @@ public class SessionManager {
     public String getManagerId() {
         return managerId;
     }
+
+    // ДОБАВЬТЕ ЭТОТ МЕТОД:
+    public void clearSession() {
+        this.managerId = null;
+    }
 }
