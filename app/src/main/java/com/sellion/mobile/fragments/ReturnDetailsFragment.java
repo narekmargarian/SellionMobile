@@ -20,16 +20,13 @@ import com.google.android.material.tabs.TabLayoutMediator;
 import com.sellion.mobile.R;
 import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.CartEntity;
-import com.sellion.mobile.entity.OrderEntity;
 import com.sellion.mobile.entity.ReturnEntity;
 import com.sellion.mobile.handler.BackPressHandler;
 import com.sellion.mobile.helper.NavigationHelper;
 import com.sellion.mobile.managers.CartManager;
-import com.sellion.mobile.managers.ReturnManager;
 import com.sellion.mobile.managers.SessionManager;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -40,6 +37,9 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
 
     private TextView tvStoreName;
     private ViewPager2 viewPager;
+
+    String currentDateTime = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", new Locale("ru"))
+            .format(new java.util.Date());
 
     @Nullable
     @Override
@@ -67,9 +67,15 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
 
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             switch (position) {
-                case 0: tab.setText("Товары"); break;
-                case 1: tab.setText("Возврат"); break;
-                case 2: tab.setText("Причина"); break;
+                case 0:
+                    tab.setText("Товары");
+                    break;
+                case 1:
+                    tab.setText("Возврат");
+                    break;
+                case 2:
+                    tab.setText("Причина");
+                    break;
             }
         }).attach();
 
@@ -101,10 +107,13 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
             ret.status = "PENDING";
 
             // 1. Устанавливаем ID менеджера из сессии
-            ret.managerId = com.sellion.mobile.managers.SessionManager.getInstance().getManagerId();
+            ret.managerId = SessionManager.getInstance().getManagerId();
 
-            ret.returnDate = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(new Date());
+            ret.returnDate = CartManager.getInstance().getReturnDate();
             ret.returnReason = CartManager.getInstance().getReturnReason();
+            ret.createdAt = currentDateTime;
+
+
 
             // 2. Считаем итоговую сумму возврата
             Map<String, Integer> map = new HashMap<>();
@@ -158,17 +167,27 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
     }
 
     private static class ReturnPagerAdapter extends FragmentStateAdapter {
-        public ReturnPagerAdapter(@NonNull Fragment fragment) { super(fragment); }
+        public ReturnPagerAdapter(@NonNull Fragment fragment) {
+            super(fragment);
+        }
+
         @Override
-        public int getItemCount() { return 3; }
+        public int getItemCount() {
+            return 3;
+        }
+
         @NonNull
         @Override
         public Fragment createFragment(int position) {
             switch (position) {
-                case 0: return new CatalogFragment();
-                case 1: return new CurrentReturnFragment();
-                case 2: return new ReturnInfoFragment();
-                default: return new CatalogFragment();
+                case 0:
+                    return new CatalogFragment();
+                case 1:
+                    return new CurrentReturnFragment();
+                case 2:
+                    return new ReturnInfoFragment();
+                default:
+                    return new CatalogFragment();
             }
         }
     }

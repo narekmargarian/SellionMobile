@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.CartEntity;
+import com.sellion.mobile.entity.PaymentMethod;
 
 import java.util.HashMap;
 import java.util.List;
@@ -19,11 +20,13 @@ public class CartManager {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private String deliveryDate = "";
-    private String paymentMethod = "Наличный расчет";
-    private boolean isSeparateInvoice = false;
 
-    // ДОБАВЛЕНО: Поле для причины возврата
+    // ИЗМЕНЕНО: Тип поля теперь PaymentMethod
+    private PaymentMethod paymentMethod = PaymentMethod.Перевод;
+
+    private boolean isSeparateInvoice = false;
     private String returnReason = "Не указана";
+    private String returnDate = "";
 
     private CartManager(Context context) {
         db = AppDatabase.getInstance(context);
@@ -68,19 +71,32 @@ public class CartManager {
     public void clearCart() {
         executor.execute(() -> db.cartDao().clearCart());
         deliveryDate = "";
-        paymentMethod = "Наличный расчет";
+        // ИЗМЕНЕНО: Значение по умолчанию из Enum
+        paymentMethod = PaymentMethod.Перевод;
         isSeparateInvoice = false;
-        returnReason = "Не указана"; // Очищаем причину при очистке корзины
+        returnReason = "Не указана";
     }
 
     public String getDeliveryDate() { return deliveryDate; }
     public void setDeliveryDate(String d) { this.deliveryDate = d; }
-    public String getPaymentMethod() { return paymentMethod; }
-    public void setPaymentMethod(String m) { this.paymentMethod = m; }
+
+    public PaymentMethod getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(PaymentMethod m) { this.paymentMethod = m; }
+
     public boolean isSeparateInvoice() { return isSeparateInvoice; }
     public void setSeparateInvoice(boolean s) { this.isSeparateInvoice = s; }
 
-    // ДОБАВЛЕНО: Геттер и Сеттер для причины возврата
     public String getReturnReason() { return returnReason; }
-    public void setReturnReason(String reason) { this.returnReason = reason; }
+
+    public void setReturnReason(String returnReason) {
+        this.returnReason = returnReason;
+    }
+
+    public String getReturnDate() {
+        return returnDate;
+    }
+
+    public void setReturnDate(String returnDate) {
+        this.returnDate = returnDate;
+    }
 }

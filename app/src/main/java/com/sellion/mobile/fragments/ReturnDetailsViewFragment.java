@@ -86,8 +86,8 @@ public class ReturnDetailsViewFragment extends BaseFragment {
 
                             if (getActivity() != null) {
                                 getActivity().runOnUiThread(() -> {
-                                    ReturnManager.getInstance().setReturnReason(finalReturn.returnReason);
-                                    ReturnManager.getInstance().setReturnDate(finalReturn.returnDate);
+                                    CartManager.getInstance().setReturnReason(finalReturn.returnReason);
+                                    CartManager.getInstance().setReturnDate(finalReturn.returnDate);
 
                                     ReturnDetailsFragment fragment = new ReturnDetailsFragment();
                                     Bundle args = new Bundle();

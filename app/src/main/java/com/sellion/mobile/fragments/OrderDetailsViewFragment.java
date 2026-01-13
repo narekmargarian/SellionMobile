@@ -27,7 +27,7 @@ public class OrderDetailsViewFragment extends BaseFragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_order_details_view, container, false);
 
-        // Получаем данные из аргументов
+        // ... (получение аргументов и поиск вьюх без изменений)
         String shopName = getArguments() != null ? getArguments().getString("order_shop_name") : "";
         int orderId = getArguments() != null ? getArguments().getInt("order_id", -1) : -1;
 
@@ -43,32 +43,28 @@ public class OrderDetailsViewFragment extends BaseFragment {
         tvTitle.setText(shopName);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // --- РАБОТА С ROOM И LIVEDATA ---
         AppDatabase db = AppDatabase.getInstance(requireContext());
 
         db.orderDao().getAllOrdersLive().observe(getViewLifecycleOwner(), orders -> {
             OrderEntity currentOrder = null;
-
             for (OrderEntity o : orders) {
                 if (orderId != -1) {
-                    if (o.id == orderId) {
-                        currentOrder = o;
-                        break;
-                    }
+                    if (o.id == orderId) { currentOrder = o; break; }
                 } else if (o.shopName.equals(shopName)) {
-                    currentOrder = o;
-                    break;
+                    currentOrder = o; break;
                 }
             }
 
             if (currentOrder != null) {
                 final OrderEntity finalOrder = currentOrder;
 
-                tvPaymentMethod.setText("Оплата: " + (finalOrder.paymentMethod != null ? finalOrder.paymentMethod : "Не указано"));
+                // ИСПРАВЛЕНО: Отображение текста оплаты (toString() или name())
+                String paymentText = (finalOrder.paymentMethod != null) ? finalOrder.paymentMethod.name() : "Не указано";
+                tvPaymentMethod.setText("Оплата: " + paymentText);
+
                 tvInvoiceStatus.setText("Раздельная фактура: " + (finalOrder.needsSeparateInvoice ? "Да" : "Нет"));
                 tvDate.setText("Дата доставки: " + (finalOrder.deliveryDate != null ? finalOrder.deliveryDate : "Не указано"));
 
-                // --- ИСПРАВЛЕННЫЙ ВЫЗОВ РАСЧЕТА ---
                 calculateTotal(finalOrder, tvTotalSum);
 
                 if (finalOrder.items != null) {
@@ -82,7 +78,6 @@ public class OrderDetailsViewFragment extends BaseFragment {
                     btnEdit.setOnClickListener(v -> {
                         CartManager.getInstance().clearCart();
                         if (finalOrder.items != null) {
-                            // Для редактирования нам тоже нужны цены из БД
                             new Thread(() -> {
                                 for (Map.Entry<String, Integer> entry : finalOrder.items.entrySet()) {
                                     double price = db.productDao().getPriceByName(entry.getKey());
@@ -92,13 +87,17 @@ public class OrderDetailsViewFragment extends BaseFragment {
                                 if (getActivity() != null) {
                                     getActivity().runOnUiThread(() -> {
                                         CartManager.getInstance().setDeliveryDate(finalOrder.deliveryDate);
+
+                                        // ИСПРАВЛЕНО: Теперь передаем объект PaymentMethod напрямую,
+                                        // так как мы обновили CartManager
                                         CartManager.getInstance().setPaymentMethod(finalOrder.paymentMethod);
+
                                         CartManager.getInstance().setSeparateInvoice(finalOrder.needsSeparateInvoice);
 
                                         OrderDetailsFragment editFrag = new OrderDetailsFragment();
                                         Bundle b = new Bundle();
                                         b.putString("store_name", finalOrder.shopName);
-                                        b.putInt("order_id_to_update", finalOrder.id); // ПЕРЕДАЕМ ID
+                                        b.putInt("order_id_to_update", finalOrder.id);
                                         editFrag.setArguments(b);
 
                                         getParentFragmentManager().beginTransaction()
@@ -115,31 +114,24 @@ public class OrderDetailsViewFragment extends BaseFragment {
         });
 
         btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
-        setupBackButton(btnBack, false);
-
         return view;
     }
 
-    // --- ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ МЕТОД БЕЗ ХАРДКОДА ЦЕН ---
+    // calculateTotal остается без изменений
     private void calculateTotal(OrderEntity order, TextView tvTotalSum) {
         new Thread(() -> {
             double totalSum = 0;
             int totalQty = 0;
             AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
-
             if (order.items != null) {
                 for (Map.Entry<String, Integer> entry : order.items.entrySet()) {
-                    int qty = entry.getValue();
-                    // Получаем цену из БД по имени товара
                     double price = db.productDao().getPriceByName(entry.getKey());
-                    totalSum += (price * qty);
-                    totalQty += qty;
+                    totalSum += (price * entry.getValue());
+                    totalQty += entry.getValue();
                 }
             }
-
             final double finalSum = totalSum;
             final int finalQty = totalQty;
-
             if (tvTotalSum != null && getActivity() != null) {
                 tvTotalSum.post(() ->
                         tvTotalSum.setText(String.format("Товаров: %d шт. | Итого: %,.0f ֏", finalQty, finalSum))

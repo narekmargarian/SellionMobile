@@ -15,12 +15,14 @@ import androidx.annotation.Nullable;
 
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.sellion.mobile.R;
+import com.sellion.mobile.entity.PaymentMethod;
 import com.sellion.mobile.managers.CartManager;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
+import java.util.TimeZone;
 
 public class OrderInfoFragment extends BaseFragment {
     private TextView tvDeliveryDate;
@@ -36,7 +38,6 @@ public class OrderInfoFragment extends BaseFragment {
         CheckBox checkboxSeparateInvoice = view.findViewById(R.id.checkboxSeparateInvoice);
         LinearLayout layoutSelectDeliveryDate = view.findViewById(R.id.layoutSelectDeliveryDate);
 
-
         // 1. Проверяем дату
         String savedDate = CartManager.getInstance().getDeliveryDate();
         if (savedDate != null && !savedDate.isEmpty()) {
@@ -49,9 +50,9 @@ public class OrderInfoFragment extends BaseFragment {
             CartManager.getInstance().setDeliveryDate(defaultDate);
         }
 
-        // 2. Проверяем оплату
-        String savedPayment = CartManager.getInstance().getPaymentMethod();
-        if ("Банковский перевод".equals(savedPayment)) {
+        // 2. ИСПРАВЛЕНО: Проверяем оплату через Enum
+        PaymentMethod savedPayment = CartManager.getInstance().getPaymentMethod();
+        if (savedPayment == PaymentMethod.Перевод) {
             radioGroupPaymentMethod.check(R.id.radioTransfer);
         } else {
             radioGroupPaymentMethod.check(R.id.radioCash);
@@ -60,7 +61,7 @@ public class OrderInfoFragment extends BaseFragment {
         // 3. Проверяем чекбокс
         checkboxSeparateInvoice.setChecked(CartManager.getInstance().isSeparateInvoice());
 
-        // --- СЛУШАТЕЛИ (ЗАПИСЬ ИЗМЕНЕНИЙ) ---
+        // --- СЛУШАТЕЛИ ---
 
         layoutSelectDeliveryDate.setOnClickListener(v -> showDatePicker());
 
@@ -68,10 +69,12 @@ public class OrderInfoFragment extends BaseFragment {
             CartManager.getInstance().setSeparateInvoice(isChecked);
         });
 
+        // ИСПРАВЛЕНО: Сохраняем в CartManager объект Enum вместо String
         radioGroupPaymentMethod.setOnCheckedChangeListener((group, checkedId) -> {
-            RadioButton rb = group.findViewById(checkedId);
-            if (rb != null) {
-                CartManager.getInstance().setPaymentMethod(rb.getText().toString());
+            if (checkedId == R.id.radioTransfer) {
+                CartManager.getInstance().setPaymentMethod(PaymentMethod.Перевод);
+            } else if (checkedId == R.id.radioCash) {
+                CartManager.getInstance().setPaymentMethod(PaymentMethod.Наличный);
             }
         });
 
@@ -85,7 +88,10 @@ public class OrderInfoFragment extends BaseFragment {
                 .build();
 
         datePicker.addOnPositiveButtonClickListener(selection -> {
-            String selectedDate = dateFormat.format(new Date(selection));
+            // Используем UTC, чтобы избежать смещения даты из-за часовых поясов
+            Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+            calendar.setTimeInMillis(selection);
+            String selectedDate = dateFormat.format(calendar.getTime());
             tvDeliveryDate.setText(selectedDate);
             CartManager.getInstance().setDeliveryDate(selectedDate);
         });

@@ -18,4 +18,5 @@ public class ReturnEntity {
 
     public String managerId;   // КТО отправил
     public double totalAmount; // СУММА возврата
+    public String createdAt;
 }

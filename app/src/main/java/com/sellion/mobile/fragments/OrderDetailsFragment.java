@@ -26,13 +26,19 @@ import com.sellion.mobile.helper.NavigationHelper;
 import com.sellion.mobile.managers.CartManager;
 import com.sellion.mobile.managers.SessionManager;
 
+import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class OrderDetailsFragment extends BaseFragment implements BackPressHandler {
     private TextView tvStoreName;
     private ViewPager2 viewPager;
+
+
+    String currentDateTime = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", new Locale("ru"))
+            .format(new java.util.Date());
 
     @Nullable
     @Override
@@ -124,6 +130,7 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
             order.deliveryDate = CartManager.getInstance().getDeliveryDate();
             order.paymentMethod = CartManager.getInstance().getPaymentMethod();
             order.needsSeparateInvoice = CartManager.getInstance().isSeparateInvoice();
+            order.createdAt=currentDateTime;
 
             double total = 0;
             Map<String, Integer> map = new HashMap<>();

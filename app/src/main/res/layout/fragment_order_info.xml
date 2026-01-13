@@ -70,7 +70,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:checked="true"
-                android:text="Наличный расчет"
+                android:text="Наличный / перевод"
                 android:textColor="#000000"
                 android:textSize="16sp"
                 app:buttonTint="#000000" />

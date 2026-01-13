@@ -15,10 +15,12 @@ public class OrderEntity {
     public Map<String, Integer> items;
     public String status; // "PENDING" или "SENT"
     public String deliveryDate;
-    public String paymentMethod;
+    public PaymentMethod paymentMethod;
     public boolean needsSeparateInvoice;
     public String managerId; // Добавь это поле!
     public double totalAmount;
+    public String createdAt;
+
 
 }
 

@@ -14,6 +14,7 @@ import androidx.annotation.Nullable;
 
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.sellion.mobile.R;
+import com.sellion.mobile.managers.CartManager;
 import com.sellion.mobile.managers.ReturnManager;
 
 import java.text.SimpleDateFormat;
@@ -24,7 +25,6 @@ import java.util.Locale;
 
 public class ReturnInfoFragment extends BaseFragment {
     private TextView tvReturnDate;
-    private RadioGroup radioGroupReason;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy", new Locale("ru"));
 
     @Nullable
@@ -33,11 +33,11 @@ public class ReturnInfoFragment extends BaseFragment {
         View view = inflater.inflate(R.layout.fragment_return_info, container, false);
 
         tvReturnDate = view.findViewById(R.id.tvReturnDate);
-        radioGroupReason = view.findViewById(R.id.radioGroupReturnReason);
+        RadioGroup radioGroupReason = view.findViewById(R.id.radioGroupReturnReason);
         LinearLayout layoutSelectDate = view.findViewById(R.id.layoutSelectReturnDate);
 
         // --- ВАША ЛОГИКА (Дата на 1 день вперед) ---
-        String savedDate = ReturnManager.getInstance().getReturnDate();
+        String savedDate = CartManager.getInstance().getReturnDate();
         if (savedDate != null && !savedDate.isEmpty()) {
             tvReturnDate.setText(savedDate);
         } else {
@@ -45,11 +45,11 @@ public class ReturnInfoFragment extends BaseFragment {
             calendar.add(Calendar.DAY_OF_MONTH, 1); // Устанавливаем ЗАВТРА
             String defaultDate = dateFormat.format(calendar.getTime());
             tvReturnDate.setText(defaultDate);
-            ReturnManager.getInstance().setReturnDate(defaultDate);
+            CartManager.getInstance().setReturnDate(defaultDate);
         }
 
         // --- ВОССТАНОВЛЕНИЕ ПРИЧИНЫ ---
-        String savedReason = ReturnManager.getInstance().getReturnReason();
+        String savedReason = CartManager.getInstance().getReturnReason();
         for (int i = 0; i < radioGroupReason.getChildCount(); i++) {
             RadioButton rb = (RadioButton) radioGroupReason.getChildAt(i);
             if (rb.getText().toString().equals(savedReason)) {
@@ -63,7 +63,7 @@ public class ReturnInfoFragment extends BaseFragment {
         radioGroupReason.setOnCheckedChangeListener((group, checkedId) -> {
             RadioButton rb = group.findViewById(checkedId);
             if (rb != null) {
-                ReturnManager.getInstance().setReturnReason(rb.getText().toString());
+                CartManager.getInstance().setReturnReason(rb.getText().toString());
             }
         });
 
@@ -75,7 +75,7 @@ public class ReturnInfoFragment extends BaseFragment {
         datePicker.addOnPositiveButtonClickListener(selection -> {
             String selectedDate = dateFormat.format(new Date(selection));
             tvReturnDate.setText(selectedDate);
-            ReturnManager.getInstance().setReturnDate(selectedDate);
+            CartManager.getInstance().setReturnDate(selectedDate);
         });
         datePicker.show(getChildFragmentManager(), "DATE_PICKER");
     }
