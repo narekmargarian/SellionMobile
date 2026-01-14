@@ -27,6 +27,7 @@ import com.sellion.mobile.managers.CartManager;
 import com.sellion.mobile.managers.SessionManager;
 
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -38,7 +39,7 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
 
 
     String currentDateTime = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", new Locale("ru"))
-            .format(new java.util.Date());
+            .format(new Date());
 
     @Nullable
     @Override

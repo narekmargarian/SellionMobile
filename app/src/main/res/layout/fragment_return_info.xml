@@ -78,7 +78,7 @@
                 android:id="@+id/reasonMarriage"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Брак"
+                android:text="Поврежденная упаковка"
                 android:textSize="16sp"
                 app:buttonTint="#000000" />
 
@@ -87,7 +87,7 @@
                 android:id="@+id/reasonWarehouse"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Возврат в склад"
+                android:text="На склад"
                 android:textSize="16sp"
                 app:buttonTint="#000000" />
 

@@ -14,6 +14,7 @@ import androidx.annotation.Nullable;
 
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.sellion.mobile.R;
+import com.sellion.mobile.entity.ReturnReason;
 import com.sellion.mobile.managers.CartManager;
 import com.sellion.mobile.managers.ReturnManager;
 
@@ -49,12 +50,15 @@ public class ReturnInfoFragment extends BaseFragment {
         }
 
         // --- ВОССТАНОВЛЕНИЕ ПРИЧИНЫ ---
-        String savedReason = CartManager.getInstance().getReturnReason();
-        for (int i = 0; i < radioGroupReason.getChildCount(); i++) {
-            RadioButton rb = (RadioButton) radioGroupReason.getChildAt(i);
-            if (rb.getText().toString().equals(savedReason)) {
-                rb.setChecked(true);
-                break;
+        ReturnReason savedReason = CartManager.getInstance().getReturnReason();
+        if (savedReason != null) {
+            for (int i = 0; i < radioGroupReason.getChildCount(); i++) {
+                RadioButton rb = (RadioButton) radioGroupReason.getChildAt(i);
+                // 2. Вызываем .getTitle(), чтобы получить строку для сравнения
+                if (rb.getText().toString().equals(savedReason.getTitle())) {
+                    rb.setChecked(true);
+                    break;
+                }
             }
         }
 
@@ -63,7 +67,14 @@ public class ReturnInfoFragment extends BaseFragment {
         radioGroupReason.setOnCheckedChangeListener((group, checkedId) -> {
             RadioButton rb = group.findViewById(checkedId);
             if (rb != null) {
-                CartManager.getInstance().setReturnReason(rb.getText().toString());
+                String text = rb.getText().toString();
+                for (ReturnReason reason : ReturnReason.values()) {
+                    if (reason.getTitle().equals(text)) {
+                        // ПЕРЕДАЕМ ОБЪЕКТ reason (тип ReturnReason), а не строку
+                        CartManager.getInstance().setReturnReason(reason);
+                        break;
+                    }
+                }
             }
         });
 

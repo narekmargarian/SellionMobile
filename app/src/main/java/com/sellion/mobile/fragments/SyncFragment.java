@@ -195,7 +195,11 @@ public class SyncFragment extends BaseFragment {
                 // Ошибка сети (сервер выключен)
                 requireActivity().runOnUiThread(() -> {
                     progressDialog.dismiss();
-                    showSyncError("Сервер недоступен. Проверьте подключение к офисной сети.");
+
+                    showSyncError("Сервер недоступен. Проверьте подключение к офисной сети .");
+                    Log.e("SYNC_ERROR", "Детали: " + e.getMessage()); // Это покажет ошибку в Logcat
+
+
                 });
             } catch (Exception e) {
                 // Любая другая ошибка

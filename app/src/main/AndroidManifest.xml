@@ -15,6 +15,7 @@
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.SellionMobile">
 
+
 <!--        android:name="android.hardware.camera"-->
 <!--        android:required="true" >-->
 

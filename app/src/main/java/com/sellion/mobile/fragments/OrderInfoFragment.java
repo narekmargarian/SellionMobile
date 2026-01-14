@@ -52,7 +52,7 @@ public class OrderInfoFragment extends BaseFragment {
 
         // 2. ИСПРАВЛЕНО: Проверяем оплату через Enum
         PaymentMethod savedPayment = CartManager.getInstance().getPaymentMethod();
-        if (savedPayment == PaymentMethod.Перевод) {
+        if (savedPayment == PaymentMethod.TRANSFER) {
             radioGroupPaymentMethod.check(R.id.radioTransfer);
         } else {
             radioGroupPaymentMethod.check(R.id.radioCash);
@@ -72,9 +72,9 @@ public class OrderInfoFragment extends BaseFragment {
         // ИСПРАВЛЕНО: Сохраняем в CartManager объект Enum вместо String
         radioGroupPaymentMethod.setOnCheckedChangeListener((group, checkedId) -> {
             if (checkedId == R.id.radioTransfer) {
-                CartManager.getInstance().setPaymentMethod(PaymentMethod.Перевод);
+                CartManager.getInstance().setPaymentMethod(PaymentMethod.TRANSFER);
             } else if (checkedId == R.id.radioCash) {
-                CartManager.getInstance().setPaymentMethod(PaymentMethod.Наличный);
+                CartManager.getInstance().setPaymentMethod(PaymentMethod.CASH);
             }
         });
 

@@ -12,7 +12,7 @@ public class ReturnEntity {
 
     public String shopName;
     public Map<String, Integer> items;
-    public String returnReason;
+    public ReturnReason returnReason;
     public String returnDate;
     public String status; // PENDING, SENT
 

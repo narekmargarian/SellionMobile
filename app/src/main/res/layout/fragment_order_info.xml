@@ -70,7 +70,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:checked="true"
-                android:text="Наличный / перевод"
+                android:text="Наличный"
                 android:textColor="#000000"
                 android:textSize="16sp"
                 app:buttonTint="#000000" />
@@ -79,7 +79,7 @@
                 android:id="@+id/radioTransfer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Банковский перевод"
+                android:text="Перевод"
                 android:textColor="#000000"
                 android:textSize="16sp"
                 app:buttonTint="#000000" />
