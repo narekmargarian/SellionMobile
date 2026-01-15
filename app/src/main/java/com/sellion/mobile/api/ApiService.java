@@ -27,6 +27,8 @@ public interface ApiService {
     @POST("api/returns/sync")
     Call<okhttp3.ResponseBody> sendReturns(@Body List<ReturnEntity> returns);
 
+    @GET("api/public/managers")
+    Call<List<String>> getManagersList();
 
 
 }
