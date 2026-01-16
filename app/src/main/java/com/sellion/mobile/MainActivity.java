@@ -38,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
         // Принудительно отключаем темную тему, чтобы фон всегда был светлым
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
+        EdgeToEdge.enable(MainActivity.this);
         setContentView(R.layout.activity_main);
 
         // Настройка отступов для EdgeToEdge

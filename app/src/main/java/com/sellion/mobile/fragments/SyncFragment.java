@@ -32,6 +32,7 @@ import com.sellion.mobile.entity.ClientEntity;
 import com.sellion.mobile.entity.OrderEntity;
 import com.sellion.mobile.entity.ProductEntity;
 import com.sellion.mobile.entity.ReturnEntity;
+import com.sellion.mobile.managers.SessionManager;
 import com.sellion.mobile.model.ClientModel;
 import com.sellion.mobile.model.Product;
 
@@ -118,7 +119,7 @@ public class SyncFragment extends BaseFragment {
     }
 
     private void loadDocuments() {
-        // 1. Показываем современный диалог загрузки
+        // 1. Показываем диалог загрузки
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_progress, null);
         TextView tvMessage = dialogView.findViewById(R.id.tvProgressMessage);
         tvMessage.setText("Загрузка данных из офиса...");
@@ -129,13 +130,19 @@ public class SyncFragment extends BaseFragment {
                 .create();
         progressDialog.show();
 
-        // 2. Начинаем цепочку загрузки в фоновом потоке
+        // 2. Начинаем загрузку в фоновом потоке
         new Thread(() -> {
             try {
                 AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
                 ApiService api = ApiClient.getClient().create(ApiService.class);
 
-                // Очищаем старые данные перед загрузкой новых
+                // Получаем ID текущего менеджера (например, 1011)
+                String currentManagerId = SessionManager.getInstance().getManagerId();
+                if (currentManagerId == null || currentManagerId.isEmpty()) {
+                    throw new Exception("ID менеджера не найден. Перезайдите в приложение.");
+                }
+
+                // Очищаем старые данные перед загрузкой новых (справочники и документы)
                 db.clearAllTables();
 
                 // ШАГ 1: Загружаем товары
@@ -144,19 +151,13 @@ public class SyncFragment extends BaseFragment {
                     List<ProductEntity> productEntities = new ArrayList<>();
                     for (Product p : productResponse.body()) {
                         productEntities.add(new ProductEntity(
-                                p.getName(),
-                                p.getPrice(),
-                                p.getItemsPerBox(),
-                                p.getBarcode(),
-                                p.getCategory(),
-                                p.getStockQuantity()));
+                                p.getName(), p.getPrice(), p.getItemsPerBox(),
+                                p.getBarcode(), p.getCategory(), p.getStockQuantity()));
                     }
                     db.productDao().insertAll(productEntities);
-                } else {
-                    throw new Exception("Ошибка загрузки товаров (Код: " + productResponse.code() + ")");
                 }
 
-                // ШАГ 2: Загружаем клиентов
+                // ШАГ 2: Загружаем клиентов (магазины)
                 Response<List<ClientModel>> clientResponse = api.getClients().execute();
                 if (clientResponse.isSuccessful() && clientResponse.body() != null) {
                     List<ClientEntity> clientEntities = new ArrayList<>();
@@ -172,11 +173,29 @@ public class SyncFragment extends BaseFragment {
                         clientEntities.add(e);
                     }
                     db.clientDao().insertAll(clientEntities);
-                } else {
-                    throw new Exception("Ошибка загрузки клиентов (Код: " + clientResponse.code() + ")");
                 }
 
-                // ФИНАЛ: Успех
+                // ШАГ 3: Загружаем ЗАКАЗЫ этого менеджера (НОВОЕ)
+                Response<List<OrderEntity>> ordersResponse = api.getOrdersByManager(currentManagerId).execute();
+                if (ordersResponse.isSuccessful() && ordersResponse.body() != null) {
+                    for (OrderEntity order : ordersResponse.body()) {
+                        // Важно: ставим статус SENT, чтобы телефон не считал их новыми
+                        order.status = "SENT";
+                        db.orderDao().insert(order);
+                    }
+                }
+
+                // ШАГ 4: Загружаем ВОЗВРАТЫ этого менеджера (НОВОЕ)
+                Response<List<ReturnEntity>> returnsResponse = api.getReturnsByManager(currentManagerId).execute();
+                if (returnsResponse.isSuccessful() && returnsResponse.body() != null) {
+                    for (ReturnEntity ret : returnsResponse.body()) {
+                        // Ставим статус SENT
+                        ret.status = "SENT";
+                        db.returnDao().insert(ret);
+                    }
+                }
+
+                // ФИНАЛ: Сохраняем состояние успеха
                 SharedPreferences.Editor editor = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit();
                 editor.putBoolean(KEY_IS_LOADED, true);
                 editor.apply();
@@ -186,31 +205,21 @@ public class SyncFragment extends BaseFragment {
                     updateStatusText();
                     new MaterialAlertDialogBuilder(requireContext())
                             .setTitle("Синхронизация завершена")
-                            .setMessage("База данных успешно обновлена. Можно приступать к работе.")
+                            .setMessage("Все данные, включая ваши заказы и возвраты, загружены.")
                             .setPositiveButton("Понятно", null)
                             .show();
                 });
 
-            } catch (java.io.IOException e) {
-                // Ошибка сети (сервер выключен)
-                requireActivity().runOnUiThread(() -> {
-                    progressDialog.dismiss();
-
-                    showSyncError("Сервер недоступен. Проверьте подключение к офисной сети .");
-                    Log.e("SYNC_ERROR", "Детали: " + e.getMessage()); // Это покажет ошибку в Logcat
-
-
-                });
             } catch (Exception e) {
-                // Любая другая ошибка
                 requireActivity().runOnUiThread(() -> {
                     progressDialog.dismiss();
-                    showSyncError("Упс . Что то пошло не так.");
-                    Log.e("SyncFragment", "Ошибка при синхронизации: " + e.getMessage());
+                    showSyncError("Ошибка: " + e.getMessage());
+                    Log.e("SYNC_ERROR", "Детали: ", e);
                 });
             }
         }).start();
     }
+
 
     private void showSyncError(String message) {
         new MaterialAlertDialogBuilder(requireContext())

@@ -11,6 +11,7 @@ import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
+import retrofit2.http.Path;
 
 public interface ApiService {
     // Получение списка товаров
@@ -29,6 +30,13 @@ public interface ApiService {
 
     @GET("api/public/managers")
     Call<List<String>> getManagersList();
+
+
+    @GET("api/orders/manager/{managerId}")
+    Call<List<OrderEntity>> getOrdersByManager(@Path("managerId") String managerId);
+
+    @GET("api/returns/manager/{managerId}")
+    Call<List<ReturnEntity>> getReturnsByManager(@Path("managerId") String managerId);
 
 
 }
