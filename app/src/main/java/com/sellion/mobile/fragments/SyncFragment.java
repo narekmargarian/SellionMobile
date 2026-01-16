@@ -175,21 +175,19 @@ public class SyncFragment extends BaseFragment {
                     db.clientDao().insertAll(clientEntities);
                 }
 
-                // ШАГ 3: Загружаем ЗАКАЗЫ этого менеджера (НОВОЕ)
+                // ШАГ 3: Загружаем ЗАКАЗЫ этого менеджера за ТЕКУЩИЙ МЕСЯЦ
                 Response<List<OrderEntity>> ordersResponse = api.getOrdersByManager(currentManagerId).execute();
                 if (ordersResponse.isSuccessful() && ordersResponse.body() != null) {
                     for (OrderEntity order : ordersResponse.body()) {
-                        // Важно: ставим статус SENT, чтобы телефон не считал их новыми
-                        order.status = "SENT";
+                        order.status = "SENT"; // Чтобы не дублировать отправку
                         db.orderDao().insert(order);
                     }
                 }
 
-                // ШАГ 4: Загружаем ВОЗВРАТЫ этого менеджера (НОВОЕ)
+                // ШАГ 4: Загружаем ВОЗВРАТЫ за ТЕКУЩИЙ МЕСЯЦ
                 Response<List<ReturnEntity>> returnsResponse = api.getReturnsByManager(currentManagerId).execute();
                 if (returnsResponse.isSuccessful() && returnsResponse.body() != null) {
                     for (ReturnEntity ret : returnsResponse.body()) {
-                        // Ставим статус SENT
                         ret.status = "SENT";
                         db.returnDao().insert(ret);
                     }

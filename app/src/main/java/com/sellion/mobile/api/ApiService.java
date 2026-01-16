@@ -32,10 +32,10 @@ public interface ApiService {
     Call<List<String>> getManagersList();
 
 
-    @GET("api/orders/manager/{managerId}")
+    @GET("api/orders/manager/{managerId}/current-month")
     Call<List<OrderEntity>> getOrdersByManager(@Path("managerId") String managerId);
 
-    @GET("api/returns/manager/{managerId}")
+    @GET("api/returns/manager/{managerId}/current-month")
     Call<List<ReturnEntity>> getReturnsByManager(@Path("managerId") String managerId);
 
 
