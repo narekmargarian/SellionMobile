@@ -32,4 +32,8 @@ public interface ReturnDao {
     // Дополнительный метод для удаления конкретного возврата, если понадобится
     @Query("DELETE FROM returns WHERE id = :id")
     void deleteById(int id);
+
+    @Query("SELECT * FROM returns WHERE createdAt >= :start AND createdAt <= :end ORDER BY id DESC")
+    LiveData<List<ReturnEntity>> getReturnsBetweenDates(String start, String end);
+
 }

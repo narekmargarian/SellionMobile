@@ -29,4 +29,9 @@ public interface OrderDao {
 
     @Query("DELETE FROM orders")
     void deleteAll();
+
+
+    @Query("SELECT * FROM orders WHERE createdAt >= :start AND createdAt <= :end ORDER BY id DESC")
+    LiveData<List<OrderEntity>> getOrdersBetweenDates(String start, String end);
+
 }

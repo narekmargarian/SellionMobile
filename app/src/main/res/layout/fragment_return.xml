@@ -48,12 +48,12 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@drawable/ic_add" />
 
-<!--                <ImageButton-->
-<!--                    android:id="@+id/btnFilterOrders"-->
-<!--                    android:layout_width="48dp"-->
-<!--                    android:layout_height="48dp"-->
-<!--                    android:background="?attr/selectableItemBackgroundBorderless"-->
-<!--                    android:src="@drawable/ic_more" /> &lt;!&ndash; Три точки &ndash;&gt;-->
+                <ImageButton
+                    android:id="@+id/btnFilterOrders"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_more" /> <!-- Три точки -->
             </LinearLayout>
         </RelativeLayout>
     </androidx.appcompat.widget.Toolbar>
