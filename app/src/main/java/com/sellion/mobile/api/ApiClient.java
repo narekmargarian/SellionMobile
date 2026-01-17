@@ -14,20 +14,20 @@ public class ApiClient {
 
     public static Retrofit getClient() {
         if (retrofit == null) {
-            // Добавляем логирование для отладки JSON
-            HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-            logging.setLevel(HttpLoggingInterceptor.Level.BODY);
+//            // Добавляем логирование для отладки JSON
+//            HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
+//            logging.setLevel(HttpLoggingInterceptor.Level.BODY);
 
-            OkHttpClient client = new OkHttpClient.Builder()
-                    .addInterceptor(logging)
-                    .connectTimeout(15, TimeUnit.SECONDS)
-                    .readTimeout(15, TimeUnit.SECONDS)
-                    .build();
+//            OkHttpClient client = new OkHttpClient.Builder()
+//                    .addInterceptor(logging)
+//                    .connectTimeout(15, TimeUnit.SECONDS)
+//                    .readTimeout(15, TimeUnit.SECONDS)
+//                    .build();
 
             try {
                 retrofit = new Retrofit.Builder()
                         .baseUrl(BASE_URL)
-                        .client(client) // Привязываем клиент с логами
+//                        .client(client) // Привязываем клиент с логами
                         .addConverterFactory(GsonConverterFactory.create())
                         .build();
             } catch (Exception e) {

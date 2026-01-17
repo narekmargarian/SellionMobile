@@ -18,8 +18,11 @@ import com.google.android.material.textfield.TextInputLayout;
 import com.sellion.mobile.activities.HostActivity;
 import com.sellion.mobile.api.ApiClient;
 import com.sellion.mobile.api.ApiService;
+import com.sellion.mobile.database.AppDatabase;
+import com.sellion.mobile.entity.ManagerEntity;
 import com.sellion.mobile.managers.SessionManager;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import retrofit2.Call;
@@ -29,19 +32,19 @@ import retrofit2.Response;
 public class MainActivity extends AppCompatActivity {
 
     private String[] managers;
-
     private TextInputLayout textInputLayout;
     private AutoCompleteTextView etManager;
+    private AppDatabase db; // База данных
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // Принудительно отключаем темную тему, чтобы фон всегда был светлым
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(MainActivity.this);
         setContentView(R.layout.activity_main);
 
-        // Настройка отступов для EdgeToEdge
+        db = AppDatabase.getInstance(this); // Инициализация БД
+
         View mainView = findViewById(R.id.main);
         if (mainView != null) {
             ViewCompat.setOnApplyWindowInsetsListener(mainView, (v, insets) -> {
@@ -53,48 +56,56 @@ public class MainActivity extends AppCompatActivity {
 
         textInputLayout = findViewById(R.id.textInputLayoutManager);
         etManager = findViewById(R.id.editTextManager);
-        loadManagersList();
 
+        // ШАГ 1: Мгновенное получение данных из локальной базы Room
+        db.managerDao().getAllManagersLive().observe(this, managerIds -> {
+            if (managerIds != null && !managerIds.isEmpty()) {
+                managers = managerIds.toArray(new String[0]);
+                setupListeners(); // Слушатели включаются сразу, без ожидания интернета
+            } else {
+                // Если база совсем пуста (первый запуск), ставим дефолтные
+                managers = new String[]{"1011", "1012", "1013", "1014", "1015"};
+                setupListeners();
+            }
+        });
+
+        // ШАГ 2: Тихое обновление списка с сервера в фоне
+        syncManagersFromServer();
     }
 
-
-    private void loadManagersList() {
+    private void syncManagersFromServer() {
         ApiService apiService = ApiClient.getClient().create(ApiService.class);
-        Call<List<String>> call = apiService.getManagersList();
-
-        call.enqueue(new Callback<List<String>>() {
+        apiService.getManagersList().enqueue(new Callback<List<String>>() {
             @Override
             public void onResponse(Call<List<String>> call, Response<List<String>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    List<String> managerList = response.body();
-                    // Преобразуем List в массив String[]
-                    managers = managerList.toArray(new String[0]);
-                    Toast.makeText(MainActivity.this, "Список менеджеров загружен.", Toast.LENGTH_SHORT).show();
-                    // Активируем UI-слушатели после успешной загрузки
-                    setupListeners();
-                } else {
-                    Toast.makeText(MainActivity.this, "Ошибка загрузки списка менеджеров.", Toast.LENGTH_LONG).show();
-                    // Можно использовать статический список на случай ошибки сети как запасной вариант
-                    managers = new String[]{"1011", "1012", "1013", "1014", "1015","1016", "1017", "1018"};
-                    setupListeners(); // Активируем с запасным списком
+                    List<String> serverList = response.body();
+
+                    // Обновляем Room в фоновом потоке
+                    new Thread(() -> {
+                        List<ManagerEntity> entities = new ArrayList<>();
+                        for (String id : serverList) {
+                            entities.add(new ManagerEntity(id));
+                        }
+                        db.managerDao().deleteAll();
+                        db.managerDao().insertAll(entities);
+                        // LiveData сама обновит UI, когда запись завершится
+                    }).start();
                 }
             }
 
             @Override
             public void onFailure(Call<List<String>> call, Throwable t) {
-                Toast.makeText(MainActivity.this, "Ошибка сети: " + t.getMessage(), Toast.LENGTH_LONG).show();
-                // Используем статический список на случай ошибки сети как запасной вариант
-                managers = new String[]{"1011", "1012", "1013", "1014", "1015","1016", "1017", "1018"};
-                setupListeners(); // Активируем с запасным списком
+                // Больше не показываем Toast ошибки сети, чтобы не раздражать юзера.
+                // У нас уже есть список из Room или дефолтный.
             }
         });
     }
 
     private void setupListeners() {
-        // Логика onClickListener, которую вы перенесли из onCreate
         View.OnClickListener showDialog = v -> {
             if (managers == null || managers.length == 0) {
-                Toast.makeText(MainActivity.this, "Список менеджеров пуст.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Загрузка списка...", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -103,7 +114,11 @@ public class MainActivity extends AppCompatActivity {
                     .setItems(managers, (dialog, which) -> {
                         String selectedManager = managers[which];
                         etManager.setText(selectedManager);
+
+                        // Сохраняем сессию
                         SessionManager.getInstance().setManagerId(selectedManager);
+
+                        // Переход
                         Intent intent = new Intent(MainActivity.this, HostActivity.class);
                         intent.putExtra("MANAGER_ID", selectedManager);
                         startActivity(intent);
@@ -112,8 +127,14 @@ public class MainActivity extends AppCompatActivity {
                     .show();
         };
 
+        // Убираем риск дублирования слушателей (важно для Poco M3)
+        etManager.setOnClickListener(null);
         etManager.setOnClickListener(showDialog);
+
+        textInputLayout.setOnClickListener(null);
         textInputLayout.setOnClickListener(showDialog);
+
+        textInputLayout.setEndIconOnClickListener(null);
         textInputLayout.setEndIconOnClickListener(showDialog);
     }
 }
