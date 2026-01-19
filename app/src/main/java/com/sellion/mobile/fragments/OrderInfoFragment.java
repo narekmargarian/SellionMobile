@@ -23,10 +23,12 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
-
 public class OrderInfoFragment extends BaseFragment {
     private TextView tvDeliveryDate;
-    private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy", new Locale("ru"));
+
+    // Форматы для 2026 года: красивый для экрана и ISO для сервера
+    private final SimpleDateFormat displayFormat = new SimpleDateFormat("dd MMMM yyyy", new Locale("ru"));
+    private final SimpleDateFormat serverFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 
     @Nullable
     @Override
@@ -38,19 +40,29 @@ public class OrderInfoFragment extends BaseFragment {
         CheckBox checkboxSeparateInvoice = view.findViewById(R.id.checkboxSeparateInvoice);
         LinearLayout layoutSelectDeliveryDate = view.findViewById(R.id.layoutSelectDeliveryDate);
 
-        // 1. Проверяем дату
-        String savedDate = CartManager.getInstance().getDeliveryDate();
+        // 1. ЛОГИКА ДАТЫ (Разделение экрана и сервера)
+        String savedDate = CartManager.getInstance().getDeliveryDate(); // Ожидаем yyyy-MM-dd
         if (savedDate != null && !savedDate.isEmpty()) {
-            tvDeliveryDate.setText(savedDate);
+            try {
+                // Парсим техническую дату для отображения
+                Date date = serverFormat.parse(savedDate);
+                tvDeliveryDate.setText(displayFormat.format(date));
+            } catch (Exception e) {
+                tvDeliveryDate.setText(savedDate);
+            }
         } else {
+            // По умолчанию ставим ЗАВТРА
             Calendar calendar = Calendar.getInstance();
             calendar.add(Calendar.DAY_OF_MONTH, 1);
-            String defaultDate = dateFormat.format(calendar.getTime());
-            tvDeliveryDate.setText(defaultDate);
-            CartManager.getInstance().setDeliveryDate(defaultDate);
+
+            String dateForServer = serverFormat.format(calendar.getTime());
+            String dateForDisplay = displayFormat.format(calendar.getTime());
+
+            tvDeliveryDate.setText(dateForDisplay);
+            CartManager.getInstance().setDeliveryDate(dateForServer);
         }
 
-        // 2. ИСПРАВЛЕНО: Проверяем оплату через Enum
+        // 2. ВОССТАНОВЛЕНИЕ ОПЛАТЫ
         PaymentMethod savedPayment = CartManager.getInstance().getPaymentMethod();
         if (savedPayment == PaymentMethod.TRANSFER) {
             radioGroupPaymentMethod.check(R.id.radioTransfer);
@@ -58,7 +70,7 @@ public class OrderInfoFragment extends BaseFragment {
             radioGroupPaymentMethod.check(R.id.radioCash);
         }
 
-        // 3. Проверяем чекбокс
+        // 3. ВОССТАНОВЛЕНИЕ ЧЕКБОКСА
         checkboxSeparateInvoice.setChecked(CartManager.getInstance().isSeparateInvoice());
 
         // --- СЛУШАТЕЛИ ---
@@ -69,7 +81,6 @@ public class OrderInfoFragment extends BaseFragment {
             CartManager.getInstance().setSeparateInvoice(isChecked);
         });
 
-        // ИСПРАВЛЕНО: Сохраняем в CartManager объект Enum вместо String
         radioGroupPaymentMethod.setOnCheckedChangeListener((group, checkedId) -> {
             if (checkedId == R.id.radioTransfer) {
                 CartManager.getInstance().setPaymentMethod(PaymentMethod.TRANSFER);
@@ -91,9 +102,13 @@ public class OrderInfoFragment extends BaseFragment {
             // Используем UTC, чтобы избежать смещения даты из-за часовых поясов
             Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
             calendar.setTimeInMillis(selection);
-            String selectedDate = dateFormat.format(calendar.getTime());
-            tvDeliveryDate.setText(selectedDate);
-            CartManager.getInstance().setDeliveryDate(selectedDate);
+            Date date = calendar.getTime();
+
+            // Сохраняем технический формат для сервера (2026-01-20)
+            CartManager.getInstance().setDeliveryDate(serverFormat.format(date));
+
+            // Показываем красивый формат пользователю (20 января 2026)
+            tvDeliveryDate.setText(displayFormat.format(date));
         });
 
         datePicker.show(getChildFragmentManager(), "DELIVERY_DATE_PICKER");

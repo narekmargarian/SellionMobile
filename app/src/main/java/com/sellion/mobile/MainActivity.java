@@ -137,4 +137,7 @@ public class MainActivity extends AppCompatActivity {
         textInputLayout.setEndIconOnClickListener(null);
         textInputLayout.setEndIconOnClickListener(showDialog);
     }
+
+
+
 }

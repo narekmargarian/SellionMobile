@@ -7,7 +7,6 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,8 +32,11 @@ import com.sellion.mobile.entity.OrderEntity;
 import com.sellion.mobile.entity.ProductEntity;
 import com.sellion.mobile.entity.ReturnEntity;
 import com.sellion.mobile.managers.SessionManager;
+import com.sellion.mobile.model.CategoryGroupDto;
 import com.sellion.mobile.model.ClientModel;
 import com.sellion.mobile.model.Product;
+
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -119,10 +121,10 @@ public class SyncFragment extends BaseFragment {
     }
 
     private void loadDocuments() {
-        // 1. Показываем диалог загрузки
+        // 1. ПОДГОТОВКА ИНТЕРФЕЙСА
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_progress, null);
         TextView tvMessage = dialogView.findViewById(R.id.tvProgressMessage);
-        tvMessage.setText("Загрузка данных из офиса...");
+        tvMessage.setText("Синхронизация данных 2026...");
 
         AlertDialog progressDialog = new MaterialAlertDialogBuilder(requireContext())
                 .setView(dialogView)
@@ -130,89 +132,108 @@ public class SyncFragment extends BaseFragment {
                 .create();
         progressDialog.show();
 
-        // 2. Начинаем загрузку в фоновом потоке
         new Thread(() -> {
             try {
                 AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
                 ApiService api = ApiClient.getClient().create(ApiService.class);
-
-                // Получаем ID текущего менеджера (например, 1011)
                 String currentManagerId = SessionManager.getInstance().getManagerId();
+
                 if (currentManagerId == null || currentManagerId.isEmpty()) {
-                    throw new Exception("ID менеджера не найден. Перезайдите в приложение.");
+                    throw new Exception("ID менеджера не найден. Перезайдите в систему.");
                 }
 
-                // Очищаем старые данные перед загрузкой новых (справочники и документы)
-                db.clearAllTables();
+                // --- ШАГ 1: ОЧИСТКА СТРАВОЧНИКОВ ---
+                // Очищаем товары и клиентов, чтобы избежать дублей или мусора
+                db.productDao().deleteAll();
+                db.clientDao().insertAll(new ArrayList<>());
 
-                // ШАГ 1: Загружаем товары
-                Response<List<Product>> productResponse = api.getProducts().execute();
-                if (productResponse.isSuccessful() && productResponse.body() != null) {
+                // --- ШАГ 2: ЗАГРУЗКА КАТАЛОГА (СТРУКТУРИРОВАННО) ---
+                // Используем новый метод getCatalog для идеальной группировки
+                Response<List<CategoryGroupDto>> catalogResp = api.getCatalog().execute();
+                if (catalogResp.isSuccessful() && catalogResp.body() != null) {
                     List<ProductEntity> productEntities = new ArrayList<>();
-                    for (Product p : productResponse.body()) {
-                        productEntities.add(new ProductEntity(
-                                p.getName(), p.getPrice(), p.getItemsPerBox(),
-                                p.getBarcode(), p.getCategory(), p.getStockQuantity()));
+                    for (CategoryGroupDto group : catalogResp.body()) {
+                        String categoryName = group.getCategoryName();
+                        for (Product p : group.getProducts()) {
+                            productEntities.add(new ProductEntity(
+                                    p.getName(),
+                                    p.getPrice(),
+                                    p.getItemsPerBox(),
+                                    p.getBarcode(),
+                                    categoryName, // Присваиваем категорию из заголовка группы
+                                    p.getStockQuantity()
+                            ));
+                        }
                     }
                     db.productDao().insertAll(productEntities);
+                } else {
+                    throw new Exception("Ошибка загрузки товаров: " + catalogResp.code());
                 }
 
-                // ШАГ 2: Загружаем клиентов (магазины)
-                Response<List<ClientModel>> clientResponse = api.getClients().execute();
-                if (clientResponse.isSuccessful() && clientResponse.body() != null) {
-                    List<ClientEntity> clientEntities = new ArrayList<>();
-                    for (ClientModel m : clientResponse.body()) {
-                        ClientEntity e = new ClientEntity();
-                        e.id = m.id;
-                        e.name = m.name;
-                        e.debt = m.debt;
-                        e.address = m.getAddress();
-                        e.inn = m.inn;
-                        e.ownerName = m.ownerName;
-                        e.routeDay = m.routeDay;
-                        clientEntities.add(e);
+                // --- ШАГ 3: ЗАГРУЗКА КЛИЕНТОВ ---
+                Response<List<ClientModel>> clientResp = api.getClients().execute();
+                if (clientResp.isSuccessful() && clientResp.body() != null) {
+                    List<ClientEntity> entities = new ArrayList<>();
+                    for (ClientModel c : clientResp.body()) {
+                        ClientEntity ce = new ClientEntity();
+                        ce.id = c.id;
+                        ce.name = c.name;
+                        ce.address = c.address;
+                        ce.debt = c.debt;
+                        ce.inn = c.inn;
+                        ce.ownerName = c.ownerName;
+                        ce.routeDay = c.routeDay;
+                        entities.add(ce);
                     }
-                    db.clientDao().insertAll(clientEntities);
+                    db.clientDao().insertAll(entities);
                 }
 
-                // ШАГ 3: Загружаем ЗАКАЗЫ этого менеджера за ТЕКУЩИЙ МЕСЯЦ
-                Response<List<OrderEntity>> ordersResponse = api.getOrdersByManager(currentManagerId).execute();
-                if (ordersResponse.isSuccessful() && ordersResponse.body() != null) {
-                    for (OrderEntity order : ordersResponse.body()) {
-                        order.status = "SENT"; // Чтобы не дублировать отправку
-                        db.orderDao().insert(order);
-                    }
-                }
-
-                // ШАГ 4: Загружаем ВОЗВРАТЫ за ТЕКУЩИЙ МЕСЯЦ
-                Response<List<ReturnEntity>> returnsResponse = api.getReturnsByManager(currentManagerId).execute();
-                if (returnsResponse.isSuccessful() && returnsResponse.body() != null) {
-                    for (ReturnEntity ret : returnsResponse.body()) {
-                        ret.status = "SENT";
-                        db.returnDao().insert(ret);
+                // --- ШАГ 4: ЗАГРУЗКА ИСТОРИИ ЗАКАЗОВ ---
+                Response<List<OrderEntity>> orderHist = api.getOrdersByManager(currentManagerId).execute();
+                if (orderHist.isSuccessful() && orderHist.body() != null) {
+                    for (OrderEntity o : orderHist.body()) {
+                        o.status = "SENT"; // Помечаем старые заказы как отправленные
+                        db.orderDao().insert(o);
                     }
                 }
 
-                // ФИНАЛ: Сохраняем состояние успеха
-                SharedPreferences.Editor editor = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit();
-                editor.putBoolean(KEY_IS_LOADED, true);
-                editor.apply();
+                // --- ШАГ 5: ЗАГРУЗКА ИСТОРИИ ВОЗВРАТОВ ---
+                Response<List<ReturnEntity>> returnHist = api.getReturnsByManager(currentManagerId).execute();
+                if (returnHist.isSuccessful() && returnHist.body() != null) {
+                    for (ReturnEntity r : returnHist.body()) {
+                        r.status = "SENT";
+                        db.returnDao().insert(r);
+                    }
+                }
 
+                // УСПЕХ: Завершаем процесс
                 requireActivity().runOnUiThread(() -> {
-                    progressDialog.dismiss();
-                    updateStatusText();
-                    new MaterialAlertDialogBuilder(requireContext())
-                            .setTitle("Синхронизация завершена")
-                            .setMessage("Все данные, включая ваши заказы и возвраты, загружены.")
-                            .setPositiveButton("Понятно", null)
-                            .show();
+                    if (isAdded()) {
+                        SharedPreferences.Editor editor = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit();
+                        editor.putBoolean(KEY_IS_LOADED, true);
+                        editor.apply();
+                        updateStatusText();
+                        Toast.makeText(getContext(), "Данные синхронизированы", Toast.LENGTH_SHORT).show();
+                    }
                 });
 
             } catch (Exception e) {
+                // ОШИБКА: Уведомляем пользователя
                 requireActivity().runOnUiThread(() -> {
-                    progressDialog.dismiss();
-                    showSyncError("Ошибка: " + e.getMessage());
-                    Log.e("SYNC_ERROR", "Детали: ", e);
+                    if (isAdded()) {
+                        new MaterialAlertDialogBuilder(requireContext())
+                                .setTitle("Сбой синхронизации")
+                                .setMessage("Причина: " + e.getMessage())
+                                .setPositiveButton("ОК", null)
+                                .show();
+                    }
+                });
+            } finally {
+                // ФИНАЛ: В любом случае закрываем прогресс-диалог
+                requireActivity().runOnUiThread(() -> {
+                    if (progressDialog != null && progressDialog.isShowing()) {
+                        progressDialog.dismiss();
+                    }
                 });
             }
         }).start();

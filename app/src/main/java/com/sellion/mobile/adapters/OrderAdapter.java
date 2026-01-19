@@ -40,6 +40,8 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderVH> {
     @Override
     public void onBindViewHolder(@NonNull OrderVH h, int pos) {
         OrderEntity o = list.get(pos);
+        if (o == null) return;
+
         h.tvShopName.setText(o.shopName);
 
         // Расчет суммы через БД в фоновом потоке

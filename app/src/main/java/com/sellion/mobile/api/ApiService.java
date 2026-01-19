@@ -1,5 +1,6 @@
 package com.sellion.mobile.api;
 
+import com.sellion.mobile.model.CategoryGroupDto;
 import com.sellion.mobile.model.ClientModel;
 import com.sellion.mobile.entity.OrderEntity;
 import com.sellion.mobile.model.Product;
@@ -15,8 +16,8 @@ import retrofit2.http.Path;
 
 public interface ApiService {
     // Получение списка товаров
-    @GET("api/products")
-    Call<List<Product>> getProducts();
+    @GET("api/products/catalog")
+    Call<List<CategoryGroupDto>> getCatalog();
 
     // Получение списка магазинов (ЭТОГО МЕТОДА У ВАС НЕ ХВАТАЛО)
     @GET("api/clients")
@@ -37,6 +38,7 @@ public interface ApiService {
 
     @GET("api/returns/manager/{managerId}/current-month")
     Call<List<ReturnEntity>> getReturnsByManager(@Path("managerId") String managerId);
+
 
 
 }

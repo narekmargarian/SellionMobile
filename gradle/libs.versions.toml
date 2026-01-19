@@ -32,4 +32,3 @@ work-runtime = { module = "androidx.work:work-runtime", version.ref = "workRunti
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-

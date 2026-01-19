@@ -67,6 +67,7 @@ public class ReturnAdapter  extends RecyclerView.Adapter<ReturnAdapter.ReturnVH>
     @Override
     public void onBindViewHolder(@NonNull ReturnVH holder, int position) {
         ReturnEntity item = list.get(position);
+        if (item == null) return;
 
         holder.tvShopName.setText(item.shopName);
 

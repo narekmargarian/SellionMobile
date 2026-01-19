@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -61,42 +62,42 @@ public class CatalogFragment extends BaseFragment {
     private void loadCategoriesFromLocalDB() {
         new Thread(() -> {
             AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
-            // Получаем все товары, чтобы вытащить из них уникальные категории
+
+            // В 2026 году это самый быстрый способ получить список уникальных категорий
             List<ProductEntity> allProducts = db.productDao().getAllProductsSync();
 
-            Set<String> uniqueCategories = new HashSet<>();
+            // Используем LinkedHashSet для сохранения порядка и уникальности
+            Set<String> categoriesSet = new LinkedHashSet<>();
             for (ProductEntity p : allProducts) {
-                if (p.category != null && !p.category.isEmpty()) {
-                    uniqueCategories.add(p.category);
-                }
+                if (p.category != null) categoriesSet.add(p.category);
             }
 
-            // Преобразуем Set в отсортированный список
-            List<String> categories = new ArrayList<>(uniqueCategories);
-            Collections.sort(categories);
+            List<String> categories = new ArrayList<>(categoriesSet);
+            Collections.sort(categories); // Сортируем А-Я
 
             requireActivity().runOnUiThread(() -> {
-                if (categories.isEmpty()) {
-                    Toast.makeText(getContext(), "Категории не найдены. Синхронизируйте данные.", Toast.LENGTH_LONG).show();
+                if (isAdded()) {
+                    adapter = new CategoryAdapter(categories, category -> {
+                        // Переход в продукты выбранной категории
+                        ProductFragment fragment = new ProductFragment();
+                        Bundle args = new Bundle();
+                        args.putString("category_name", category);
+                        args.putBoolean("is_order_mode", orderMode);
+                        args.putBoolean("is_actually_return", isReturn);
+                        fragment.setArguments(args);
+
+                        // ЗАМЕНА ЗДЕСЬ:
+                        requireActivity().getSupportFragmentManager().beginTransaction()
+                                .replace(R.id.fragment_container, fragment)
+                                .addToBackStack(null)
+                                .commit();
+                    });
+                    recyclerView.setAdapter(adapter);
                 }
-
-                adapter = new CategoryAdapter(categories, category -> {
-                    ProductFragment fragment = new ProductFragment();
-                    Bundle args = new Bundle();
-                    args.putString("category_name", category);
-                    args.putBoolean("is_order_mode", orderMode);
-                    args.putBoolean("is_actually_return", isReturn);
-                    fragment.setArguments(args);
-
-                    requireActivity().getSupportFragmentManager().beginTransaction()
-                            .replace(R.id.fragment_container, fragment)
-                            .addToBackStack(null)
-                            .commit();
-                });
-                recyclerView.setAdapter(adapter);
             });
         }).start();
     }
+
 
     private boolean isInsideAnyProcess() {
         Fragment parent = getParentFragment();

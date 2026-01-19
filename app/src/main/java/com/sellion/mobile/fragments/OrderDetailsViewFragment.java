@@ -19,6 +19,7 @@ import com.sellion.mobile.entity.OrderEntity;
 import com.sellion.mobile.managers.CartManager;
 
 import java.util.Map;
+import java.util.concurrent.Executors;
 
 public class OrderDetailsViewFragment extends BaseFragment {
 
@@ -118,11 +119,17 @@ public class OrderDetailsViewFragment extends BaseFragment {
     }
 
     // calculateTotal остается без изменений
+
+
     private void calculateTotal(OrderEntity order, TextView tvTotalSum) {
-        new Thread(() -> {
+        if (order == null || tvTotalSum == null) return;
+
+        // Вместо нового потока используем один безопасный Executor
+        Executors.newSingleThreadExecutor().execute(() -> {
             double totalSum = 0;
             int totalQty = 0;
             AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
+
             if (order.items != null) {
                 for (Map.Entry<String, Integer> entry : order.items.entrySet()) {
                     double price = db.productDao().getPriceByName(entry.getKey());
@@ -130,13 +137,14 @@ public class OrderDetailsViewFragment extends BaseFragment {
                     totalQty += entry.getValue();
                 }
             }
-            final double finalSum = totalSum;
-            final int finalQty = totalQty;
-            if (tvTotalSum != null && getActivity() != null) {
-                tvTotalSum.post(() ->
-                        tvTotalSum.setText(String.format("Товаров: %d шт. | Итого: %,.0f ֏", finalQty, finalSum))
-                );
+
+            final String result = String.format("Товаров: %d шт. | Итого: %,.0f ֏", totalQty, totalSum);
+
+            // Проверяем, жив ли еще фрагмент перед обновлением UI
+            if (isAdded() && getActivity() != null) {
+                tvTotalSum.post(() -> tvTotalSum.setText(result));
             }
-        }).start();
+        });
     }
+
 }

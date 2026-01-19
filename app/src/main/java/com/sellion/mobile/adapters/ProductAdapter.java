@@ -54,40 +54,56 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Product product = products.get(position);
 
+        // 1. ПРОВЕРКА НА NULL (Защита от вылета приложения)
+        if (product == null) return;
+
+        // 2. СБРОС СОСТОЯНИЯ (Обязательно для работы "как часы")
+        // Обнуляем все изменения от предыдущих товаров перед установкой новых данных
+        holder.tvName.setAlpha(1.0f);
+        holder.tvName.setTextColor(Color.BLACK);
+        holder.tvStock.setTextColor(Color.GRAY);
+        holder.tvStock.setVisibility(View.GONE);
+
+        // 3. УСТАНОВКА ДАННЫХ
         String name = product.getName();
         String price = String.format("%,.0f ֏", product.getPrice());
         holder.tvName.setText(name + " — " + price);
 
-        // ЛОГИКА ОТОБРАЖЕНИЯ ОСТАТКА
+        // 4. ЛОГИКА ОТОБРАЖЕНИЯ ОСТАТКА
         if (showStockInfo) {
             holder.tvStock.setVisibility(View.VISIBLE);
-            holder.tvStock.setText("Остаток: " + product.getStockQuantity() + " шт.");
+            int stock = product.getStockQuantity();
+            holder.tvStock.setText("Остаток: " + stock + " шт.");
 
-            if (product.getStockQuantity() <= 0) {
+            if (stock <= 0) {
                 holder.tvStock.setTextColor(Color.RED);
-                holder.tvName.setAlpha(0.5f);
+                holder.tvName.setAlpha(0.5f); // Делаем товар полупрозрачным, если его нет
             } else {
                 holder.tvStock.setTextColor(Color.GRAY);
                 holder.tvName.setAlpha(1.0f);
             }
         } else {
-            // ПРИНУДИТЕЛЬНО СКРЫВАЕМ В КАТЕГОРИЯХ И ВОЗВРАТАХ
+            // Принудительно скрываем в режимах, где остаток не нужен (например, Возвраты)
             holder.tvStock.setVisibility(View.GONE);
             holder.tvName.setAlpha(1.0f);
         }
 
-        // Подсветка товаров в корзине
-        if (itemsInCart.contains(product.getName())) {
+        // 5. ПОДСВЕТКА ТОВАРОВ В КОРЗИНЕ
+        // Если товар уже выбран, выделяем его синим цветом
+        if (itemsInCart != null && itemsInCart.contains(product.getName())) {
             holder.tvName.setTextColor(Color.BLUE);
         } else {
-            // Обязательно сбрасываем в черный, чтобы при прокрутке цвета не путались
             holder.tvName.setTextColor(Color.BLACK);
         }
 
+        // 6. ОБРАБОТКА КЛИКА
         holder.itemView.setOnClickListener(v -> {
-            if (listener != null) listener.onProductClick(product);
+            if (listener != null) {
+                listener.onProductClick(product);
+            }
         });
     }
+
 
     @Override
     public int getItemCount() {

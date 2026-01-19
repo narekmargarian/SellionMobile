@@ -13,14 +13,13 @@ import com.sellion.mobile.dao.ClientDao;
 import com.sellion.mobile.dao.ManagerDao;
 import com.sellion.mobile.dao.OrderDao;
 import com.sellion.mobile.dao.ProductDao;
+import com.sellion.mobile.dao.ReturnDao;
 import com.sellion.mobile.entity.CartEntity;
 import com.sellion.mobile.entity.ClientEntity;
 import com.sellion.mobile.entity.ManagerEntity;
 import com.sellion.mobile.entity.OrderEntity;
-import com.sellion.mobile.dao.ReturnDao;
 import com.sellion.mobile.entity.ProductEntity;
 import com.sellion.mobile.entity.ReturnEntity;
-
 
 @Database(entities = {OrderEntity.class, ReturnEntity.class,
         CartEntity.class, ClientEntity.class, ProductEntity.class, ManagerEntity.class},
