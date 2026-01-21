@@ -16,8 +16,6 @@ public interface OrderDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insert(OrderEntity order);
 
-    @Query("UPDATE orders SET shopName = :shopName, items = :items, status = :status, deliveryDate = :deliveryDate, paymentMethod = :paymentMethod, needsSeparateInvoice = :needsSeparateInvoice, managerId = :managerId WHERE id = :orderId")
-    void updateOrder(int orderId, String shopName, Map<String, Integer> items, String status, String deliveryDate, String paymentMethod, boolean needsSeparateInvoice, String managerId);
     @Query("SELECT * FROM orders ORDER BY id DESC")
     LiveData<List<OrderEntity>> getAllOrdersLive();
 
@@ -29,6 +27,8 @@ public interface OrderDao {
 
     @Query("DELETE FROM orders")
     void deleteAll();
+
+
 
 
     @Query("SELECT * FROM orders WHERE createdAt >= :start AND createdAt <= :end ORDER BY id DESC")

@@ -5,14 +5,14 @@ import androidx.room.PrimaryKey;
 
 @Entity(tableName = "cart")
 public class CartEntity {
-    @PrimaryKey(autoGenerate = true)
-    public int id;
-
+    @PrimaryKey
+    public long productId; // Используем ID товара как первичный ключ корзины
     public String productName;
     public int quantity;
-    public double price; // Изменено на double
+    public double price;
 
-    public CartEntity(String productName, int quantity, double price) {
+    public CartEntity(long productId, String productName, int quantity, double price) {
+        this.productId = productId;
         this.productName = productName;
         this.quantity = quantity;
         this.price = price;

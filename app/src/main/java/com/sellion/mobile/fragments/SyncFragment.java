@@ -36,8 +36,6 @@ import com.sellion.mobile.model.CategoryGroupDto;
 import com.sellion.mobile.model.ClientModel;
 import com.sellion.mobile.model.Product;
 
-
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -124,7 +122,7 @@ public class SyncFragment extends BaseFragment {
         // 1. ПОДГОТОВКА ИНТЕРФЕЙСА
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_progress, null);
         TextView tvMessage = dialogView.findViewById(R.id.tvProgressMessage);
-        tvMessage.setText("Синхронизация данных 2026...");
+        tvMessage.setText("Синхронизация данных ...");
 
         AlertDialog progressDialog = new MaterialAlertDialogBuilder(requireContext())
                 .setView(dialogView)
@@ -134,33 +132,44 @@ public class SyncFragment extends BaseFragment {
 
         new Thread(() -> {
             try {
-                AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
-                ApiService api = ApiClient.getClient().create(ApiService.class);
+                Context context = requireContext().getApplicationContext();
+                AppDatabase db = AppDatabase.getInstance(context);
+
+                // ИСПРАВЛЕНО: Передаем контекст для работы Interceptor (Android ID)
+                ApiService api = ApiClient.getClient(context).create(ApiService.class);
+
                 String currentManagerId = SessionManager.getInstance().getManagerId();
 
                 if (currentManagerId == null || currentManagerId.isEmpty()) {
                     throw new Exception("ID менеджера не найден. Перезайдите в систему.");
                 }
 
-                // --- ШАГ 1: ОЧИСТКА СТРАВОЧНИКОВ ---
-                // Очищаем товары и клиентов, чтобы избежать дублей или мусора
+                // --- ШАГ 1: ПОЛНАЯ ОЧИСТКА СПРАВОЧНИКОВ ---
+                // ИСПРАВЛЕНО: Теперь используем deleteAll() для обеих таблиц
                 db.productDao().deleteAll();
-                db.clientDao().insertAll(new ArrayList<>());
+                db.clientDao().deleteAll();
 
-                // --- ШАГ 2: ЗАГРУЗКА КАТАЛОГА (СТРУКТУРИРОВАННО) ---
-                // Используем новый метод getCatalog для идеальной группировки
+                // --- ШАГ 2: ЗАГРУЗКА КАТАЛОГА (ПО ID) ---
                 Response<List<CategoryGroupDto>> catalogResp = api.getCatalog().execute();
+
+                // ИСПРАВЛЕНИЕ: Вставляем проверку на 403 (Ошибка авторизации) именно здесь!
+                if (catalogResp.code() == 403) {
+                    throw new Exception("Доступ запрещен! Ваше устройство не зарегистрировано в системе офиса.");
+                }
+
+
                 if (catalogResp.isSuccessful() && catalogResp.body() != null) {
                     List<ProductEntity> productEntities = new ArrayList<>();
                     for (CategoryGroupDto group : catalogResp.body()) {
                         String categoryName = group.getCategoryName();
                         for (Product p : group.getProducts()) {
                             productEntities.add(new ProductEntity(
+                                    p.getId(), // Сохраняем реальный Long ID
                                     p.getName(),
                                     p.getPrice(),
                                     p.getItemsPerBox(),
                                     p.getBarcode(),
-                                    categoryName, // Присваиваем категорию из заголовка группы
+                                    categoryName,
                                     p.getStockQuantity()
                             ));
                         }
@@ -192,7 +201,7 @@ public class SyncFragment extends BaseFragment {
                 Response<List<OrderEntity>> orderHist = api.getOrdersByManager(currentManagerId).execute();
                 if (orderHist.isSuccessful() && orderHist.body() != null) {
                     for (OrderEntity o : orderHist.body()) {
-                        o.status = "SENT"; // Помечаем старые заказы как отправленные
+                        o.status = "SENT";
                         db.orderDao().insert(o);
                     }
                 }
@@ -218,18 +227,17 @@ public class SyncFragment extends BaseFragment {
                 });
 
             } catch (Exception e) {
-                // ОШИБКА: Уведомляем пользователя
                 requireActivity().runOnUiThread(() -> {
                     if (isAdded()) {
                         new MaterialAlertDialogBuilder(requireContext())
-                                .setTitle("Сбой синхронизации")
-                                .setMessage("Причина: " + e.getMessage())
+                                .setMessage("Ошибка при подключении к серверу. Проверьте интернет-соединение и попробуйте позже.")
+
+                                .setMessage("  ")
                                 .setPositiveButton("ОК", null)
                                 .show();
                     }
                 });
             } finally {
-                // ФИНАЛ: В любом случае закрываем прогресс-диалог
                 requireActivity().runOnUiThread(() -> {
                     if (progressDialog != null && progressDialog.isShowing()) {
                         progressDialog.dismiss();
@@ -257,20 +265,31 @@ public class SyncFragment extends BaseFragment {
     private void clearData() {
         new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Очистка")
-                .setMessage("Это удалит ВСЕ данные из телефона. Вы уверены?")
+                .setMessage("Это удалит ВСЕ данные. Вы уверены?")
                 .setPositiveButton("Да, удалить", (d, w) -> {
                     new Thread(() -> {
-                        AppDatabase.getInstance(requireContext()).clearAllTables();
+                        AppDatabase db = AppDatabase.getInstance(requireContext());
+                        // Правильный порядок очистки для Room 2026
+                        db.runInTransaction(() -> {
+                            db.cartDao().clearCart();
+                            db.productDao().deleteAll();
+                            db.clientDao().deleteAll(); // Добавьте этот метод в ClientDao
+                            db.orderDao().deleteAll();
+                            db.returnDao().deleteAll();
+                        });
+
                         requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().clear().apply();
+
                         requireActivity().runOnUiThread(() -> {
                             updateStatusText();
-                            Toast.makeText(getContext(), "Все данные удалены", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getContext(), "База полностью очищена", Toast.LENGTH_SHORT).show();
                         });
                     }).start();
                 })
                 .setNegativeButton("Отмена", null)
                 .show();
     }
+
 
     // ... методы takePhotoReport и sendDocuments остаются без изменений ...
 
@@ -312,8 +331,12 @@ public class SyncFragment extends BaseFragment {
         progressDialog.show();
 
         new Thread(() -> {
-            AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
-            ApiService api = ApiClient.getClient().create(ApiService.class);
+            // ИСПРАВЛЕНО: Получаем контекст приложения для безопасности
+            Context context = requireContext().getApplicationContext();
+            AppDatabase db = AppDatabase.getInstance(context);
+
+            // ИСПРАВЛЕНО: Передаем контекст в ApiClient
+            ApiService api = ApiClient.getClient(context).create(ApiService.class);
 
             // Получаем данные, которые еще не отправлены
             List<OrderEntity> pendingOrders = db.orderDao().getPendingOrdersSync();
@@ -362,14 +385,13 @@ public class SyncFragment extends BaseFragment {
                     } else {
                         new MaterialAlertDialogBuilder(requireContext())
                                 .setTitle("Ошибка сервера")
-                                .setMessage("Сервер ответил ошибкой. Попробуйте позже.")
+                                .setMessage("Сервер ответил ошибкой (Код: " + (finalStatus ? "OK" : "Error") + "). Попробуйте позже.")
                                 .setPositiveButton("Понятно", null)
                                 .show();
                     }
                 });
 
             } catch (java.io.IOException e) {
-                // ОШИБКА: Сервер выключен или нет интернета
                 requireActivity().runOnUiThread(() -> {
                     progressDialog.dismiss();
                     new MaterialAlertDialogBuilder(requireContext())
@@ -382,4 +404,5 @@ public class SyncFragment extends BaseFragment {
             }
         }).start();
     }
+
 }

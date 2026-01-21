@@ -15,6 +15,7 @@ import com.sellion.mobile.entity.ReturnEntity;
 
 import java.util.List;
 
+import okhttp3.ResponseBody;
 import retrofit2.Response;
 
 public class SyncWorker extends Worker {
@@ -22,44 +23,35 @@ public class SyncWorker extends Worker {
         super(context, params);
     }
 
-    @NonNull
     @Override
     public Result doWork() {
         AppDatabase db = AppDatabase.getInstance(getApplicationContext());
-        ApiService api = ApiClient.getClient().create(ApiService.class);
+        ApiService api = ApiClient.getClient(getApplicationContext()).create(ApiService.class);
 
-        // --- 1. ОТПРАВКА ЗАКАЗОВ ---
-        List<OrderEntity> pendingOrders = db.orderDao().getPendingOrdersSync();
-        if (!pendingOrders.isEmpty()) {
-            try {
-                Response<okhttp3.ResponseBody> response = api.sendOrders(pendingOrders).execute();
+        try {
+            // Отправка заказов
+            List<OrderEntity> pendingOrders = db.orderDao().getPendingOrdersSync();
+            if (!pendingOrders.isEmpty()) {
+                Response<ResponseBody> response = api.sendOrders(pendingOrders).execute();
                 if (response.isSuccessful()) {
                     db.orderDao().markAllAsSent();
-                    Log.d("SYNC_DEBUG", "Заказы синхронизированы");
+                } else {
+                    return Result.retry(); // Если сервер занят, попробуем позже
                 }
-            } catch (Exception e) {
-                Log.e("SYNC_DEBUG", "Ошибка заказа: " + e.getMessage());
-                return Result.retry();
             }
-        }
 
-        // --- 2. ОТПРАВКА ВОЗВРАТОВ (добавляем этот блок) ---
-        List<ReturnEntity> pendingReturns = db.returnDao().getPendingReturnsSync();
-        if (!pendingReturns.isEmpty()) {
-            try {
-                // Вызываем тот самый метод, который мы прописали в ApiService
-                Response<okhttp3.ResponseBody> response = api.sendReturns(pendingReturns).execute();
+            // Отправка возвратов
+            List<ReturnEntity> pendingReturns = db.returnDao().getPendingReturnsSync();
+            if (!pendingReturns.isEmpty()) {
+                Response<ResponseBody> response = api.sendReturns(pendingReturns).execute();
                 if (response.isSuccessful()) {
-                    // Помечаем в Room как отправленные (убедитесь, что метод есть в ReturnDao)
                     db.returnDao().markAllAsSent();
-                    Log.d("SYNC_DEBUG", "Возвраты синхронизированы");
                 }
-            } catch (Exception e) {
-                Log.e("SYNC_DEBUG", "Ошибка возврата: " + e.getMessage());
-                return Result.retry();
             }
+            return Result.success();
+        } catch (Exception e) {
+            // Если нет интернета, WorkManager сам переназначит задачу
+            return Result.retry();
         }
-
-        return Result.success();
     }
 }

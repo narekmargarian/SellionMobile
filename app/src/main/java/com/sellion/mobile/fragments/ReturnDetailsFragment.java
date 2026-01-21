@@ -1,5 +1,6 @@
 package com.sellion.mobile.fragments;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -87,19 +88,28 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
     }
 
     private void saveReturnToDatabase() {
+        // Получаем ID для режима редактирования
         final int returnIdToUpdate = getArguments() != null ? getArguments().getInt("return_id_to_update", -1) : -1;
 
+        // Берем контекст до запуска потока для безопасности
+        final Context appContext = requireContext().getApplicationContext();
+
         new Thread(() -> {
-            AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
+            AppDatabase db = AppDatabase.getInstance(appContext);
             List<CartEntity> cartItems = db.cartDao().getCartItemsSync();
 
             if (cartItems == null || cartItems.isEmpty()) {
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(getContext(), "Список возврата пуст!", Toast.LENGTH_SHORT).show());
+                if (getActivity() != null) {
+                    requireActivity().runOnUiThread(() ->
+                            Toast.makeText(appContext, "Список возврата пуст!", Toast.LENGTH_SHORT).show());
+                }
                 return;
             }
 
+            // 1. ФОРМИРОВАНИЕ ОБЪЕКТА
             ReturnEntity ret = new ReturnEntity();
+
+            // КЛЮЧЕВОЙ МОМЕНТ: если ID != -1, Room выполнит UPDATE существующей записи
             if (returnIdToUpdate != -1) {
                 ret.id = returnIdToUpdate;
             }
@@ -107,34 +117,43 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
             ret.shopName = tvStoreName.getText().toString();
             ret.status = "PENDING";
 
-            // 1. Устанавливаем ID менеджера из сессии
-            ret.managerId = SessionManager.getInstance().getManagerId();
+            // Используем актуальный ID менеджера
+            ret.managerId = com.sellion.mobile.managers.SessionManager.getInstance().getManagerId();
 
             ret.returnDate = CartManager.getInstance().getReturnDate();
             ret.returnReason = CartManager.getInstance().getReturnReason();
             ret.createdAt = currentDateTime;
 
-
-
-            // 2. Считаем итоговую сумму возврата
-            Map<String, Integer> map = new HashMap<>();
+            // 2. СЧЕТ СУММЫ И МАППИНГ ПО ID (Long)
+            Map<Long, Integer> map = new HashMap<>();
             double total = 0;
-            for (CartEntity item : cartItems) {
-                map.put(item.productName, item.quantity);
-                total += (item.price * item.quantity); // Суммируем
-            }
-            ret.items = map;
-            ret.totalAmount = total; // Сохраняем сумму в Entity
 
+            for (CartEntity item : cartItems) {
+                // Кладём Long ID товара как ключ для совместимости с бэкендом
+                map.put(item.productId, item.quantity);
+                total += (item.price * item.quantity);
+            }
+
+            ret.items = map;
+            ret.totalAmount = total;
+
+            // 3. СОХРАНЕНИЕ В ROOM (Использует TypeConverter для Map<Long, Integer>)
             db.returnDao().insert(ret);
 
-            requireActivity().runOnUiThread(() -> {
-                CartManager.getInstance().clearCart();
-                Toast.makeText(getContext(), "Возврат сохранен локально", Toast.LENGTH_SHORT).show();
-                NavigationHelper.finishAndGoTo(getParentFragmentManager(), new ReturnsFragment());
-            });
+            // 4. ЗАВЕРШЕНИЕ И ОЧИСТКА
+            if (getActivity() != null) {
+                requireActivity().runOnUiThread(() -> {
+                    CartManager.getInstance().clearCart();
+                    if (isAdded()) {
+                        Toast.makeText(appContext, "Возврат сохранен локально", Toast.LENGTH_SHORT).show();
+                        NavigationHelper.finishAndGoTo(getParentFragmentManager(), new ReturnsFragment());
+                    }
+                });
+            }
         }).start();
     }
+
+
 
     @Override
     public void onBackPressedHandled() {

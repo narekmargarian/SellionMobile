@@ -1,5 +1,6 @@
 package com.sellion.mobile.fragments;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -32,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 public class OrderDetailsFragment extends BaseFragment implements BackPressHandler {
     private TextView tvStoreName;
@@ -84,23 +86,28 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
     }
 
     private void saveOrderToDatabase() {
+        // 1. Получаем ID для режима редактирования
         final int orderIdToUpdate = getArguments() != null ? getArguments().getInt("order_id_to_update", -1) : -1;
 
+        // 2. Берем контекст до запуска потока (защита от NPE)
+        final Context appContext = requireContext().getApplicationContext();
+
         new Thread(() -> {
-            AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
+            AppDatabase db = AppDatabase.getInstance(appContext);
             List<CartEntity> cartItems = db.cartDao().getCartItemsSync();
 
             if (cartItems == null || cartItems.isEmpty()) {
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(getContext(), "Корзина пуста!", Toast.LENGTH_SHORT).show());
+                if (getActivity() != null) {
+                    requireActivity().runOnUiThread(() ->
+                            Toast.makeText(appContext, "Корзина пуста!", Toast.LENGTH_SHORT).show());
+                }
                 return;
             }
 
-            // 1. ПРОВЕРКА ОСТАТКОВ ПЕРЕД СОХРАНЕНИЕМ
+            // 3. ПРОВЕРКА ОСТАТКОВ ПО ID
             StringBuilder outOfStockItems = new StringBuilder();
             for (CartEntity item : cartItems) {
-                // Получаем актуальный остаток из локальной таблицы продуктов
-                int currentStock = db.productDao().getStockByName(item.productName);
+                int currentStock = db.productDao().getStockById(item.productId);
                 if (item.quantity > currentStock) {
                     outOfStockItems.append("• ").append(item.productName)
                             .append(": в заказе ").append(item.quantity)
@@ -108,22 +115,27 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
                 }
             }
 
-            // Если есть товары с превышением остатка — показываем диалог и выходим
             if (outOfStockItems.length() > 0) {
-                requireActivity().runOnUiThread(() -> {
-                    new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                            .setTitle("Недостаточно товара")
-                            .setMessage("Следующие позиции превышают остаток на складе:\n\n" + outOfStockItems.toString()
-                                    + "\nПожалуйста, исправьте количество во вкладке 'Заказ'.")
-                            .setPositiveButton("Понятно", null)
-                            .show();
-                });
+                if (getActivity() != null) {
+                    requireActivity().runOnUiThread(() -> {
+                        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireActivity())
+                                .setTitle("Недостаточно товара")
+                                .setMessage("Следующие позиции превышают остаток на складе:\n\n" + outOfStockItems.toString()
+                                        + "\nПожалуйста, исправьте количество во вкладке 'Заказ'.")
+                                .setPositiveButton("Понятно", null)
+                                .show();
+                    });
+                }
                 return;
             }
 
-            // 2. ФОРМИРОВАНИЕ ЗАКАЗА
+            // 4. ФОРМИРОВАНИЕ ЗАКАЗА
             OrderEntity order = new OrderEntity();
-            if (orderIdToUpdate != -1) order.id = orderIdToUpdate;
+
+            // Если редактируем — сохраняем старый ID для замены в БД
+            if (orderIdToUpdate != -1) {
+                order.id = orderIdToUpdate;
+            }
 
             order.shopName = tvStoreName.getText().toString();
             order.status = "PENDING";
@@ -131,27 +143,35 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
             order.deliveryDate = CartManager.getInstance().getDeliveryDate();
             order.paymentMethod = CartManager.getInstance().getPaymentMethod();
             order.needsSeparateInvoice = CartManager.getInstance().isSeparateInvoice();
-            order.createdAt=currentDateTime;
+            order.createdAt = currentDateTime;
+
+            // ИДЕАЛЬНО: Привязываем уникальный ID устройства к заказу
+            String deviceId = android.provider.Settings.Secure.getString(appContext.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+            order.androidId = deviceId + "_" + System.currentTimeMillis();
 
             double total = 0;
-            Map<String, Integer> map = new HashMap<>();
+            Map<Long, Integer> map = new HashMap<>();
             for (CartEntity item : cartItems) {
-                map.put(item.productName, item.quantity);
+                map.put(item.productId, item.quantity); // Используем Long ID
                 total += (item.price * item.quantity);
             }
             order.items = map;
             order.totalAmount = total;
 
-            // 3. ЗАПИСЬ В БД
+            // 5. ЗАПИСЬ В БД (Room автоматически сделает UPDATE, если id совпадет)
             db.orderDao().insert(order);
 
-            requireActivity().runOnUiThread(() -> {
-                CartManager.getInstance().clearCart();
-                Toast.makeText(getContext(), "Заказ сохранен локально", Toast.LENGTH_SHORT).show();
-                NavigationHelper.finishAndGoTo(getParentFragmentManager(), new OrdersFragment());
-            });
+            // 6. ЗАВЕРШЕНИЕ
+            if (getActivity() != null) {
+                requireActivity().runOnUiThread(() -> {
+                    CartManager.getInstance().clearCart();
+                    Toast.makeText(appContext, "Заказ сохранен локально", Toast.LENGTH_SHORT).show();
+                    NavigationHelper.finishAndGoTo(getParentFragmentManager(), new OrdersFragment());
+                });
+            }
         }).start();
     }
+
 
     @Override
     public void onBackPressedHandled() {

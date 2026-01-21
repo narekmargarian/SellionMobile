@@ -21,17 +21,23 @@ import com.sellion.mobile.entity.OrderEntity;
 import com.sellion.mobile.entity.ProductEntity;
 import com.sellion.mobile.entity.ReturnEntity;
 
+
 @Database(entities = {OrderEntity.class, ReturnEntity.class,
         CartEntity.class, ClientEntity.class, ProductEntity.class, ManagerEntity.class},
-        version = 4, exportSchema = false) // Повысили версию до 3
+        version = 5, exportSchema = false)
 @TypeConverters({Converters.class})
 public abstract class AppDatabase extends RoomDatabase {
 
     public abstract OrderDao orderDao();
+
     public abstract ReturnDao returnDao();
+
     public abstract CartDao cartDao();
+
     public abstract ClientDao clientDao();
+
     public abstract ProductDao productDao(); // Добавили это
+
     public abstract ManagerDao managerDao(); //
 
     private static volatile AppDatabase instance;

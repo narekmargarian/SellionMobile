@@ -7,10 +7,12 @@ import com.sellion.mobile.model.Product;
 import com.sellion.mobile.entity.ReturnEntity;
 
 import java.util.List;
+import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
+import retrofit2.http.Header;
 import retrofit2.http.POST;
 import retrofit2.http.Path;
 
@@ -40,5 +42,7 @@ public interface ApiService {
     Call<List<ReturnEntity>> getReturnsByManager(@Path("managerId") String managerId);
 
 
+    @GET("api/public/managers/verify")
+    Call<Map<String, String>> verifyKey(@Header("X-API-Key") String apiKey);
 
 }

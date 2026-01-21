@@ -15,15 +15,15 @@ public interface CartDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void addOrUpdate(CartEntity item);
 
-    @Query("SELECT * FROM cart")
-    LiveData<List<CartEntity>> getCartItemsLive();
+    @Query("DELETE FROM cart WHERE productId = :id") // Исправлено: удаление по ID
+    void removeItemById(long id);
+
+    @Query("DELETE FROM cart")
+    void clearCart();
 
     @Query("SELECT * FROM cart")
     List<CartEntity> getCartItemsSync();
 
-    @Query("DELETE FROM cart WHERE productName = :name")
-    void removeItem(String name);
-
-    @Query("DELETE FROM cart")
-    void clearCart();
+    @Query("SELECT * FROM cart")
+    LiveData<List<CartEntity>> getCartItemsLive();
 }

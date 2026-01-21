@@ -16,6 +16,7 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.OrderHistoryItemsAdapter;
 import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.OrderEntity;
+import com.sellion.mobile.entity.ProductEntity;
 import com.sellion.mobile.managers.CartManager;
 
 import java.util.Map;
@@ -28,7 +29,6 @@ public class OrderDetailsViewFragment extends BaseFragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_order_details_view, container, false);
 
-        // ... (получение аргументов и поиск вьюх без изменений)
         String shopName = getArguments() != null ? getArguments().getString("order_shop_name") : "";
         int orderId = getArguments() != null ? getArguments().getInt("order_id", -1) : -1;
 
@@ -44,23 +44,24 @@ public class OrderDetailsViewFragment extends BaseFragment {
         tvTitle.setText(shopName);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        AppDatabase db = AppDatabase.getInstance(requireContext());
+        AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
 
         db.orderDao().getAllOrdersLive().observe(getViewLifecycleOwner(), orders -> {
             OrderEntity currentOrder = null;
-            for (OrderEntity o : orders) {
-                if (orderId != -1) {
-                    if (o.id == orderId) { currentOrder = o; break; }
-                } else if (o.shopName.equals(shopName)) {
-                    currentOrder = o; break;
+            if (orders != null) {
+                for (OrderEntity o : orders) {
+                    if (orderId != -1) {
+                        if (o.id == orderId) { currentOrder = o; break; }
+                    } else if (o.shopName.equals(shopName)) {
+                        currentOrder = o; break;
+                    }
                 }
             }
 
             if (currentOrder != null) {
                 final OrderEntity finalOrder = currentOrder;
 
-                // ИСПРАВЛЕНО: Отображение текста оплаты (toString() или name())
-                String paymentText = (finalOrder.paymentMethod != null) ? finalOrder.paymentMethod.name() : "Не указано";
+                String paymentText = (finalOrder.paymentMethod != null) ? finalOrder.paymentMethod.getTitle() : "Не указано";
                 tvPaymentMethod.setText("Оплата: " + paymentText);
 
                 tvInvoiceStatus.setText("Раздельная фактура: " + (finalOrder.needsSeparateInvoice ? "Да" : "Нет"));
@@ -69,6 +70,7 @@ public class OrderDetailsViewFragment extends BaseFragment {
                 calculateTotal(finalOrder, tvTotalSum);
 
                 if (finalOrder.items != null) {
+                    // ИСПРАВЛЕНО: Адаптер теперь должен принимать Map<Long, Integer>
                     rv.setAdapter(new OrderHistoryItemsAdapter(finalOrder.items));
                 }
 
@@ -80,19 +82,18 @@ public class OrderDetailsViewFragment extends BaseFragment {
                         CartManager.getInstance().clearCart();
                         if (finalOrder.items != null) {
                             new Thread(() -> {
-                                for (Map.Entry<String, Integer> entry : finalOrder.items.entrySet()) {
-                                    double price = db.productDao().getPriceByName(entry.getKey());
-                                    CartManager.getInstance().addProduct(entry.getKey(), entry.getValue(), price);
+                                for (Map.Entry<Long, Integer> entry : finalOrder.items.entrySet()) {
+                                    // ИСПРАВЛЕНО: Поиск по ID
+                                    ProductEntity p = db.productDao().getProductById(entry.getKey());
+                                    if (p != null) {
+                                        CartManager.getInstance().addProduct(p.id, p.name, entry.getValue(), p.price);
+                                    }
                                 }
 
                                 if (getActivity() != null) {
                                     getActivity().runOnUiThread(() -> {
                                         CartManager.getInstance().setDeliveryDate(finalOrder.deliveryDate);
-
-                                        // ИСПРАВЛЕНО: Теперь передаем объект PaymentMethod напрямую,
-                                        // так как мы обновили CartManager
                                         CartManager.getInstance().setPaymentMethod(finalOrder.paymentMethod);
-
                                         CartManager.getInstance().setSeparateInvoice(finalOrder.needsSeparateInvoice);
 
                                         OrderDetailsFragment editFrag = new OrderDetailsFragment();
@@ -118,21 +119,18 @@ public class OrderDetailsViewFragment extends BaseFragment {
         return view;
     }
 
-    // calculateTotal остается без изменений
-
-
     private void calculateTotal(OrderEntity order, TextView tvTotalSum) {
         if (order == null || tvTotalSum == null) return;
 
-        // Вместо нового потока используем один безопасный Executor
         Executors.newSingleThreadExecutor().execute(() -> {
             double totalSum = 0;
             int totalQty = 0;
             AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
 
             if (order.items != null) {
-                for (Map.Entry<String, Integer> entry : order.items.entrySet()) {
-                    double price = db.productDao().getPriceByName(entry.getKey());
+                for (Map.Entry<Long, Integer> entry : order.items.entrySet()) {
+                    // ИСПРАВЛЕНО: Поиск цены по ID
+                    double price = db.productDao().getPriceById(entry.getKey());
                     totalSum += (price * entry.getValue());
                     totalQty += entry.getValue();
                 }
@@ -140,11 +138,10 @@ public class OrderDetailsViewFragment extends BaseFragment {
 
             final String result = String.format("Товаров: %d шт. | Итого: %,.0f ֏", totalQty, totalSum);
 
-            // Проверяем, жив ли еще фрагмент перед обновлением UI
             if (isAdded() && getActivity() != null) {
                 tvTotalSum.post(() -> tvTotalSum.setText(result));
             }
         });
     }
-
 }
+

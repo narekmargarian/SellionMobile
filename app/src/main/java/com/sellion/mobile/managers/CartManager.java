@@ -16,6 +16,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 public class CartManager {
+
     private static CartManager instance;
     private final AppDatabase db;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -48,15 +49,19 @@ public class CartManager {
         return instance;
     }
 
-    public void addProduct(String itemName, int quantity, double price) {
+    public void addProduct(long productId, String itemName, int quantity, double price) {
         executor.execute(() -> {
             if (quantity <= 0) {
-                db.cartDao().removeItem(itemName);
+                // Метод теперь существует в CartDao
+                db.cartDao().removeItemById(productId);
             } else {
-                db.cartDao().addOrUpdate(new CartEntity(itemName, quantity, price));
+                // productId теперь является PrimaryKey в CartEntity
+                db.cartDao().addOrUpdate(new CartEntity(productId, itemName, quantity, price));
             }
         });
     }
+
+
 
     public Map<String, Integer> getCartItems() {
         Map<String, Integer> map = new HashMap<>();

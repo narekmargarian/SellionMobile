@@ -21,6 +21,8 @@ public interface ClientDao {
     @Query("SELECT * FROM clients")
     List<ClientEntity> getAllClientsSync();
 
+    @Query("DELETE FROM clients")
+    void deleteAll();
 
 
 

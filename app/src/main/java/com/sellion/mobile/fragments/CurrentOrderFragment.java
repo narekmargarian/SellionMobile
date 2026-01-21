@@ -73,8 +73,8 @@ public class CurrentOrderFragment extends BaseFragment {
 
         for (CartEntity item : cartItems) {
             totalAmount += (item.price * item.quantity);
-            // ИСПРАВЛЕНО: Добавлен 5-й параметр (пустая строка для категории)
-            selectedProducts.add(new Product(item.productName, item.price, 0, "", "",0));
+            // ИСПРАВЛЕНО: Теперь передаем item.productId первым параметром в конструктор Product
+            selectedProducts.add(new Product(item.productId, item.productName, item.price, 0, "", "", 0));
         }
 
         tvTotalSum.setText(String.format("%,.0f ֏", totalAmount));
@@ -94,8 +94,8 @@ public class CurrentOrderFragment extends BaseFragment {
                 if (position != RecyclerView.NO_POSITION) {
                     Product productToDelete = selectedProducts.get(position);
 
-                    // ИСПРАВЛЕНО: Добавлен параметр цены
-                    CartManager.getInstance().addProduct(productToDelete.getName(), 0, productToDelete.getPrice());
+                    // ИСПРАВЛЕНО: Используем getId() вместо имени и передаем 0 для удаления
+                    CartManager.getInstance().addProduct(productToDelete.getId(), productToDelete.getName(), 0, productToDelete.getPrice());
                     Toast.makeText(getContext(), "Удалено: " + productToDelete.getName(), Toast.LENGTH_SHORT).show();
                 }
             }
@@ -133,7 +133,8 @@ public class CurrentOrderFragment extends BaseFragment {
             List<CartEntity> items = AppDatabase.getInstance(requireContext()).cartDao().getCartItemsSync();
             int currentQty = 1;
             for (CartEntity item : items) {
-                if (item.productName.equals(product.getName())) {
+                // ИСПРАВЛЕНО: Сравнение по productId (long)
+                if (item.productId == product.getId()) {
                     currentQty = item.quantity;
                     break;
                 }
@@ -157,16 +158,16 @@ public class CurrentOrderFragment extends BaseFragment {
         });
 
         btnDelete.setOnClickListener(v -> {
-            // ИСПРАВЛЕНО: Добавлен параметр цены
-            CartManager.getInstance().addProduct(product.getName(), 0, product.getPrice());
+            // ИСПРАВЛЕНО: Используем getId() и передаем 0 для удаления
+            CartManager.getInstance().addProduct(product.getId(), product.getName(), 0, product.getPrice());
             dialog.dismiss();
         });
 
         btnConfirm.setOnClickListener(v -> {
             String qtyS = etQuantity.getText().toString();
             if (!qtyS.isEmpty()) {
-                // ИСПРАВЛЕНО: Добавлен параметр цены
-                CartManager.getInstance().addProduct(product.getName(), Integer.parseInt(qtyS), product.getPrice());
+                // ИСПРАВЛЕНО: Используем getId() для обновления количества
+                CartManager.getInstance().addProduct(product.getId(), product.getName(), Integer.parseInt(qtyS), product.getPrice());
                 dialog.dismiss();
             }
         });

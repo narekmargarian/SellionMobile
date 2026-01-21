@@ -58,7 +58,6 @@ public class ProductFragment extends BaseFragment {
         RecyclerView rv = view.findViewById(R.id.recyclerViewProducts);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // ИСПРАВЛЕНО: передаем флаг отображения остатков (только если это заказ и НЕ возврат)
         boolean showStock = isOrderMode && !isActuallyReturn;
 
         adapter = new ProductAdapter(new ArrayList<>(), product -> {
@@ -87,8 +86,8 @@ public class ProductFragment extends BaseFragment {
 
             List<Product> products = new ArrayList<>();
             for (ProductEntity e : entities) {
-                // ИСПРАВЛЕНО: Добавлен stockQuantity в конструктор Product
-                products.add(new Product(e.name, e.price, e.itemsPerBox, e.barcode, e.category, e.stockQuantity));
+                // ИСПРАВЛЕНО: Добавлен ID (e.id) первым параметром в конструктор Product
+                products.add(new Product(e.id, e.name, e.price, e.itemsPerBox, e.barcode, e.category, e.stockQuantity));
             }
 
             requireActivity().runOnUiThread(() -> {
@@ -110,7 +109,6 @@ public class ProductFragment extends BaseFragment {
             }
         }
 
-        // ИСПРАВЛЕНО: передаем флаг отображения остатков в конструктор
         boolean showStock = isOrderMode && !isActuallyReturn;
 
         adapter = new ProductAdapter(filteredList, product -> {
@@ -131,8 +129,6 @@ public class ProductFragment extends BaseFragment {
         TextView tvTitle = view.findViewById(R.id.tvSheetTitle);
         EditText etQuantity = view.findViewById(R.id.etSheetQuantity);
 
-        // УДАЛЕНО: tvStock (остаток в диалоге больше не показываем)
-
         View btnPlus = view.findViewById(R.id.btnPlus);
         View btnMinus = view.findViewById(R.id.btnMinus);
         com.google.android.material.button.MaterialButton btnConfirm = view.findViewById(R.id.btnConfirm);
@@ -146,7 +142,8 @@ public class ProductFragment extends BaseFragment {
             int currentQty = 1;
             boolean found = false;
             for (CartEntity item : items) {
-                if (item.productName.equals(product.getName())) {
+                // ИСПРАВЛЕНО: Поиск в корзине по productId (long)
+                if (item.productId == product.getId()) {
                     currentQty = item.quantity;
                     found = true;
                     break;
@@ -165,8 +162,6 @@ public class ProductFragment extends BaseFragment {
         btnPlus.setOnClickListener(v -> {
             String s = etQuantity.getText().toString();
             int val = Integer.parseInt(s.isEmpty() ? "0" : s);
-
-            // Оставляем только логику ограничения (без текста)
             if (!isActuallyReturn && val >= product.getStockQuantity()) {
                 Toast.makeText(getContext(), "Достигнут лимит склада", Toast.LENGTH_SHORT).show();
             } else {
@@ -182,7 +177,8 @@ public class ProductFragment extends BaseFragment {
 
         if (btnDelete != null) {
             btnDelete.setOnClickListener(v -> {
-                CartManager.getInstance().addProduct(product.getName(), 0, product.getPrice());
+                // ИСПРАВЛЕНО: Используем getId()
+                CartManager.getInstance().addProduct(product.getId(), product.getName(), 0, product.getPrice());
                 dialog.dismiss();
             });
         }
@@ -194,7 +190,8 @@ public class ProductFragment extends BaseFragment {
             if (!isActuallyReturn && qty > product.getStockQuantity()) {
                 Toast.makeText(getContext(), "Недостаточно на складе", Toast.LENGTH_SHORT).show();
             } else {
-                CartManager.getInstance().addProduct(product.getName(), qty, product.getPrice());
+                // ИСПРАВЛЕНО: Используем getId()
+                CartManager.getInstance().addProduct(product.getId(), product.getName(), qty, product.getPrice());
                 dialog.dismiss();
             }
         });
@@ -208,11 +205,9 @@ public class ProductFragment extends BaseFragment {
         dialog.setContentView(view);
 
         ((TextView) view.findViewById(R.id.tvInfoName)).setText(product.getName());
-        ((TextView) view.findViewById(R.id.tvInfoPrice)).setText("Цена: " + product.getPrice() + " ֏");
+        ((TextView) view.findViewById(R.id.tvInfoPrice)).setText("Цена: " + String.format("%,.0f", product.getPrice()) + " ֏");
         ((TextView) view.findViewById(R.id.tvInfoBarcode)).setText("Штрих код: " + product.getBarcode());
         ((TextView) view.findViewById(R.id.tvInfoBoxCount)).setText("В упаковке: " + product.getItemsPerBox());
-
-        // УДАЛЕНО: Любое упоминание остатка в инфо-диалоге
 
         view.findViewById(R.id.btnCloseInfo).setOnClickListener(v -> dialog.dismiss());
         dialog.show();

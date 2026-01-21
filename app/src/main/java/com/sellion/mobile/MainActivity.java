@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
     private String[] managers;
     private TextInputLayout textInputLayout;
     private AutoCompleteTextView etManager;
-    private AppDatabase db; // База данных
+    private AppDatabase db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(MainActivity.this);
         setContentView(R.layout.activity_main);
 
-        db = AppDatabase.getInstance(this); // Инициализация БД
+        db = AppDatabase.getInstance(this);
 
         View mainView = findViewById(R.id.main);
         if (mainView != null) {
@@ -57,31 +57,32 @@ public class MainActivity extends AppCompatActivity {
         textInputLayout = findViewById(R.id.textInputLayoutManager);
         etManager = findViewById(R.id.editTextManager);
 
-        // ШАГ 1: Мгновенное получение данных из локальной базы Room
+        // ШАГ 1: Получение данных из локальной базы Room
         db.managerDao().getAllManagersLive().observe(this, managerIds -> {
             if (managerIds != null && !managerIds.isEmpty()) {
                 managers = managerIds.toArray(new String[0]);
-                setupListeners(); // Слушатели включаются сразу, без ожидания интернета
+                setupListeners();
             } else {
-                // Если база совсем пуста (первый запуск), ставим дефолтные
+                // Дефолтный список для первого запуска
                 managers = new String[]{"1011", "1012", "1013", "1014", "1015"};
                 setupListeners();
             }
         });
 
-        // ШАГ 2: Тихое обновление списка с сервера в фоне
+        // ШАГ 2: Обновление списка с сервера
         syncManagersFromServer();
     }
 
     private void syncManagersFromServer() {
-        ApiService apiService = ApiClient.getClient().create(ApiService.class);
+        // ИСПРАВЛЕНО: Передаем 'this' в getClient, так как методу нужен контекст для получения Android ID
+        ApiService apiService = ApiClient.getClient(this).create(ApiService.class);
+
         apiService.getManagersList().enqueue(new Callback<List<String>>() {
             @Override
             public void onResponse(Call<List<String>> call, Response<List<String>> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     List<String> serverList = response.body();
 
-                    // Обновляем Room в фоновом потоке
                     new Thread(() -> {
                         List<ManagerEntity> entities = new ArrayList<>();
                         for (String id : serverList) {
@@ -89,15 +90,13 @@ public class MainActivity extends AppCompatActivity {
                         }
                         db.managerDao().deleteAll();
                         db.managerDao().insertAll(entities);
-                        // LiveData сама обновит UI, когда запись завершится
                     }).start();
                 }
             }
 
             @Override
             public void onFailure(Call<List<String>> call, Throwable t) {
-                // Больше не показываем Toast ошибки сети, чтобы не раздражать юзера.
-                // У нас уже есть список из Room или дефолтный.
+                // Беззвучный режим при отсутствии сети
             }
         });
     }
@@ -112,12 +111,19 @@ public class MainActivity extends AppCompatActivity {
             new MaterialAlertDialogBuilder(MainActivity.this)
                     .setTitle("Выберите менеджера")
                     .setItems(managers, (dialog, which) -> {
+
                         String selectedManager = managers[which];
                         etManager.setText(selectedManager);
 
-                        // Сохраняем сессию
+                        // 1. Сохраняем ID менеджера
                         SessionManager.getInstance().setManagerId(selectedManager);
 
+                        /// 2. ГЕНЕРИРУЕМ СКРЫТЫЙ КЛЮЧ
+                        // Формат: sellion.rivento.mg.ID
+                        String generatedKey = "sellion.rivento.mg." + selectedManager;
+                        SessionManager.getInstance().setApiKey(generatedKey);
+
+                        ApiClient.resetClient();
                         // Переход
                         Intent intent = new Intent(MainActivity.this, HostActivity.class);
                         intent.putExtra("MANAGER_ID", selectedManager);
@@ -127,7 +133,6 @@ public class MainActivity extends AppCompatActivity {
                     .show();
         };
 
-        // Убираем риск дублирования слушателей (важно для Poco M3)
         etManager.setOnClickListener(null);
         etManager.setOnClickListener(showDialog);
 
@@ -137,7 +142,4 @@ public class MainActivity extends AppCompatActivity {
         textInputLayout.setEndIconOnClickListener(null);
         textInputLayout.setEndIconOnClickListener(showDialog);
     }
-
-
-
 }

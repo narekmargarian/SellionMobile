@@ -25,7 +25,6 @@ import com.sellion.mobile.managers.CartManager;
 
 import java.util.ArrayList;
 import java.util.List;
-
 public class CurrentReturnFragment extends BaseFragment {
     private RecyclerView rv;
     private TextView tvTotalSum;
@@ -53,8 +52,6 @@ public class CurrentReturnFragment extends BaseFragment {
         return view;
     }
 
-
-
     private void initSwipeToDelete() {
         ItemTouchHelper.SimpleCallback simpleItemTouchCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
             @Override
@@ -67,8 +64,8 @@ public class CurrentReturnFragment extends BaseFragment {
                 int position = viewHolder.getAbsoluteAdapterPosition();
                 if (position != RecyclerView.NO_POSITION) {
                     Product productToDelete = selectedProducts.get(position);
-                    // ИСПРАВЛЕНИЕ 1: Добавлена цена (productToDelete.getPrice())
-                    CartManager.getInstance().addProduct(productToDelete.getName(), 0, productToDelete.getPrice());
+                    // ИСПРАВЛЕНО: Используем getId() и передаем 0 для удаления из корзины
+                    CartManager.getInstance().addProduct(productToDelete.getId(), productToDelete.getName(), 0, productToDelete.getPrice());
                 }
             }
 
@@ -103,7 +100,8 @@ public class CurrentReturnFragment extends BaseFragment {
             List<CartEntity> items = AppDatabase.getInstance(requireContext()).cartDao().getCartItemsSync();
             int qty = 1;
             for (CartEntity item : items) {
-                if (item.productName.equals(product.getName())) {
+                // ИСПРАВЛЕНО: Сравнение по productId (long)
+                if (item.productId == product.getId()) {
                     qty = item.quantity;
                     break;
                 }
@@ -115,20 +113,22 @@ public class CurrentReturnFragment extends BaseFragment {
         }).start();
 
         btnPlus.setOnClickListener(v -> {
-            int val = Integer.parseInt(etQuantity.getText().toString());
+            String valStr = etQuantity.getText().toString();
+            int val = Integer.parseInt(valStr.isEmpty() ? "0" : valStr);
             etQuantity.setText(String.valueOf(val + 1));
         });
 
         btnMinus.setOnClickListener(v -> {
-            int val = Integer.parseInt(etQuantity.getText().toString());
+            String valStr = etQuantity.getText().toString();
+            int val = Integer.parseInt(valStr.isEmpty() ? "0" : valStr);
             if (val > 1) etQuantity.setText(String.valueOf(val - 1));
         });
 
         btnConfirm.setOnClickListener(v -> {
             String qStr = etQuantity.getText().toString();
             if (!qStr.isEmpty()) {
-                // ИСПРАВЛЕНИЕ 2: Добавлена цена (product.getPrice())
-                CartManager.getInstance().addProduct(product.getName(), Integer.parseInt(qStr), product.getPrice());
+                // ИСПРАВЛЕНО: Используем getId() для обновления количества
+                CartManager.getInstance().addProduct(product.getId(), product.getName(), Integer.parseInt(qStr), product.getPrice());
                 dialog.dismiss();
             }
         });
@@ -153,8 +153,8 @@ public class CurrentReturnFragment extends BaseFragment {
 
         for (CartEntity item : cartItems) {
             totalAmount += (item.price * item.quantity);
-            // ИСПРАВЛЕННАЯ СТРОКА (добавлена еще одна пустая строка в конце):
-            selectedProducts.add(new Product(item.productName, item.price, 0, "", "",0));
+            // ИСПРАВЛЕНО: В конструктор Product теперь первым параметром передаем item.productId (long)
+            selectedProducts.add(new Product(item.productId, item.productName, item.price, 0, "", "", 0));
         }
 
         tvTotalSum.setText(String.format("%,.0f ֏", totalAmount));

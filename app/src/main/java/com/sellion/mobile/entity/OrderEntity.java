@@ -12,7 +12,7 @@ public class OrderEntity {
     public int id;
 
     public String shopName;
-    public Map<String, Integer> items;
+    public Map<Long, Integer> items;
     public String status; // "PENDING" или "SENT"
     public String deliveryDate;
     public PaymentMethod paymentMethod;
@@ -20,6 +20,7 @@ public class OrderEntity {
     public String managerId; // Добавь это поле!
     public double totalAmount;
     public String createdAt;
+    public String androidId;
 
 
 }

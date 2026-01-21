@@ -6,18 +6,18 @@ import androidx.room.PrimaryKey;
 
 @Entity(tableName = "products")
 public class ProductEntity {
-    @PrimaryKey(autoGenerate = true)
-    public int id;
+    @PrimaryKey // Убираем autoGenerate, так как ID придет с сервера
+    public long id;
     public String name;
     public double price;
     public int itemsPerBox;
     public String barcode;
     public String category;
-
-    // НОВОЕ ПОЛЕ
     public int stockQuantity;
 
-    public ProductEntity(String name, double price, int itemsPerBox, String barcode, String category, int stockQuantity) {
+    // Обновите конструктор
+    public ProductEntity(long id, String name, double price, int itemsPerBox, String barcode, String category, int stockQuantity) {
+        this.id = id;
         this.name = name;
         this.price = price;
         this.itemsPerBox = itemsPerBox;

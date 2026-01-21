@@ -71,41 +71,42 @@ public class ReturnAdapter  extends RecyclerView.Adapter<ReturnAdapter.ReturnVH>
 
         holder.tvShopName.setText(item.shopName);
 
-        // 1. Расчет суммы возврата в фоновом потоке, через базу данных
-        new Thread(() -> {
-            double total = 0;
-            // Получаем доступ к базе данных
-            AppDatabase db = AppDatabase.getInstance(holder.itemView.getContext().getApplicationContext());
-
-            if (item.items != null) {
-                for (Map.Entry<String, Integer> entry : item.items.entrySet()) {
-                    // Ищем актуальную цену в таблице товаров по имени
-                    double priceFromDb = db.productDao().getPriceByName(entry.getKey());
-                    total += (entry.getValue() * priceFromDb);
-                }
-            }
-
-            final String totalStr = String.format("%,.0f ֏", total);
-
-            // Обновляем UI в главном потоке после расчета
-            holder.tvTotalAmount.post(() -> holder.tvTotalAmount.setText(totalStr));
-
-        }).start();
-
-        // 2. Логика статуса
-        if ("SENT".equals(item.status)) {
-            holder.tvStatus.setText("ОТПРАВЛЕН");
-            holder.tvStatus.setTextColor(android.graphics.Color.parseColor("#2E7D32")); // Темно-зеленый
+        // Если в Entity уже сохранена сумма (мы добавили расчет при сохранении),
+        // берем её сразу, чтобы не нагружать БД в списке.
+        if (item.totalAmount > 0) {
+            holder.tvTotalAmount.setText(String.format("%,.0f ֏", item.totalAmount));
         } else {
-            holder.tvStatus.setText("ОЖИДАЕТ");
-            holder.tvStatus.setTextColor(android.graphics.Color.parseColor("#2196F3")); // Синий
+            // Фоновый расчет, если сумма почему-то равна 0 (для старых записей)
+            new Thread(() -> {
+                double total = 0;
+                AppDatabase db = AppDatabase.getInstance(holder.itemView.getContext().getApplicationContext());
+
+                if (item.items != null) {
+                    // ИСПРАВЛЕНО: Используем Long для ключа Map
+                    for (Map.Entry<Long, Integer> entry : item.items.entrySet()) {
+                        // ИСПРАВЛЕНО: Ищем по ID (entry.getKey())
+                        double priceFromDb = db.productDao().getPriceById(entry.getKey());
+                        total += (entry.getValue() * priceFromDb);
+                    }
+                }
+
+                final String totalStr = String.format("%,.0f ֏", total);
+                holder.tvTotalAmount.post(() -> holder.tvTotalAmount.setText(totalStr));
+            }).start();
         }
 
-        // Клик для открытия деталей возврата
+        // Логика статуса (без изменений)
+        if ("SENT".equals(item.status)) {
+            holder.tvStatus.setText("ОТПРАВЛЕН");
+            holder.tvStatus.setTextColor(android.graphics.Color.parseColor("#2E7D32"));
+        } else {
+            holder.tvStatus.setText("ОЖИДАЕТ");
+            holder.tvStatus.setTextColor(android.graphics.Color.parseColor("#2196F3"));
+        }
+
         holder.itemView.setOnClickListener(v -> {
-            if (listener != null) {
-                listener.onItemClick(item);
-            }
+            if (listener != null) listener.onItemClick(item);
         });
     }
+
 }

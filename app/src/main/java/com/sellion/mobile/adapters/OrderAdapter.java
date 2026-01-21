@@ -16,6 +16,7 @@ import com.sellion.mobile.entity.OrderEntity;
 import java.util.List;
 import java.util.Map;
 
+
 public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderVH> {
 
     private List<OrderEntity> list; // Изменено на OrderEntity
@@ -40,37 +41,21 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderVH> {
     @Override
     public void onBindViewHolder(@NonNull OrderVH h, int pos) {
         OrderEntity o = list.get(pos);
-        if (o == null) return;
-
         h.tvShopName.setText(o.shopName);
 
-        // Расчет суммы через БД в фоновом потоке
-        new Thread(() -> {
-            double total = 0;
-            AppDatabase db = AppDatabase.getInstance(h.itemView.getContext().getApplicationContext());
-            if (o.items != null) {
-                for (Map.Entry<String, Integer> entry : o.items.entrySet()) {
-                    // Ищем цену в таблице товаров по имени
-                    double priceFromDb = db.productDao().getPriceByName(entry.getKey());
-                    total += (entry.getValue() * priceFromDb);
-                }
-            }
-            final String totalStr = String.format("%,.0f ֏", total);
-            h.tvTotalAmount.post(() -> h.tvTotalAmount.setText(totalStr));
-        }).start();
+        // Используем уже сохраненную сумму в Entity, не мучаем БД в списке
+        h.tvTotalAmount.setText(String.format("%,.0f ֏", o.totalAmount));
 
         if ("SENT".equals(o.status)) {
             h.tvStatus.setText("ОТПРАВЛЕН");
-            h.tvStatus.setTextColor(android.graphics.Color.parseColor("#2E7D32"));
+            h.tvStatus.setTextColor(Color.parseColor("#2E7D32"));
         } else {
             h.tvStatus.setText("ОЖИДАЕТ");
-            h.tvStatus.setTextColor(android.graphics.Color.parseColor("#2196F3"));
+            h.tvStatus.setTextColor(Color.parseColor("#2196F3"));
         }
-
-        h.itemView.setOnClickListener(v -> {
-            if (listener != null) listener.onOrderClick(o);
-        });
+        h.itemView.setOnClickListener(v -> listener.onOrderClick(o));
     }
+
 
     @Override
     public int getItemCount() {
@@ -79,6 +64,7 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderVH> {
 
     public static class OrderVH extends RecyclerView.ViewHolder {
         TextView tvShopName, tvStatus, tvTotalAmount;
+
         public OrderVH(View v) {
             super(v);
             tvShopName = v.findViewById(R.id.tvOrderShopName);
@@ -86,9 +72,6 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderVH> {
             tvTotalAmount = v.findViewById(R.id.tvOrderTotalAmount);
         }
     }
-
-
-
 
 
 }

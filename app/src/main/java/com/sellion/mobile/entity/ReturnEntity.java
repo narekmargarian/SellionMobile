@@ -11,7 +11,7 @@ public class ReturnEntity {
     public int id;
 
     public String shopName;
-    public Map<String, Integer> items;
+    public Map<Long, Integer> items;
     public ReturnReason returnReason;
     public String returnDate;
     public String status; // PENDING, SENT
@@ -19,4 +19,5 @@ public class ReturnEntity {
     public String managerId;   // КТО отправил
     public double totalAmount; // СУММА возврата
     public String createdAt;
+    public String androidId;
 }
