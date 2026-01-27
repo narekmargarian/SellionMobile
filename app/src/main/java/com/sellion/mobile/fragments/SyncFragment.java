@@ -26,6 +26,7 @@ import androidx.appcompat.app.AlertDialog;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.sellion.mobile.R;
+import com.sellion.mobile.activities.HostActivity;
 import com.sellion.mobile.api.ApiClient;
 import com.sellion.mobile.api.ApiResponse;
 import com.sellion.mobile.api.ApiService;
@@ -140,6 +141,7 @@ public class SyncFragment extends BaseFragment {
 
         new Thread(() -> {
             try {
+                HostActivity.logToFile(appContext, TAG, "Начало загрузки данных с сервера");
                 AppDatabase db = AppDatabase.getInstance(appContext);
                 ApiService api = ApiClient.getClient(appContext).create(ApiService.class);
                 String currentManagerId = SessionManager.getInstance().getManagerId();
@@ -218,6 +220,7 @@ public class SyncFragment extends BaseFragment {
                 });
 
             } catch (Exception e) {
+                HostActivity.logToFile(appContext, "SYNC_ERROR", e.getMessage());
                 android.util.Log.d("SYNC_ERROR", "Ошибка: ", e);
                 showSyncError("Нет связи с сервером или нет интернета в офисе.");
                 requireActivity().runOnUiThread(progressDialog::dismiss);
@@ -225,9 +228,6 @@ public class SyncFragment extends BaseFragment {
         }).start();
     }
 
-
-
-    // Вспомогательный метод для чистого вывода ошибок
     private void showSyncError(String message) {
         if (!isAdded()) return;
         requireActivity().runOnUiThread(() -> {
@@ -240,10 +240,6 @@ public class SyncFragment extends BaseFragment {
         });
     }
 
-
-
-
-
     private void dismissProgress() {
         if (getActivity() != null) getActivity().runOnUiThread(() -> progressDialog.dismiss());
     }
@@ -253,31 +249,32 @@ public class SyncFragment extends BaseFragment {
                 .setTitle("Очистка")
                 .setMessage("Это удалит ВСЕ данные. Вы уверены?")
                 .setPositiveButton("Да, удалить", (d, w) -> {
+                    final Context appContext = requireContext().getApplicationContext();
                     new Thread(() -> {
-                        AppDatabase db = AppDatabase.getInstance(requireContext());
+                        AppDatabase db = AppDatabase.getInstance(appContext);
                         // Правильный порядок очистки для Room 2026
                         db.runInTransaction(() -> {
                             db.cartDao().clearCart();
                             db.productDao().deleteAll();
-                            db.clientDao().deleteAll(); // Добавьте этот метод в ClientDao
+                            db.clientDao().deleteAll();
                             db.orderDao().deleteAll();
                             db.returnDao().deleteAll();
                         });
 
-                        requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().clear().apply();
+                        appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().clear().apply();
+                        HostActivity.logToFile(appContext, TAG, "База данных полностью очищена пользователем");
 
                         requireActivity().runOnUiThread(() -> {
-                            updateStatusText();
-                            Toast.makeText(getContext(), "База полностью очищена", Toast.LENGTH_SHORT).show();
+                            if (isAdded()) {
+                                updateStatusText();
+                                Toast.makeText(appContext, "База полностью очищена", Toast.LENGTH_SHORT).show();
+                            }
                         });
                     }).start();
                 })
                 .setNegativeButton("Отмена", null)
                 .show();
     }
-
-
-    // ... методы takePhotoReport и sendDocuments остаются без изменений ...
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -295,7 +292,6 @@ public class SyncFragment extends BaseFragment {
                 }
         );
     }
-
 
     private void takePhotoReport() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
@@ -316,13 +312,14 @@ public class SyncFragment extends BaseFragment {
 
         progressDialog.show();
 
+        final Context appContext = requireContext().getApplicationContext();
+
         new Thread(() -> {
             // ИСПРАВЛЕНО: Получаем контекст приложения для безопасности
-            Context context = requireContext().getApplicationContext();
-            AppDatabase db = AppDatabase.getInstance(context);
+            AppDatabase db = AppDatabase.getInstance(appContext);
 
             // ИСПРАВЛЕНО: Передаем контекст в ApiClient
-            ApiService api = ApiClient.getClient(context).create(ApiService.class);
+            ApiService api = ApiClient.getClient(appContext).create(ApiService.class);
 
             // Получаем данные, которые еще не отправлены
             List<OrderEntity> pendingOrders = db.orderDao().getPendingOrdersSync();
@@ -331,12 +328,13 @@ public class SyncFragment extends BaseFragment {
             if (pendingOrders.isEmpty() && pendingReturns.isEmpty()) {
                 requireActivity().runOnUiThread(() -> {
                     progressDialog.dismiss();
-                    Toast.makeText(getContext(), "Нет новых данных для отправки", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(appContext, "Нет новых данных для отправки", Toast.LENGTH_SHORT).show();
                 });
                 return;
             }
 
             try {
+                HostActivity.logToFile(appContext, TAG, "Начало отправки документов в офис");
                 boolean allOk = true;
 
                 // 1. Отправка Заказов
@@ -378,6 +376,7 @@ public class SyncFragment extends BaseFragment {
                 });
 
             } catch (java.io.IOException e) {
+                HostActivity.logToFile(appContext, "SEND_DOCS_ERROR", e.getMessage());
                 requireActivity().runOnUiThread(() -> {
                     progressDialog.dismiss();
                     new MaterialAlertDialogBuilder(requireContext())
@@ -390,5 +389,4 @@ public class SyncFragment extends BaseFragment {
             }
         }).start();
     }
-
 }

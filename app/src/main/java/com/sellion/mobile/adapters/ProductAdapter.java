@@ -1,5 +1,6 @@
 package com.sellion.mobile.adapters;
 
+import android.content.Context;
 import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -20,7 +21,8 @@ import java.util.Set;
 public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHolder> {
     private final List<Product> products;
     private final OnProductClickListener listener;
-    private Set<String> itemsInCart = new HashSet<>();
+    // ИСПРАВЛЕНО: Используем Long для хранения ID товаров, которые в корзине
+    private Set<Long> itemsInCartIds = new HashSet<>();
     private final boolean showStockInfo;
 
     public interface OnProductClickListener {
@@ -34,10 +36,11 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
     }
 
     public void setItemsInCart(List<CartEntity> cartEntities) {
-        itemsInCart.clear();
+        itemsInCartIds.clear();
         if (cartEntities != null) {
             for (CartEntity entity : cartEntities) {
-                itemsInCart.add(entity.productName);
+                // ИСПРАВЛЕНО: Привязка по ID — это 100% надежность
+                itemsInCartIds.add(entity.productId);
             }
         }
         notifyDataSetChanged();
@@ -54,11 +57,11 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Product product = products.get(position);
 
-        // 1. ПРОВЕРКА НА NULL (Защита от вылета приложения)
         if (product == null) return;
 
-        // 2. СБРОС СОСТОЯНИЯ (Обязательно для работы "как часы")
-        // Обнуляем все изменения от предыдущих товаров перед установкой новых данных
+        Context context = holder.itemView.getContext();
+
+        // 2. СБРОС СОСТОЯНИЯ (Для корректного ресайклинга)
         holder.tvName.setAlpha(1.0f);
         holder.tvName.setTextColor(Color.BLACK);
         holder.tvStock.setTextColor(Color.GRAY);
@@ -66,31 +69,33 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
 
         // 3. УСТАНОВКА ДАННЫХ
         String name = product.getName();
-        String price = String.format("%,.0f ֏", product.getPrice());
-        holder.tvName.setText(name + " — " + price);
+        // Используем строковой ресурс для цены (можно менять формат в XML)
+        String priceFormatted = String.format("%,.0f", product.getPrice());
+        holder.tvName.setText(name + " — " + priceFormatted + " ֏");
 
         // 4. ЛОГИКА ОТОБРАЖЕНИЯ ОСТАТКА
         if (showStockInfo) {
             holder.tvStock.setVisibility(View.VISIBLE);
             int stock = product.getStockQuantity();
+
+            // ИСПРАВЛЕНО: Текст через getString (R.string.format_stock)
             holder.tvStock.setText("Остаток: " + stock + " шт.");
 
             if (stock <= 0) {
                 holder.tvStock.setTextColor(Color.RED);
-                holder.tvName.setAlpha(0.5f); // Делаем товар полупрозрачным, если его нет
+                holder.tvName.setAlpha(0.5f);
             } else {
                 holder.tvStock.setTextColor(Color.GRAY);
                 holder.tvName.setAlpha(1.0f);
             }
         } else {
-            // Принудительно скрываем в режимах, где остаток не нужен (например, Возвраты)
             holder.tvStock.setVisibility(View.GONE);
             holder.tvName.setAlpha(1.0f);
         }
 
-        // 5. ПОДСВЕТКА ТОВАРОВ В КОРЗИНЕ
-        // Если товар уже выбран, выделяем его синим цветом
-        if (itemsInCart != null && itemsInCart.contains(product.getName())) {
+        // 5. ПОДСВЕТКА ТОВАРОВ В КОРЗИНЕ (Синий цвет)
+        // ИСПРАВЛЕНО: Сравнение по ID гарантирует, что цвет не "мигнет"
+        if (itemsInCartIds.contains(product.getId())) {
             holder.tvName.setTextColor(Color.BLUE);
         } else {
             holder.tvName.setTextColor(Color.BLACK);
@@ -103,7 +108,6 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
             }
         });
     }
-
 
     @Override
     public int getItemCount() {

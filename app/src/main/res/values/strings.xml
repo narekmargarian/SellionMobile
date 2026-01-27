@@ -42,4 +42,14 @@
     <string name="format_order_info">%1$s — %2$d шт. (%3$,.0f ֏)</string>
     <string name="format_total_sum">Итого: %1$,.0f ֏</string>
     <string name="manager_label">Менеджер: %1$s</string>
+
+
+    <!-- Заголовок диалога -->
+    <string name="dialog_select_manager_title">Выберите менеджера</string>
+
+    <!-- Префикс API ключа (можно менять тут) -->
+    <string name="api_key_prefix">sellion.rivento.mg.%1$s</string>
+
+    <!-- Менеджеры по умолчанию (через запятую) -->
+    <string name="default_managers_list">1011,1012,1013,1014,1015,1016,1017,1018</string>
 </resources>

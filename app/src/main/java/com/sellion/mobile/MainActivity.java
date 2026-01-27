@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        db = AppDatabase.getInstance(getApplicationContext()); // Используем appContext
+        db = AppDatabase.getInstance(getApplicationContext());
 
         textInputLayout = findViewById(R.id.textInputLayoutManager);
         etManager = findViewById(R.id.editTextManager);
@@ -54,9 +54,11 @@ public class MainActivity extends AppCompatActivity {
             if (managerIds != null && !managerIds.isEmpty()) {
                 managers = managerIds.toArray(new String[0]);
             } else {
-                managers = new String[]{"1011", "1012", "1013", "1014", "1015", "1016", "1017","1018"};
+                // ИСПРАВЛЕНО: Берем список из XML, а не из кода
+                String defaultData = getString(R.string.default_managers_list);
+                managers = defaultData.split(",");
             }
-            setupListeners(); // Обновляем слушателей при изменении данных
+            setupListeners();
         });
 
         syncManagersFromServer();
@@ -99,16 +101,21 @@ public class MainActivity extends AppCompatActivity {
             if (managers == null || managers.length == 0) return;
 
             new MaterialAlertDialogBuilder(this)
-                    .setTitle("Выберите менеджера")
+                    .setTitle(getString(R.string.dialog_select_manager_title)) // Из XML
                     .setItems(managers, (dialog, which) -> {
                         String selectedManager = managers[which];
                         etManager.setText(selectedManager);
 
                         SessionManager.getInstance().setManagerId(selectedManager);
-                        String generatedKey = "sellion.rivento.mg." + selectedManager;
+
+                        // ИСПРАВЛЕНО: Формируем ключ через формат в XML
+                        String generatedKey = getString(R.string.api_key_prefix, selectedManager);
                         SessionManager.getInstance().setApiKey(generatedKey);
 
                         ApiClient.resetClient();
+
+                        // Логируем вход в файл
+                        HostActivity.logToFile(getApplicationContext(), "LOGIN", "Manager " + selectedManager + " logged in");
 
                         Intent intent = new Intent(MainActivity.this, HostActivity.class);
                         intent.putExtra("MANAGER_ID", selectedManager);

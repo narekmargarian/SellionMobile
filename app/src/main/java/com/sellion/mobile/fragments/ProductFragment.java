@@ -1,5 +1,6 @@
 package com.sellion.mobile.fragments;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -20,6 +21,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
 import com.sellion.mobile.R;
+import com.sellion.mobile.activities.HostActivity;
 import com.sellion.mobile.adapters.ProductAdapter;
 import com.sellion.mobile.api.ApiClient;
 import com.sellion.mobile.api.ApiService;
@@ -40,6 +42,8 @@ public class ProductFragment extends BaseFragment {
     private boolean isActuallyReturn = false;
     private String currentCategory;
     private List<Product> allProducts = new ArrayList<>();
+    private static final String TAG = "PRODUCT_FRAG";
+
 
     @Nullable
     @Override
@@ -60,6 +64,7 @@ public class ProductFragment extends BaseFragment {
 
         boolean showStock = isOrderMode && !isActuallyReturn;
 
+        // Инициализируем адаптер пустым списком
         adapter = new ProductAdapter(new ArrayList<>(), product -> {
             if (isOrderMode || isActuallyReturn) showQuantityDialog(product);
             else showProductInfo(product);
@@ -67,6 +72,7 @@ public class ProductFragment extends BaseFragment {
 
         rv.setAdapter(adapter);
 
+        // Живое наблюдение за корзиной
         AppDatabase.getInstance(requireContext()).cartDao().getCartItemsLive().observe(getViewLifecycleOwner(), cartItems -> {
             if (adapter != null) adapter.setItemsInCart(cartItems);
         });
@@ -80,23 +86,28 @@ public class ProductFragment extends BaseFragment {
     }
 
     private void loadProductsFromLocalDB() {
+        final Context appContext = requireContext().getApplicationContext();
         new Thread(() -> {
-            AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
-            List<ProductEntity> entities = db.productDao().getAllProductsSync();
+            try {
+                AppDatabase db = AppDatabase.getInstance(appContext);
+                List<ProductEntity> entities = db.productDao().getAllProductsSync();
 
-            List<Product> products = new ArrayList<>();
-            for (ProductEntity e : entities) {
-                // ИСПРАВЛЕНО: Добавлен ID (e.id) первым параметром в конструктор Product
-                products.add(new Product(e.id, e.name, e.price, e.itemsPerBox, e.barcode, e.category, e.stockQuantity));
-            }
-
-            requireActivity().runOnUiThread(() -> {
-                allProducts = products;
-                if (allProducts.isEmpty()) {
-                    Toast.makeText(getContext(), "Товары не загружены. Сделайте синхронизацию!", Toast.LENGTH_LONG).show();
+                List<Product> products = new ArrayList<>();
+                for (ProductEntity e : entities) {
+                    // Передаем e.id для корректной работы подсветки
+                    products.add(new Product(e.id, e.name, e.price, e.itemsPerBox, e.barcode, e.category, e.stockQuantity));
                 }
-                filterAndDisplayProducts();
-            });
+
+                requireActivity().runOnUiThread(() -> {
+                    allProducts = products;
+                    if (allProducts.isEmpty()) {
+                        Toast.makeText(appContext, "Товары не загружены. Сделайте синхронизацию!", Toast.LENGTH_LONG).show();
+                    }
+                    filterAndDisplayProducts();
+                });
+            } catch (Exception e) {
+                HostActivity.logToFile(appContext, TAG, "Load Error: " + e.getMessage());
+            }
         }).start();
     }
 
@@ -110,31 +121,28 @@ public class ProductFragment extends BaseFragment {
             }
         }
 
-        // Сохраняем логику: в заказе показываем остаток, в возврате - нет
         boolean showStock = isOrderMode && !isActuallyReturn;
 
-        // ИСПРАВЛЕНО: Теперь адаптер создается один раз правильно
+        // Пересоздаем адаптер с отфильтрованным списком
         adapter = new ProductAdapter(filteredList, product -> {
-            // Проверяем флаги, которые мы получили в onCreateView из аргументов
-            if (isOrderMode || isActuallyReturn) {
-                showQuantityDialog(product);
-            } else {
-                showProductInfo(product);
-            }
+            if (isOrderMode || isActuallyReturn) showQuantityDialog(product);
+            else showProductInfo(product);
         }, showStock);
 
         RecyclerView rv = getView().findViewById(R.id.recyclerViewProducts);
         if (rv != null) {
             rv.setAdapter(adapter);
-            // Сразу подтягиваем текущую корзину, чтобы не ждать LiveData
+
+            // СРАЗУ подтягиваем текущую корзину синхронно, чтобы избежать мигания цвета
+            final Context appContext = requireContext().getApplicationContext();
             new Thread(() -> {
-                List<CartEntity> currentCart = AppDatabase.getInstance(requireContext().getApplicationContext())
-                        .cartDao().getCartItemsSync();
-                requireActivity().runOnUiThread(() -> adapter.setItemsInCart(currentCart));
+                List<CartEntity> currentCart = AppDatabase.getInstance(appContext).cartDao().getCartItemsSync();
+                requireActivity().runOnUiThread(() -> {
+                    if (adapter != null) adapter.setItemsInCart(currentCart);
+                });
             }).start();
         }
     }
-
 
     private void showQuantityDialog(Product product) {
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
@@ -152,32 +160,35 @@ public class ProductFragment extends BaseFragment {
 
         tvTitle.setText(product.getName());
 
+        final Context appContext = requireContext().getApplicationContext();
         new Thread(() -> {
-            AppDatabase db = AppDatabase.getInstance(requireContext());
-            java.util.List<CartEntity> items = db.cartDao().getCartItemsSync();
-            int currentQty = 1;
-            boolean found = false;
-            for (CartEntity item : items) {
-                // ИСПРАВЛЕНО: Поиск в корзине по productId (long)
-                if (item.productId == product.getId()) {
-                    currentQty = item.quantity;
-                    found = true;
-                    break;
+            try {
+                AppDatabase db = AppDatabase.getInstance(appContext);
+                List<CartEntity> items = db.cartDao().getCartItemsSync();
+                int currentQty = 1;
+                boolean found = false;
+                for (CartEntity item : items) {
+                    if (item.productId == product.getId()) {
+                        currentQty = item.quantity;
+                        found = true;
+                        break;
+                    }
                 }
-            }
-            final int finalQty = currentQty;
-            final boolean isFound = found;
-            if (getActivity() != null) {
-                getActivity().runOnUiThread(() -> {
+                final int finalQty = currentQty;
+                final boolean isFound = found;
+                requireActivity().runOnUiThread(() -> {
                     etQuantity.setText(String.valueOf(finalQty));
                     if (isFound && btnDelete != null) btnDelete.setVisibility(View.VISIBLE);
                 });
+            } catch (Exception e) {
+                HostActivity.logToFile(appContext, TAG, "Dialog Data Error: " + e.getMessage());
             }
         }).start();
 
         btnPlus.setOnClickListener(v -> {
             String s = etQuantity.getText().toString();
             int val = Integer.parseInt(s.isEmpty() ? "0" : s);
+            // Проверка лимита склада только в режиме заказа
             if (!isActuallyReturn && val >= product.getStockQuantity()) {
                 Toast.makeText(getContext(), "Достигнут лимит склада", Toast.LENGTH_SHORT).show();
             } else {
@@ -193,7 +204,6 @@ public class ProductFragment extends BaseFragment {
 
         if (btnDelete != null) {
             btnDelete.setOnClickListener(v -> {
-                // ИСПРАВЛЕНО: Используем getId()
                 CartManager.getInstance().addProduct(product.getId(), product.getName(), 0, product.getPrice());
                 dialog.dismiss();
             });
@@ -206,7 +216,6 @@ public class ProductFragment extends BaseFragment {
             if (!isActuallyReturn && qty > product.getStockQuantity()) {
                 Toast.makeText(getContext(), "Недостаточно на складе", Toast.LENGTH_SHORT).show();
             } else {
-                // ИСПРАВЛЕНО: Используем getId()
                 CartManager.getInstance().addProduct(product.getId(), product.getName(), qty, product.getPrice());
                 dialog.dismiss();
             }
