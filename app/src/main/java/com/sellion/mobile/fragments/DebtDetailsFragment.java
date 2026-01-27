@@ -30,8 +30,8 @@ public class DebtDetailsFragment extends BaseFragment {
         // Получаем данные, которые передали из списка
         if (getArguments() != null) {
             tvName.setText(getArguments().getString("SHOP_NAME"));
-            tvOwner.setText("Имя ИП: " + getArguments().getString("OWNER_NAME"));
-            tvInn.setText("ИНН/ИП: " + getArguments().getString("INN"));
+            tvOwner.setText("Имя ИП/ООО: " + getArguments().getString("OWNER_NAME"));
+            tvInn.setText("ИНН/ՀՎՀՀ: " + getArguments().getString("INN"));
             tvAddress.setText(getArguments().getString("ADDRESS"));
 
             double amount = getArguments().getDouble("AMOUNT");

@@ -1,5 +1,6 @@
 package com.sellion.mobile.fragments;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,12 +14,16 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
+import com.sellion.mobile.activities.HostActivity;
 import com.sellion.mobile.adapters.OrderHistoryItemsAdapter;
 import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.OrderEntity;
+import com.sellion.mobile.entity.OrderItemInfo;
 import com.sellion.mobile.entity.ProductEntity;
 import com.sellion.mobile.managers.CartManager;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 
@@ -44,7 +49,8 @@ public class OrderDetailsViewFragment extends BaseFragment {
         tvTitle.setText(shopName);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
+        final Context appContext = requireContext().getApplicationContext();
+        AppDatabase db = AppDatabase.getInstance(appContext);
 
         db.orderDao().getAllOrdersLive().observe(getViewLifecycleOwner(), orders -> {
             OrderEntity currentOrder = null;
@@ -69,9 +75,30 @@ public class OrderDetailsViewFragment extends BaseFragment {
 
                 calculateTotal(finalOrder, tvTotalSum);
 
+                // --- ПОДГОТОВКА ДАННЫХ ДЛЯ АДАПТЕРА ---
                 if (finalOrder.items != null) {
-                    // ИСПРАВЛЕНО: Адаптер теперь должен принимать Map<Long, Integer>
-                    rv.setAdapter(new OrderHistoryItemsAdapter(finalOrder.items));
+                    new Thread(() -> {
+                        try {
+                            List<OrderItemInfo> preparedList = new ArrayList<>();
+                            for (Map.Entry<Long, Integer> entry : finalOrder.items.entrySet()) {
+                                ProductEntity p = db.productDao().getProductById(entry.getKey());
+                                if (p != null) {
+                                    preparedList.add(new OrderItemInfo(p.name, entry.getValue(), p.price, p.stockQuantity));
+                                } else {
+                                    preparedList.add(new OrderItemInfo("Удаленный товар ID:" + entry.getKey(), entry.getValue(), 0, 0));
+                                }
+                            }
+
+                            requireActivity().runOnUiThread(() -> {
+                                if (isAdded()) {
+                                    // Устанавливаем новый быстрый адаптер
+                                    rv.setAdapter(new OrderHistoryItemsAdapter(preparedList));
+                                }
+                            });
+                        } catch (Exception e) {
+                            HostActivity.logToFile(appContext, "PREPARE_DATA_ERR", e.getMessage());
+                        }
+                    }).start();
                 }
 
                 if ("SENT".equals(finalOrder.status)) {
@@ -83,7 +110,6 @@ public class OrderDetailsViewFragment extends BaseFragment {
                         if (finalOrder.items != null) {
                             new Thread(() -> {
                                 for (Map.Entry<Long, Integer> entry : finalOrder.items.entrySet()) {
-                                    // ИСПРАВЛЕНО: Поиск по ID
                                     ProductEntity p = db.productDao().getProductById(entry.getKey());
                                     if (p != null) {
                                         CartManager.getInstance().addProduct(p.id, p.name, entry.getValue(), p.price);
@@ -121,27 +147,30 @@ public class OrderDetailsViewFragment extends BaseFragment {
 
     private void calculateTotal(OrderEntity order, TextView tvTotalSum) {
         if (order == null || tvTotalSum == null) return;
+        final Context appContext = requireContext().getApplicationContext();
 
         Executors.newSingleThreadExecutor().execute(() -> {
-            double totalSum = 0;
-            int totalQty = 0;
-            AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
+            try {
+                double totalSum = 0;
+                int totalQty = 0;
+                AppDatabase db = AppDatabase.getInstance(appContext);
 
-            if (order.items != null) {
-                for (Map.Entry<Long, Integer> entry : order.items.entrySet()) {
-                    // ИСПРАВЛЕНО: Поиск цены по ID
-                    double price = db.productDao().getPriceById(entry.getKey());
-                    totalSum += (price * entry.getValue());
-                    totalQty += entry.getValue();
+                if (order.items != null) {
+                    for (Map.Entry<Long, Integer> entry : order.items.entrySet()) {
+                        double price = db.productDao().getPriceById(entry.getKey());
+                        totalSum += (price * entry.getValue());
+                        totalQty += entry.getValue();
+                    }
                 }
-            }
 
-            final String result = String.format("Товаров: %d шт. | Итого: %,.0f ֏", totalQty, totalSum);
+                final String result = String.format("Товаров: %d шт. | Итого: %,.0f ֏", totalQty, totalSum);
 
-            if (isAdded() && getActivity() != null) {
-                tvTotalSum.post(() -> tvTotalSum.setText(result));
+                if (isAdded() && getActivity() != null) {
+                    tvTotalSum.post(() -> tvTotalSum.setText(result));
+                }
+            } catch (Exception e) {
+                HostActivity.logToFile(appContext, "CALC_TOTAL_ERR", e.getMessage());
             }
         });
     }
 }
-

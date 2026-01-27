@@ -1,10 +1,15 @@
 package com.sellion.mobile;
 
 import android.content.Intent;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
+import android.graphics.LinearGradient;
+import android.graphics.Shader;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.AutoCompleteTextView;
+import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -46,8 +51,26 @@ public class MainActivity extends AppCompatActivity {
 
         db = AppDatabase.getInstance(getApplicationContext());
 
+
+
+        // 1. ПРИВЯЗКА ГРАДИЕНТА К ЛОГОТИПУ (Как в вебе)
+        TextView tvLogo = findViewById(R.id.logoText);
+        setupLogoGradient(tvLogo);
+
+        // 2. АНИМАЦИЯ ПОЯВЛЕНИЯ КАРТОЧКИ (Аналог твоего JS wrapper)
+        View cardAuth = findViewById(R.id.cardAuth); // Используем ID из твоего XML
+        cardAuth.setAlpha(0f);
+        cardAuth.setTranslationY(100f);
+        cardAuth.animate().alpha(1f).translationY(0f).setDuration(1000).start();
+
+
+
+
         textInputLayout = findViewById(R.id.textInputLayoutManager);
         etManager = findViewById(R.id.editTextManager);
+
+
+
 
         // ШАГ 1: Единый источник данных. UI всегда слушает БД.
         db.managerDao().getAllManagersLive().observe(this, managerIds -> {
@@ -62,6 +85,9 @@ public class MainActivity extends AppCompatActivity {
         });
 
         syncManagersFromServer();
+
+
+
     }
 
     private void syncManagersFromServer() {
@@ -96,6 +122,17 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void setupLogoGradient(TextView textView) {
+        textView.post(() -> {
+            // Градиент от белого к твоему --accent (#6366F1)
+            Shader shader = new LinearGradient(0, 0, 0, textView.getLineHeight(),
+                    new int[]{Color.WHITE, Color.parseColor("#6366F1")},
+                    new float[]{0, 1}, Shader.TileMode.CLAMP);
+            textView.getPaint().setShader(shader);
+            textView.invalidate();
+        });
+    }
+
     private void setupListeners() {
         View.OnClickListener showDialog = v -> {
             if (managers == null || managers.length == 0) return;
@@ -127,6 +164,11 @@ public class MainActivity extends AppCompatActivity {
 
         etManager.setOnClickListener(showDialog);
         textInputLayout.setEndIconOnClickListener(showDialog);
+    }
+
+    private void showErrorState() {
+        textInputLayout.setError("Неверный ID менеджера"); // Красная обводка как в вебе
+        textInputLayout.setErrorTextColor(ColorStateList.valueOf(Color.parseColor("#EF4444")));
     }
 
     @Override

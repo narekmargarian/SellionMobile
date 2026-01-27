@@ -121,7 +121,7 @@
                 android:layout_weight="1"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardBackgroundColor="#EADDFF"
+                app:cardBackgroundColor="#D3E4FF"
                 app:cardCornerRadius="28dp"
                 app:rippleColor="#20000000">
 
@@ -132,7 +132,7 @@
                     android:lineSpacingExtra="8dp"
                     android:text="👥\nКЛИЕНТЫ"
                     android:textAlignment="center"
-                    android:textColor="#21005D"
+                    android:textColor="#001D36"
                     android:textSize="20sp"
                     android:textStyle="bold" />
             </com.google.android.material.card.MaterialCardView>
@@ -146,7 +146,7 @@
                 android:layout_weight="1"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardBackgroundColor="#B2DFDB"
+                app:cardBackgroundColor="#D3E4FF"
                 app:cardCornerRadius="28dp"
                 app:rippleColor="#20000000">
 
@@ -157,7 +157,7 @@
                     android:lineSpacingExtra="8dp"
                     android:text="📖\nКАТАЛОГ"
                     android:textAlignment="center"
-                    android:textColor="#004D40"
+                    android:textColor="#001D36"
                     android:textSize="20sp"
                     android:textStyle="bold" />
             </com.google.android.material.card.MaterialCardView>
@@ -179,7 +179,7 @@
                 android:layout_weight="1"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardBackgroundColor="#FFDAD6"
+                app:cardBackgroundColor="#D3E4FF"
                 app:cardCornerRadius="28dp"
                 app:rippleColor="#20000000">
 
@@ -190,7 +190,7 @@
                     android:lineSpacingExtra="8dp"
                     android:text="💰\nДОЛГИ"
                     android:textAlignment="center"
-                    android:textColor="#410002"
+                    android:textColor="#001D36"
                     android:textSize="20sp"
                     android:textStyle="bold" />
             </com.google.android.material.card.MaterialCardView>
@@ -204,7 +204,7 @@
                 android:layout_weight="1"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardBackgroundColor="#C4F1C5"
+                app:cardBackgroundColor="#D3E4FF"
                 app:cardCornerRadius="28dp"
                 app:rippleColor="#20000000">
 
@@ -215,7 +215,7 @@
                     android:lineSpacingExtra="8dp"
                     android:text="🔄\nОБНОВИТЬ"
                     android:textAlignment="center"
-                    android:textColor="#003912"
+                    android:textColor="#001D36"
                     android:textSize="18sp"
                     android:textStyle="bold" />
             </com.google.android.material.card.MaterialCardView>

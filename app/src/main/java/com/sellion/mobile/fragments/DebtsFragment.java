@@ -53,6 +53,7 @@ public class DebtsFragment extends BaseFragment {
         bundle.putDouble("AMOUNT", client.debt);
         bundle.putString("ADDRESS", client.address);
         bundle.putString("INN", client.inn);
+        bundle.putString("OWNER_NAME", client.ownerName);
 
         detailsFragment.setArguments(bundle);
 
