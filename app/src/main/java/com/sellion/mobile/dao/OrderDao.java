@@ -28,7 +28,8 @@ public interface OrderDao {
     @Query("DELETE FROM orders")
     void deleteAll();
 
-
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertAll(List<OrderEntity> orders);
 
 
     @Query("SELECT * FROM orders WHERE createdAt >= :start AND createdAt <= :end ORDER BY id DESC")

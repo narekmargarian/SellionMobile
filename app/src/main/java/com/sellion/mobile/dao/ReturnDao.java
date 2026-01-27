@@ -26,6 +26,8 @@ public interface ReturnDao {
     @Query("UPDATE returns SET status = 'SENT' WHERE status = 'PENDING'")
     void markAllAsSent();
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertAll(List<ReturnEntity> returns);
     @Query("DELETE FROM returns")
     void deleteAll();
 

@@ -2,16 +2,13 @@ package com.sellion.mobile;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.AutoCompleteTextView;
-import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputLayout;
@@ -35,59 +32,53 @@ public class MainActivity extends AppCompatActivity {
     private TextInputLayout textInputLayout;
     private AutoCompleteTextView etManager;
     private AppDatabase db;
+    // Сохраняем ссылку на запрос, чтобы отменить его при уничтожении Activity
+    private Call<List<String>> managersCall;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(MainActivity.this);
+        SessionManager.init(this);
+
+        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        db = AppDatabase.getInstance(this);
-
-        View mainView = findViewById(R.id.main);
-        if (mainView != null) {
-            ViewCompat.setOnApplyWindowInsetsListener(mainView, (v, insets) -> {
-                Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-                v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-                return insets;
-            });
-        }
+        db = AppDatabase.getInstance(getApplicationContext()); // Используем appContext
 
         textInputLayout = findViewById(R.id.textInputLayoutManager);
         etManager = findViewById(R.id.editTextManager);
 
-        // ШАГ 1: Получение данных из локальной базы Room
+        // ШАГ 1: Единый источник данных. UI всегда слушает БД.
         db.managerDao().getAllManagersLive().observe(this, managerIds -> {
             if (managerIds != null && !managerIds.isEmpty()) {
                 managers = managerIds.toArray(new String[0]);
-                setupListeners();
             } else {
-                // Дефолтный список для первого запуска
-                managers = new String[]{"1011", "1012", "1013", "1014", "1015"};
-                setupListeners();
+                managers = new String[]{"1011", "1012", "1013", "1014", "1015", "1016", "1017","1018"};
             }
+            setupListeners(); // Обновляем слушателей при изменении данных
         });
 
-        // ШАГ 2: Обновление списка с сервера
         syncManagersFromServer();
     }
 
     private void syncManagersFromServer() {
-        // ИСПРАВЛЕНО: Передаем 'this' в getClient, так как методу нужен контекст для получения Android ID
-        ApiService apiService = ApiClient.getClient(this).create(ApiService.class);
+        ApiService apiService = ApiClient.getClient(getApplicationContext()).create(ApiService.class);
+        managersCall = apiService.getManagersList();
 
-        apiService.getManagersList().enqueue(new Callback<List<String>>() {
+        managersCall.enqueue(new Callback<List<String>>() {
             @Override
             public void onResponse(Call<List<String>> call, Response<List<String>> response) {
+                if (isFinishing() || isDestroyed()) return; // Защита от Memory Leak
+
                 if (response.isSuccessful() && response.body() != null) {
                     List<String> serverList = response.body();
-
                     new Thread(() -> {
                         List<ManagerEntity> entities = new ArrayList<>();
                         for (String id : serverList) {
                             entities.add(new ManagerEntity(id));
                         }
+                        // Просто обновляем БД. LiveData в onCreate сама обновит UI.
                         db.managerDao().deleteAll();
                         db.managerDao().insertAll(entities);
                     }).start();
@@ -96,35 +87,29 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<List<String>> call, Throwable t) {
-                // Беззвучный режим при отсутствии сети
+                if (!call.isCanceled()) {
+                    Log.e("API_DEBUG", "Ошибка загрузки менеджеров: " + t.getMessage());
+                }
             }
         });
     }
 
     private void setupListeners() {
         View.OnClickListener showDialog = v -> {
-            if (managers == null || managers.length == 0) {
-                Toast.makeText(MainActivity.this, "Загрузка списка...", Toast.LENGTH_SHORT).show();
-                return;
-            }
+            if (managers == null || managers.length == 0) return;
 
-            new MaterialAlertDialogBuilder(MainActivity.this)
+            new MaterialAlertDialogBuilder(this)
                     .setTitle("Выберите менеджера")
                     .setItems(managers, (dialog, which) -> {
-
                         String selectedManager = managers[which];
                         etManager.setText(selectedManager);
 
-                        // 1. Сохраняем ID менеджера
                         SessionManager.getInstance().setManagerId(selectedManager);
-
-                        /// 2. ГЕНЕРИРУЕМ СКРЫТЫЙ КЛЮЧ
-                        // Формат: sellion.rivento.mg.ID
                         String generatedKey = "sellion.rivento.mg." + selectedManager;
                         SessionManager.getInstance().setApiKey(generatedKey);
 
                         ApiClient.resetClient();
-                        // Переход
+
                         Intent intent = new Intent(MainActivity.this, HostActivity.class);
                         intent.putExtra("MANAGER_ID", selectedManager);
                         startActivity(intent);
@@ -133,13 +118,16 @@ public class MainActivity extends AppCompatActivity {
                     .show();
         };
 
-        etManager.setOnClickListener(null);
         etManager.setOnClickListener(showDialog);
-
-        textInputLayout.setOnClickListener(null);
-        textInputLayout.setOnClickListener(showDialog);
-
-        textInputLayout.setEndIconOnClickListener(null);
         textInputLayout.setEndIconOnClickListener(showDialog);
     }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (managersCall != null) {
+            managersCall.cancel(); // Отменяем сетевой запрос при закрытии
+        }
+    }
 }
+

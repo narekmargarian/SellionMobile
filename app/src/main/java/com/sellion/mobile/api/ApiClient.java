@@ -13,39 +13,36 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ApiClient {
-    private static final String BASE_URL = "http://172.20.10.5";
+    private static final String BASE_URL = "http://172.20.10.5:8080/";
     private static Retrofit retrofit = null;
 
     public static Retrofit getClient(Context context) {
-        if (retrofit == null) {
-            // Получаем Android ID
-            String androidId = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
+        // Убираем static Retrofit и if(null), создаем всегда свежий
+        OkHttpClient okHttpClient = new OkHttpClient.Builder()
+                .addInterceptor(chain -> {
+                    Request original = chain.request();
+                    // Берем ключ прямо в момент запроса!
+                    String myKey = SessionManager.getInstance().getApiKey();
 
-            OkHttpClient okHttpClient = new OkHttpClient.Builder()
-                    .addInterceptor(chain -> {
-                        Request original = chain.request();
+                    Request.Builder rb = original.newBuilder()
+                            .header("Content-Type", "application/json");
 
-                        // Берем скрыто сгенерированный ключ из SessionManager
-                        String myKey = SessionManager.getInstance().getApiKey();
-                        if (myKey == null) myKey = "no_key";
+                    if (myKey != null && !myKey.isEmpty()) {
+                        rb.header("X-API-Key", myKey);
+                    }
+                    return chain.proceed(rb.build());
+                })
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .build();
 
-                        Request.Builder requestBuilder = original.newBuilder()
-                                .header("Content-Type", "application/json")
-                                .header("X-API-Key", myKey);
-                        return chain.proceed(requestBuilder.build());
-                    })
-                    .connectTimeout(20, TimeUnit.SECONDS)
-                    .readTimeout(20, TimeUnit.SECONDS)
-                    .build();
-
-            retrofit = new Retrofit.Builder()
-                    .baseUrl(BASE_URL)
-                    .client(okHttpClient)
-                    .addConverterFactory(GsonConverterFactory.create())
-                    .build();
-        }
-        return retrofit;
+        return new Retrofit.Builder()
+                .baseUrl(BASE_URL)
+                .client(okHttpClient)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
     }
+
+
 
     // Добавьте этот метод для возможности смены IP или очистки сессии
     public static void resetClient() {

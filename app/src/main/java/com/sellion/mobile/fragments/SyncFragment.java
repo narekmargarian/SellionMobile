@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.LayoutInflater;
@@ -25,6 +27,7 @@ import androidx.appcompat.app.AlertDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.sellion.mobile.R;
 import com.sellion.mobile.api.ApiClient;
+import com.sellion.mobile.api.ApiResponse;
 import com.sellion.mobile.api.ApiService;
 import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.ClientEntity;
@@ -41,6 +44,7 @@ import java.util.List;
 
 import retrofit2.Response;
 
+
 public class SyncFragment extends BaseFragment {
 
     private TextView tvStatus;
@@ -52,6 +56,8 @@ public class SyncFragment extends BaseFragment {
     // Константы для хранения состояния загрузки
     private static final String PREFS_NAME = "SyncSettings";
     private static final String KEY_IS_LOADED = "is_data_loaded";
+    private static final String TAG = "SYNC_LOG";
+
 
     @Nullable
     @Override
@@ -119,143 +125,123 @@ public class SyncFragment extends BaseFragment {
     }
 
     private void loadDocuments() {
-        // 1. ПОДГОТОВКА ИНТЕРФЕЙСА
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_progress, null);
-        TextView tvMessage = dialogView.findViewById(R.id.tvProgressMessage);
-        tvMessage.setText("Синхронизация данных ...");
+        ConnectivityManager cm = (ConnectivityManager) requireContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm.getActiveNetworkInfo() == null || !cm.getActiveNetworkInfo().isConnected()) {
+            Toast.makeText(getContext(), "Нет интернета!", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_progress, null);
         AlertDialog progressDialog = new MaterialAlertDialogBuilder(requireContext())
-                .setView(dialogView)
-                .setCancelable(false)
-                .create();
+                .setView(dialogView).setCancelable(false).create();
         progressDialog.show();
+
+        Context appContext = requireContext().getApplicationContext();
 
         new Thread(() -> {
             try {
-                Context context = requireContext().getApplicationContext();
-                AppDatabase db = AppDatabase.getInstance(context);
-
-                // ИСПРАВЛЕНО: Передаем контекст для работы Interceptor (Android ID)
-                ApiService api = ApiClient.getClient(context).create(ApiService.class);
-
+                AppDatabase db = AppDatabase.getInstance(appContext);
+                ApiService api = ApiClient.getClient(appContext).create(ApiService.class);
                 String currentManagerId = SessionManager.getInstance().getManagerId();
 
                 if (currentManagerId == null || currentManagerId.isEmpty()) {
                     throw new Exception("ID менеджера не найден. Перезайдите в систему.");
                 }
 
-                // --- ШАГ 1: ПОЛНАЯ ОЧИСТКА СПРАВОЧНИКОВ ---
-                // ИСПРАВЛЕНО: Теперь используем deleteAll() для обеих таблиц
-                db.productDao().deleteAll();
-                db.clientDao().deleteAll();
+                // ШАГ 1: Полная очистка
+                db.runInTransaction(() -> {
+                    db.productDao().deleteAll();
+                    db.clientDao().deleteAll();
+                    db.orderDao().deleteAll();
+                    db.returnDao().deleteAll();
+                });
 
-                // --- ШАГ 2: ЗАГРУЗКА КАТАЛОГА (ПО ID) ---
-                Response<List<CategoryGroupDto>> catalogResp = api.getCatalog().execute();
-
-                // ИСПРАВЛЕНИЕ: Вставляем проверку на 403 (Ошибка авторизации) именно здесь!
-                if (catalogResp.code() == 403) {
-                    throw new Exception("Доступ запрещен! Ваше устройство не зарегистрировано в системе офиса.");
-                }
+                // ШАГ 2: КАТАЛОГ
+                Response<ApiResponse<List<CategoryGroupDto>>> catalogResp = api.getCatalog().execute();
 
 
                 if (catalogResp.isSuccessful() && catalogResp.body() != null) {
-                    List<ProductEntity> productEntities = new ArrayList<>();
-                    for (CategoryGroupDto group : catalogResp.body()) {
-                        String categoryName = group.getCategoryName();
-                        for (Product p : group.getProducts()) {
-                            productEntities.add(new ProductEntity(
-                                    p.getId(), // Сохраняем реальный Long ID
-                                    p.getName(),
-                                    p.getPrice(),
-                                    p.getItemsPerBox(),
-                                    p.getBarcode(),
-                                    categoryName,
-                                    p.getStockQuantity()
-                            ));
+                    List<CategoryGroupDto> groups = catalogResp.body().getData();
+                    if (groups != null) {
+                        List<ProductEntity> productEntities = new ArrayList<>();
+                        for (CategoryGroupDto group : groups) {
+                            for (Product p : group.getProducts()) {
+                                productEntities.add(new ProductEntity(p.getId(), p.getName(), p.getPrice(),
+                                        p.getItemsPerBox(), p.getBarcode(), group.getCategoryName(), p.getStockQuantity()));
+                            }
                         }
+                        db.productDao().insertAll(productEntities);
                     }
-                    db.productDao().insertAll(productEntities);
-                } else {
-                    throw new Exception("Ошибка загрузки товаров: " + catalogResp.code());
+                } else if (catalogResp.code() == 403) {
+                    throw new Exception("Доступ запрещен! Проверьте API-ключ устройства.");
                 }
 
-                // --- ШАГ 3: ЗАГРУЗКА КЛИЕНТОВ ---
+                // ШАГ 3: КЛИЕНТЫ
                 Response<List<ClientModel>> clientResp = api.getClients().execute();
                 if (clientResp.isSuccessful() && clientResp.body() != null) {
                     List<ClientEntity> entities = new ArrayList<>();
                     for (ClientModel c : clientResp.body()) {
                         ClientEntity ce = new ClientEntity();
-                        ce.id = c.id;
-                        ce.name = c.name;
-                        ce.address = c.address;
-                        ce.debt = c.debt;
-                        ce.inn = c.inn;
-                        ce.ownerName = c.ownerName;
+                        ce.id = c.id; ce.name = c.name; ce.address = c.address;
+                        ce.debt = c.debt; ce.inn = c.inn; ce.ownerName = c.ownerName;
                         ce.routeDay = c.routeDay;
                         entities.add(ce);
                     }
                     db.clientDao().insertAll(entities);
                 }
 
-                // --- ШАГ 4: ЗАГРУЗКА ИСТОРИИ ЗАКАЗОВ ---
-                Response<List<OrderEntity>> orderHist = api.getOrdersByManager(currentManagerId).execute();
-                if (orderHist.isSuccessful() && orderHist.body() != null) {
-                    for (OrderEntity o : orderHist.body()) {
-                        o.status = "SENT";
-                        db.orderDao().insert(o);
-                    }
+                // ШАГ 4: ЗАКАЗЫ (Оптимизировано)
+                Response<List<OrderEntity>> orderResp = api.getOrdersByManager(currentManagerId).execute();
+                if (orderResp.isSuccessful() && orderResp.body() != null) {
+                    List<OrderEntity> orders = orderResp.body();
+                    for (OrderEntity o : orders) { o.status = "SENT"; } // Массово меняем статус в памяти
+                    db.orderDao().insertAll(orders); // ОДИН запрос к базе вместо сотни
                 }
 
-                // --- ШАГ 5: ЗАГРУЗКА ИСТОРИИ ВОЗВРАТОВ ---
-                Response<List<ReturnEntity>> returnHist = api.getReturnsByManager(currentManagerId).execute();
-                if (returnHist.isSuccessful() && returnHist.body() != null) {
-                    for (ReturnEntity r : returnHist.body()) {
-                        r.status = "SENT";
-                        db.returnDao().insert(r);
-                    }
+                // ШАГ 5: ВОЗВРАТЫ (Оптимизировано)
+                Response<List<ReturnEntity>> returnResp = api.getReturnsByManager(currentManagerId).execute();
+                if (returnResp.isSuccessful() && returnResp.body() != null) {
+                    List<ReturnEntity> returns = returnResp.body();
+                    for (ReturnEntity r : returns) { r.status = "SENT"; }
+                    db.returnDao().insertAll(returns); // ОДИН запрос к базе
                 }
 
-                // УСПЕХ: Завершаем процесс
+                // ФИНАЛ
                 requireActivity().runOnUiThread(() -> {
                     if (isAdded()) {
-                        SharedPreferences.Editor editor = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit();
-                        editor.putBoolean(KEY_IS_LOADED, true);
-                        editor.apply();
+                        appContext.getSharedPreferences("SyncSettings", Context.MODE_PRIVATE)
+                                .edit().putBoolean("is_data_loaded", true).apply();
                         updateStatusText();
-                        Toast.makeText(getContext(), "Данные синхронизированы", Toast.LENGTH_SHORT).show();
+                        progressDialog.dismiss();
+                        Toast.makeText(appContext, "Синхронизация завершена успешно!", Toast.LENGTH_SHORT).show();
                     }
                 });
 
             } catch (Exception e) {
-                requireActivity().runOnUiThread(() -> {
-                    if (isAdded()) {
-                        new MaterialAlertDialogBuilder(requireContext())
-                                .setMessage("Ошибка при подключении к серверу. Проверьте интернет-соединение и попробуйте позже.")
-
-                                .setMessage("  ")
-                                .setPositiveButton("ОК", null)
-                                .show();
-                    }
-                });
-            } finally {
-                requireActivity().runOnUiThread(() -> {
-                    if (progressDialog != null && progressDialog.isShowing()) {
-                        progressDialog.dismiss();
-                    }
-                });
+                android.util.Log.d("SYNC_ERROR", "Ошибка: ", e);
+                showSyncError("Нет связи с сервером или нет интернета в офисе.");
+                requireActivity().runOnUiThread(progressDialog::dismiss);
             }
         }).start();
     }
 
 
+
+    // Вспомогательный метод для чистого вывода ошибок
     private void showSyncError(String message) {
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Ошибка загрузки")
-                .setMessage(message)
-                .setPositiveButton("ОК", null)
-                .setIcon(android.R.drawable.ic_dialog_alert)
-                .show();
+        if (!isAdded()) return;
+        requireActivity().runOnUiThread(() -> {
+            new MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Ошибка синхронизации")
+                    .setMessage(message)
+                    .setPositiveButton("ОК", null)
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .show();
+        });
     }
+
+
+
 
 
     private void dismissProgress() {

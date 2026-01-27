@@ -1,5 +1,6 @@
 package com.sellion.mobile.adapters;
 
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,8 +18,6 @@ import java.util.List;
 import java.util.Map;
 
 public class OrderHistoryItemsAdapter extends RecyclerView.Adapter<OrderHistoryItemsAdapter.ViewHolder> {
-
-    // ИСПРАВЛЕНО: Теперь используем Long для ID товара
     private final List<Long> productIds;
     private final Map<Long, Integer> items;
 
@@ -30,6 +29,7 @@ public class OrderHistoryItemsAdapter extends RecyclerView.Adapter<OrderHistoryI
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        // Используем макет, где есть tvStockQuantity
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_category, parent, false);
         return new ViewHolder(view);
     }
@@ -40,37 +40,38 @@ public class OrderHistoryItemsAdapter extends RecyclerView.Adapter<OrderHistoryI
         Integer qty = items.get(productId);
         int currentQty = (qty != null) ? qty : 0;
 
-        // В 2026 году мы берем данные из БД по ID в фоновом потоке
-        new Thread(() -> {
-            AppDatabase db = AppDatabase.getInstance(holder.itemView.getContext().getApplicationContext());
+        Context context = holder.itemView.getContext().getApplicationContext();
 
-            // Получаем полную информацию о товаре по его ID
+        new Thread(() -> {
+            AppDatabase db = AppDatabase.getInstance(context);
             ProductEntity product = db.productDao().getProductById(productId);
 
-            String info;
             if (product != null) {
                 double rowTotal = product.price * currentQty;
-                // Формат: Название — 5 шт. (2,500 ֏)
-                info = String.format("%s — %d шт. (%,.0f ֏)", product.name, currentQty, rowTotal);
-            } else {
-                info = "Товар удален — " + currentQty + " шт.";
-            }
+                String info = String.format("%s — %d шт. (%,.0f ֏)", product.name, currentQty, rowTotal);
+                String stock = "Остаток: " + product.stockQuantity + " шт.";
 
-            // Возвращаемся в главный поток для обновления UI
-            holder.tvName.post(() -> holder.tvName.setText(info));
+                holder.tvName.post(() -> {
+                    holder.tvName.setText(info);
+                    if (holder.tvStock != null) {
+                        holder.tvStock.setVisibility(View.VISIBLE);
+                        holder.tvStock.setText(stock);
+                    }
+                });
+            }
         }).start();
     }
 
     @Override
-    public int getItemCount() {
-        return productIds.size();
-    }
+    public int getItemCount() { return productIds.size(); }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvName;
+        TextView tvName, tvStock;
         public ViewHolder(View itemView) {
             super(itemView);
             tvName = itemView.findViewById(R.id.tvCategoryName);
+            tvStock = itemView.findViewById(R.id.tvStockQuantity);
         }
     }
 }
+

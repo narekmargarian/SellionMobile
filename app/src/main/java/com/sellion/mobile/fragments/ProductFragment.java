@@ -102,6 +102,7 @@ public class ProductFragment extends BaseFragment {
 
     private void filterAndDisplayProducts() {
         if (getView() == null) return;
+
         List<Product> filteredList = new ArrayList<>();
         for (Product p : allProducts) {
             if (currentCategory != null && currentCategory.equalsIgnoreCase(p.getCategory())) {
@@ -109,16 +110,31 @@ public class ProductFragment extends BaseFragment {
             }
         }
 
+        // Сохраняем логику: в заказе показываем остаток, в возврате - нет
         boolean showStock = isOrderMode && !isActuallyReturn;
 
+        // ИСПРАВЛЕНО: Теперь адаптер создается один раз правильно
         adapter = new ProductAdapter(filteredList, product -> {
-            if (isOrderMode || isActuallyReturn) showQuantityDialog(product);
-            else showProductInfo(product);
+            // Проверяем флаги, которые мы получили в onCreateView из аргументов
+            if (isOrderMode || isActuallyReturn) {
+                showQuantityDialog(product);
+            } else {
+                showProductInfo(product);
+            }
         }, showStock);
 
         RecyclerView rv = getView().findViewById(R.id.recyclerViewProducts);
-        if (rv != null) rv.setAdapter(adapter);
+        if (rv != null) {
+            rv.setAdapter(adapter);
+            // Сразу подтягиваем текущую корзину, чтобы не ждать LiveData
+            new Thread(() -> {
+                List<CartEntity> currentCart = AppDatabase.getInstance(requireContext().getApplicationContext())
+                        .cartDao().getCartItemsSync();
+                requireActivity().runOnUiThread(() -> adapter.setItemsInCart(currentCart));
+            }).start();
+        }
     }
+
 
     private void showQuantityDialog(Product product) {
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());

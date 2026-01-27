@@ -3,4 +3,43 @@
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="product_format">%1$s — %2$s</string>
+
+
+
+    <string name="app_name">Sellion Mobile</string>
+
+    <!-- Общие -->
+    <string name="btn_back">Назад</string>
+    <string name="btn_confirm">Подтвердить</string>
+    <string name="btn_cancel">Отмена</string>
+    <string name="btn_save">Сохранить</string>
+    <string name="status_pending">ОЖИДАЕТ</string>
+    <string name="status_sent">ОТПРАВЛЕН</string>
+    <string name="currency_symbol">֏</string>
+
+    <!-- Ошибки и уведомления -->
+    <string name="error_no_internet">Нет связи с сервером или отсутствует интернет.</string>
+    <string name="error_empty_cart">Корзина пуста!</string>
+    <string name="error_stock_limit">Недостаточно товара на складе!</string>
+    <string name="error_sync_failed">Ошибка синхронизации: %1$s</string>
+    <string name="msg_order_saved">Заказ сохранен локально</string>
+    <string name="msg_data_cleared">База данных полностью очищена</string>
+
+    <!-- Диалоги -->
+    <string name="dialog_exit_title">Завершение работы</string>
+    <string name="dialog_exit_msg">Сохранить изменения перед выходом?</string>
+    <string name="dialog_clear_confirm">Это удалит ВСЕ данные. Вы уверены?</string>
+    <string name="dialog_sync_already_loaded">Данные уже загружены. Обновить всё заново?</string>
+
+    <!-- Синхронизация -->
+    <string name="sync_status_ok">Данные загружены. Работа в локальном режиме.</string>
+    <string name="sync_status_required">Требуется первичная загрузка данных!</string>
+    <string name="sync_progress_msg">Пожалуйста, подождите. Идет обмен данными…</string>
+
+    <!-- Форматы (для использования в String.format) -->
+    <string name="format_stock">Остаток: %1$d шт.</string>
+    <string name="format_price">%1$,.0f ֏</string>
+    <string name="format_order_info">%1$s — %2$d шт. (%3$,.0f ֏)</string>
+    <string name="format_total_sum">Итого: %1$,.0f ֏</string>
+    <string name="manager_label">Менеджер: %1$s</string>
 </resources>

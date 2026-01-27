@@ -17,11 +17,13 @@ import retrofit2.http.POST;
 import retrofit2.http.Path;
 
 public interface ApiService {
-    // Получение списка товаров
-    @GET("api/products/catalog")
-    Call<List<CategoryGroupDto>> getCatalog();
 
-    // Получение списка магазинов (ЭТОГО МЕТОДА У ВАС НЕ ХВАТАЛО)
+    // ИСПРАВЛЕНО: Сервер возвращает ApiResponse.ok(..., result)
+    @GET("api/products/catalog")
+    Call<ApiResponse<List<CategoryGroupDto>>> getCatalog();
+
+    // ИСПРАВЛЕНО: ClientApiController возвращает чистый List (судя по вашему коду контроллера)
+    // Но если вы добавите ApiResponse и туда — оберните в ApiResponse<List<ClientModel>>
     @GET("api/clients")
     Call<List<ClientModel>> getClients();
 
@@ -31,9 +33,9 @@ public interface ApiService {
     @POST("api/returns/sync")
     Call<okhttp3.ResponseBody> sendReturns(@Body List<ReturnEntity> returns);
 
+    // ИСПРАВЛЕНО: ManagerApiController возвращает чистый List<String>
     @GET("api/public/managers")
     Call<List<String>> getManagersList();
-
 
     @GET("api/orders/manager/{managerId}/current-month")
     Call<List<OrderEntity>> getOrdersByManager(@Path("managerId") String managerId);
@@ -41,8 +43,6 @@ public interface ApiService {
     @GET("api/returns/manager/{managerId}/current-month")
     Call<List<ReturnEntity>> getReturnsByManager(@Path("managerId") String managerId);
 
-
     @GET("api/public/managers/verify")
     Call<Map<String, String>> verifyKey(@Header("X-API-Key") String apiKey);
-
 }
