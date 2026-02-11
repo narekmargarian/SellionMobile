@@ -3,6 +3,8 @@ package com.sellion.mobile.entity;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
+import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.Map;
 
 
@@ -21,6 +23,8 @@ public class OrderEntity {
     public double totalAmount;
     public String createdAt;
     public String androidId;
+    public Map<Long, BigDecimal> appliedPromoItems = new HashMap<>();
+
 
 
 }

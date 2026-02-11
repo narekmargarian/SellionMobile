@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:background="@drawable/bg_bottom_sheet"
+    android:padding="20dp">
+
+    <!-- Индикатор перетаскивания (Handle) -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="#D1D1D6" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Доступные акции"
+        android:textColor="#1B1B1F"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Выберите акцию для применения к товарам в корзине"
+        android:textColor="#757575"
+        android:textSize="14sp" />
+
+    <!-- Список доступных акций -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvPromos"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:minHeight="100dp"
+        android:maxHeight="400dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="20dp">
+
+        <!-- Кнопка Пропустить (без акции) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSkipPromo"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="Сохранить без акции"
+            android:textColor="#757575"
+            app:strokeColor="#D1D1D6"
+            app:cornerRadius="12dp" />
+
+    </LinearLayout>
+
+</LinearLayout >

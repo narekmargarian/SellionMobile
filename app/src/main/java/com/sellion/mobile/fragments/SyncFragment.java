@@ -41,6 +41,7 @@ import com.sellion.mobile.model.ClientModel;
 import com.sellion.mobile.model.Product;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import retrofit2.Response;
@@ -160,8 +161,6 @@ public class SyncFragment extends BaseFragment {
 
                 // ШАГ 2: КАТАЛОГ
                 Response<ApiResponse<List<CategoryGroupDto>>> catalogResp = api.getCatalog().execute();
-
-
                 if (catalogResp.isSuccessful() && catalogResp.body() != null) {
                     List<CategoryGroupDto> groups = catalogResp.body().getData();
                     if (groups != null) {
@@ -178,34 +177,44 @@ public class SyncFragment extends BaseFragment {
                     throw new Exception("Доступ запрещен! Проверьте API-ключ устройства.");
                 }
 
-                // ШАГ 3: КЛИЕНТЫ
-                Response<List<ClientModel>> clientResp = api.getClients().execute();
+                // ШАГ 3: КЛИЕНТЫ (ИСПРАВЛЕНО: Добавлен defaultPercent)
+                Response<List<ClientModel>> clientResp = api.getClients(currentManagerId).execute();
                 if (clientResp.isSuccessful() && clientResp.body() != null) {
                     List<ClientEntity> entities = new ArrayList<>();
                     for (ClientModel c : clientResp.body()) {
                         ClientEntity ce = new ClientEntity();
-                        ce.id = c.id; ce.name = c.name; ce.address = c.address;
-                        ce.debt = c.debt; ce.inn = c.inn; ce.ownerName = c.ownerName;
+                        ce.id = c.id;
+                        ce.name = c.name;
+                        ce.address = c.address;
+                        ce.debt = c.debt;
+                        ce.inn = c.inn;
+                        ce.ownerName = c.ownerName;
                         ce.routeDay = c.routeDay;
+                        // НОВОЕ ПОЛЕ
+                        ce.defaultPercent = c.defaultPercent;
                         entities.add(ce);
                     }
                     db.clientDao().insertAll(entities);
                 }
 
-                // ШАГ 4: ЗАКАЗЫ (Оптимизировано)
+                // ШАГ 4: ЗАКАЗЫ (Оптимизировано + Инициализация Map)
                 Response<List<OrderEntity>> orderResp = api.getOrdersByManager(currentManagerId).execute();
                 if (orderResp.isSuccessful() && orderResp.body() != null) {
                     List<OrderEntity> orders = orderResp.body();
-                    for (OrderEntity o : orders) { o.status = "SENT"; } // Массово меняем статус в памяти
-                    db.orderDao().insertAll(orders); // ОДИН запрос к базе вместо сотни
+                    for (OrderEntity o : orders) {
+                        o.status = "SENT";
+                        // Защита от Null для новых полей скидок
+                        if (o.appliedPromoItems == null) o.appliedPromoItems = new HashMap<>();
+                    }
+                    db.orderDao().insertAll(orders);
                 }
 
-                // ШАГ 5: ВОЗВРАТЫ (Оптимизировано)
+                // ШАГ 5: ВОЗВРАТЫ
                 Response<List<ReturnEntity>> returnResp = api.getReturnsByManager(currentManagerId).execute();
                 if (returnResp.isSuccessful() && returnResp.body() != null) {
                     List<ReturnEntity> returns = returnResp.body();
                     for (ReturnEntity r : returns) { r.status = "SENT"; }
-                    db.returnDao().insertAll(returns); // ОДИН запрос к базе
+                    db.returnDao().insertAll(returns);
                 }
 
                 // ФИНАЛ
@@ -221,9 +230,12 @@ public class SyncFragment extends BaseFragment {
 
             } catch (Exception e) {
                 HostActivity.logToFile(appContext, "SYNC_ERROR", e.getMessage());
-                android.util.Log.d("SYNC_ERROR", "Ошибка: ", e);
-                showSyncError("Нет связи с сервером или нет интернета в офисе.");
-                requireActivity().runOnUiThread(progressDialog::dismiss);
+                requireActivity().runOnUiThread(() -> {
+                    if (isAdded()) {
+                        progressDialog.dismiss();
+                        showSyncError("Ошибка: " + e.getMessage());
+                    }
+                });
             }
         }).start();
     }
@@ -303,7 +315,6 @@ public class SyncFragment extends BaseFragment {
     }
 
     private void sendDocuments() {
-        // Создаем современный диалог прогресса
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_progress, null);
         AlertDialog progressDialog = new MaterialAlertDialogBuilder(requireContext())
                 .setView(dialogView)
@@ -315,76 +326,81 @@ public class SyncFragment extends BaseFragment {
         final Context appContext = requireContext().getApplicationContext();
 
         new Thread(() -> {
-            // ИСПРАВЛЕНО: Получаем контекст приложения для безопасности
-            AppDatabase db = AppDatabase.getInstance(appContext);
-
-            // ИСПРАВЛЕНО: Передаем контекст в ApiClient
-            ApiService api = ApiClient.getClient(appContext).create(ApiService.class);
-
-            // Получаем данные, которые еще не отправлены
-            List<OrderEntity> pendingOrders = db.orderDao().getPendingOrdersSync();
-            List<ReturnEntity> pendingReturns = db.returnDao().getPendingReturnsSync();
-
-            if (pendingOrders.isEmpty() && pendingReturns.isEmpty()) {
-                requireActivity().runOnUiThread(() -> {
-                    progressDialog.dismiss();
-                    Toast.makeText(appContext, "Нет новых данных для отправки", Toast.LENGTH_SHORT).show();
-                });
-                return;
-            }
-
             try {
-                HostActivity.logToFile(appContext, TAG, "Начало отправки документов в офис");
-                boolean allOk = true;
+                AppDatabase db = AppDatabase.getInstance(appContext);
+                ApiService api = ApiClient.getClient(appContext).create(ApiService.class);
 
-                // 1. Отправка Заказов
+                // 1. Получаем заказы PENDING.
+                // Благодаря Converters, поле appliedPromoItems будет корректно выгружено из БД
+                List<OrderEntity> pendingOrders = db.orderDao().getPendingOrdersSync();
+                List<ReturnEntity> pendingReturns = db.returnDao().getPendingReturnsSync();
+
+                if (pendingOrders.isEmpty() && pendingReturns.isEmpty()) {
+                    requireActivity().runOnUiThread(() -> {
+                        progressDialog.dismiss();
+                        Toast.makeText(appContext, "Нет новых данных для отправки", Toast.LENGTH_SHORT).show();
+                    });
+                    return;
+                }
+
+                HostActivity.logToFile(appContext, TAG, "Начало отправки документов. Заказов: " + pendingOrders.size());
+                boolean allOrdersOk = true;
+                boolean allReturnsOk = true;
+
+                // 2. Отправка Заказов (теперь с примененными акциями)
                 if (!pendingOrders.isEmpty()) {
                     Response<okhttp3.ResponseBody> response = api.sendOrders(pendingOrders).execute();
                     if (response.isSuccessful()) {
                         db.orderDao().markAllAsSent();
                     } else {
-                        allOk = false;
+                        allOrdersOk = false;
+                        HostActivity.logToFile(appContext, "API_ERR", "Заказы не приняты: " + response.code());
                     }
                 }
 
-                // 2. Отправка Возвратов
+                // 3. Отправка Возвратов
                 if (!pendingReturns.isEmpty()) {
                     Response<okhttp3.ResponseBody> response = api.sendReturns(pendingReturns).execute();
                     if (response.isSuccessful()) {
                         db.returnDao().markAllAsSent();
                     } else {
-                        allOk = false;
+                        allReturnsOk = false;
                     }
                 }
 
-                boolean finalStatus = allOk;
+                final boolean finalStatus = allOrdersOk && allReturnsOk;
+
                 requireActivity().runOnUiThread(() -> {
-                    progressDialog.dismiss();
-                    if (finalStatus) {
-                        new MaterialAlertDialogBuilder(requireContext())
-                                .setTitle("Успешно")
-                                .setMessage("Данные успешно синхронизированы с офисом.")
-                                .setPositiveButton("ОК", null)
-                                .show();
-                    } else {
-                        new MaterialAlertDialogBuilder(requireContext())
-                                .setTitle("Ошибка сервера")
-                                .setMessage("Сервер ответил ошибкой (Код: " + (finalStatus ? "OK" : "Error") + "). Попробуйте позже.")
-                                .setPositiveButton("Понятно", null)
-                                .show();
+                    if (isAdded()) {
+                        progressDialog.dismiss();
+                        if (finalStatus) {
+                            new MaterialAlertDialogBuilder(requireContext())
+                                    .setTitle("Успешно")
+                                    .setMessage("Все данные переданы в офис.")
+                                    .setPositiveButton("ОК", null)
+                                    .show();
+                        } else {
+                            new MaterialAlertDialogBuilder(requireContext())
+                                    .setTitle("Частичная ошибка")
+                                    .setMessage("Некоторые документы не были доставлены. Попробуйте синхронизацию еще раз.")
+                                    .setPositiveButton("Понятно", null)
+                                    .show();
+                        }
                     }
                 });
 
-            } catch (java.io.IOException e) {
+            } catch (Exception e) {
                 HostActivity.logToFile(appContext, "SEND_DOCS_ERROR", e.getMessage());
                 requireActivity().runOnUiThread(() -> {
-                    progressDialog.dismiss();
-                    new MaterialAlertDialogBuilder(requireContext())
-                            .setTitle("Связь отсутствует")
-                            .setMessage("Не удалось подключиться к серверу.\n\nПроверьте:\n1. Включен ли сервер в офисе\n2. Работает ли интернет на телефоне")
-                            .setPositiveButton("Попробовать позже", null)
-                            .setIcon(android.R.drawable.ic_dialog_alert)
-                            .show();
+                    if (isAdded()) {
+                        progressDialog.dismiss();
+                        new MaterialAlertDialogBuilder(requireContext())
+                                .setTitle("Ошибка связи")
+                                .setMessage("Проверьте интернет или статус сервера в офисе.")
+                                .setPositiveButton("ОК", null)
+                                .setIcon(android.R.drawable.ic_dialog_alert)
+                                .show();
+                    }
                 });
             }
         }).start();

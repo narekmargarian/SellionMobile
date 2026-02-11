@@ -40,7 +40,7 @@
         android:textColor="#000000"
         android:textSize="15sp"
         android:textStyle="bold"
-        android:text="В упковку: " />
+        android:text="В упаковке: " />
 
     <View
         android:layout_width="match_parent"
@@ -58,15 +58,15 @@
         android:textSize="16sp"
         android:textColor="#000000"/>
 
-    <TextView
-        android:id="@+id/tvInfoDescription"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:textSize="16sp"
-        android:textColor="#424242"
-        android:lineSpacingExtra="4dp"
-        android:text="Здесь будет детальное описание: вес, количество в коробке, срок годности и остаток на складе." />
+<!--    <TextView-->
+<!--        android:id="@+id/tvInfoDescription"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_marginTop="8dp"-->
+<!--        android:textSize="16sp"-->
+<!--        android:textColor="#424242"-->
+<!--        android:lineSpacingExtra="4dp"-->
+<!--        android:text="Здесь будет детальное описание: вес, количество в коробке, срок годности и остаток на складе." />-->
 
     <Button
         android:layout_width="match_parent"

@@ -13,4 +13,5 @@ public class ClientEntity {
     public String inn;
     public String routeDay;
     public double debt;
+    public double defaultPercent;
 }

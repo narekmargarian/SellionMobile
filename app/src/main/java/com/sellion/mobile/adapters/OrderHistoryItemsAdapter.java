@@ -18,14 +18,12 @@ import com.sellion.mobile.entity.ProductEntity;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-
 public class OrderHistoryItemsAdapter extends RecyclerView.Adapter<OrderHistoryItemsAdapter.ViewHolder> {
 
-    // 1. Модель данных уже подготовлена во Фрагменте
     private final List<OrderItemInfo> preparedItems;
 
-    // ИСПРАВЛЕНО: Теперь конструктор принимает список готовых объектов
     public OrderHistoryItemsAdapter(List<OrderItemInfo> preparedItems) {
         this.preparedItems = preparedItems != null ? preparedItems : new ArrayList<>();
     }
@@ -33,29 +31,39 @@ public class OrderHistoryItemsAdapter extends RecyclerView.Adapter<OrderHistoryI
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // Используем макет item_category (где tvCategoryName и tvStockQuantity)
+        // Используем твой стандартный макет для элементов списка
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_category, parent, false);
         return new ViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        // Берем уже готовые данные
         OrderItemInfo item = preparedItems.get(position);
 
-        // 2. ФОРМИРОВАНИЕ СУММЫ (100% сохранение твоей логики)
+        // 1. Расчет суммы строки (item.price уже пришла со скидкой из фрагмента)
         double rowTotal = item.price * item.quantity;
 
-        // Формат: Название — 5 шт. (2,500 ֏)
-        String info = String.format("%s — %d шт. (%,.0f ֏)", item.name, item.quantity, rowTotal);
-        String stockInfo = "Остаток: " + item.stock + " шт.";
+        // 2. Формирование основной строки
+        // Если в item.name есть "(-", значит там акция, подсветим это визуально в будущем если нужно
+        String info = String.format(Locale.getDefault(), "%s — %d шт.", item.name, item.quantity);
 
-        // 3. УСТАНОВКА В UI (Без потоков, мгновенно!)
-        holder.tvName.setText(info);
+        // Форматируем цену отдельно для красоты
+        String priceFormatted = String.format(Locale.getDefault(), "%,.0f ֏", rowTotal);
 
+        // Устанавливаем текст: "Название (-10%) — 5 шт. (5,000 ֏)"
+        holder.tvName.setText(info + " (" + priceFormatted + ")");
+
+        // 3. Установка остатка (информативно для истории)
         if (holder.tvStock != null) {
             holder.tvStock.setVisibility(View.VISIBLE);
-            holder.tvStock.setText(stockInfo);
+            holder.tvStock.setText("На складе: " + item.stock + " шт.");
+
+            // Если есть пометка о скидке в названии, можно выделить текст остатка цветом
+            if (item.name.contains("(-")) {
+                holder.tvStock.setTextColor(android.graphics.Color.parseColor("#2E7D32")); // Зеленый для акционных
+            } else {
+                holder.tvStock.setTextColor(android.graphics.Color.GRAY);
+            }
         }
     }
 

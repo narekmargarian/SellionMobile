@@ -5,6 +5,7 @@ import com.sellion.mobile.model.ClientModel;
 import com.sellion.mobile.entity.OrderEntity;
 import com.sellion.mobile.model.Product;
 import com.sellion.mobile.entity.ReturnEntity;
+import com.sellion.mobile.model.PromoAction;
 
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,7 @@ import retrofit2.http.GET;
 import retrofit2.http.Header;
 import retrofit2.http.POST;
 import retrofit2.http.Path;
+import retrofit2.http.Query;
 
 public interface ApiService {
 
@@ -24,8 +26,12 @@ public interface ApiService {
 
     // ИСПРАВЛЕНО: ClientApiController возвращает чистый List (судя по вашему коду контроллера)
     // Но если вы добавите ApiResponse и туда — оберните в ApiResponse<List<ClientModel>>
+//    @GET("api/clients")
+//    Call<List<ClientModel>> getClients();
+
     @GET("api/clients")
-    Call<List<ClientModel>> getClients();
+    Call<List<ClientModel>> getClients(@Query("managerId") String managerId);
+
 
     @POST("api/orders/sync")
     Call<okhttp3.ResponseBody> sendOrders(@Body List<OrderEntity> orders);
@@ -45,4 +51,8 @@ public interface ApiService {
 
     @GET("api/public/managers/verify")
     Call<Map<String, String>> verifyKey(@Header("X-API-Key") String apiKey);
+
+    @POST("api/admin/promos/check-active-for-items")
+    Call<List<PromoAction>> checkActiveForItems(@Body List<Long> productIds);
+
 }

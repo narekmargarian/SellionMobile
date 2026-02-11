@@ -8,12 +8,13 @@ import com.sellion.mobile.entity.PaymentMethod;
 import com.sellion.mobile.entity.ReturnReason;
 
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
-
 public class Converters {
     private static final Gson gson = new Gson();
 
+    // 1. Для товаров в корзине: ID товара (Long) -> Количество (Integer)
     @TypeConverter
     public static String fromMap(Map<Long, Integer> map) {
         return map == null ? null : gson.toJson(map);
@@ -22,10 +23,35 @@ public class Converters {
     @TypeConverter
     public static Map<Long, Integer> toMap(String data) {
         if (data == null) return new HashMap<>();
-        Type listType = new TypeToken<Map<Long, Integer>>() {}.getType();
-        return gson.fromJson(data, listType);
+        Type type = new TypeToken<Map<Long, Integer>>() {}.getType();
+        return gson.fromJson(data, type);
     }
 
+    // 2. НОВОЕ: Для примененных акций: ID товара (Long) -> Процент скидки (BigDecimal)
+    @TypeConverter
+    public static String fromPromoMap(Map<Long, BigDecimal> map) {
+        return map == null ? null : gson.toJson(map);
+    }
+
+    @TypeConverter
+    public static Map<Long, BigDecimal> toPromoMap(String data) {
+        if (data == null) return new HashMap<>();
+        Type type = new TypeToken<Map<Long, BigDecimal>>() {}.getType();
+        return gson.fromJson(data, type);
+    }
+
+    // 3. НОВОЕ: Для одиночных значений BigDecimal (используется внутри Map и может быть в полях)
+    @TypeConverter
+    public static String fromBigDecimal(BigDecimal value) {
+        return value == null ? null : value.toString();
+    }
+
+    @TypeConverter
+    public static BigDecimal toBigDecimal(String value) {
+        return value == null ? null : new BigDecimal(value);
+    }
+
+    // 4. Способы оплаты
     @TypeConverter
     public static String fromPaymentMethod(PaymentMethod method) {
         return method == null ? null : method.name();
@@ -33,9 +59,10 @@ public class Converters {
 
     @TypeConverter
     public static PaymentMethod toPaymentMethod(String method) {
-        return method == null ? null : PaymentMethod.valueOf(method);
+        return method == null ? null : (method.isEmpty() ? PaymentMethod.CASH : PaymentMethod.valueOf(method));
     }
 
+    // 5. Причины возврата
     @TypeConverter
     public static String fromReturnReason(ReturnReason reason) {
         return reason == null ? null : reason.name();
@@ -43,6 +70,6 @@ public class Converters {
 
     @TypeConverter
     public static ReturnReason toReturnReason(String reason) {
-        return reason == null ? null : ReturnReason.valueOf(reason);
+        return reason == null ? null : (reason.isEmpty() ? null : ReturnReason.valueOf(reason));
     }
 }

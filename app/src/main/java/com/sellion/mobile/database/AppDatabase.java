@@ -24,7 +24,7 @@ import com.sellion.mobile.entity.ReturnEntity;
 
 @Database(entities = {OrderEntity.class, ReturnEntity.class,
         CartEntity.class, ClientEntity.class, ProductEntity.class, ManagerEntity.class},
-        version = 5, exportSchema = false)
+        version = 6, exportSchema = false)
 @TypeConverters({Converters.class})
 public abstract class AppDatabase extends RoomDatabase {
 
@@ -36,9 +36,9 @@ public abstract class AppDatabase extends RoomDatabase {
 
     public abstract ClientDao clientDao();
 
-    public abstract ProductDao productDao(); // Добавили это
+    public abstract ProductDao productDao();
 
-    public abstract ManagerDao managerDao(); //
+    public abstract ManagerDao managerDao();
 
     private static volatile AppDatabase instance;
 
@@ -48,7 +48,9 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (instance == null) {
                     instance = Room.databaseBuilder(context.getApplicationContext(),
                                     AppDatabase.class, "trading_db")
-                            .fallbackToDestructiveMigration(true) // База пересоздастся при изменении версии
+                            // Благодаря этому флагу при переходе на v6 база данных
+                            // автоматически пересоберется под новую структуру
+                            .fallbackToDestructiveMigration(true)
                             .build();
                 }
             }

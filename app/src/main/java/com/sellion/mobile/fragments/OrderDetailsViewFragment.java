@@ -17,16 +17,19 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.activities.HostActivity;
 import com.sellion.mobile.adapters.OrderHistoryItemsAdapter;
 import com.sellion.mobile.database.AppDatabase;
+import com.sellion.mobile.entity.ClientEntity;
 import com.sellion.mobile.entity.OrderEntity;
 import com.sellion.mobile.entity.OrderItemInfo;
 import com.sellion.mobile.entity.ProductEntity;
 import com.sellion.mobile.managers.CartManager;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Executors;
-
 public class OrderDetailsViewFragment extends BaseFragment {
 
     @Nullable
@@ -73,17 +76,34 @@ public class OrderDetailsViewFragment extends BaseFragment {
                 tvInvoiceStatus.setText("Раздельная фактура: " + (finalOrder.needsSeparateInvoice ? "Да" : "Нет"));
                 tvDate.setText("Дата доставки: " + (finalOrder.deliveryDate != null ? finalOrder.deliveryDate : "Не указано"));
 
-                calculateTotal(finalOrder, tvTotalSum);
+                // ИСПРАВЛЕНО: Выводим сохраненную итоговую сумму (она уже со всеми скидками)
+                tvTotalSum.setText(String.format(Locale.getDefault(), "Итого: %,.0f ֏", finalOrder.totalAmount));
 
                 // --- ПОДГОТОВКА ДАННЫХ ДЛЯ АДАПТЕРА ---
                 if (finalOrder.items != null) {
                     new Thread(() -> {
                         try {
                             List<OrderItemInfo> preparedList = new ArrayList<>();
+                            // Извлекаем примененные в этом заказе скидки
+                            Map<Long, BigDecimal> appliedDiscounts = finalOrder.appliedPromoItems != null ?
+                                    finalOrder.appliedPromoItems : new HashMap<>();
+
                             for (Map.Entry<Long, Integer> entry : finalOrder.items.entrySet()) {
                                 ProductEntity p = db.productDao().getProductById(entry.getKey());
                                 if (p != null) {
-                                    preparedList.add(new OrderItemInfo(p.name, entry.getValue(), p.price, p.stockQuantity));
+                                    // 1. Получаем процент скидки из заказа
+                                    BigDecimal disc = appliedDiscounts.getOrDefault(p.id, BigDecimal.ZERO);
+
+                                    // 2. Считаем цену со скидкой
+                                    double finalPrice = p.price * (1.0 - (disc.doubleValue() / 100.0));
+
+                                    // 3. Добавляем пометку о скидке в название, если она была
+                                    String displayName = p.name;
+                                    if (disc.compareTo(BigDecimal.ZERO) > 0) {
+                                        displayName += String.format(Locale.getDefault(), " (-%.0f%%)", disc);
+                                    }
+
+                                    preparedList.add(new OrderItemInfo(displayName, entry.getValue(), finalPrice, p.stockQuantity));
                                 } else {
                                     preparedList.add(new OrderItemInfo("Удаленный товар ID:" + entry.getKey(), entry.getValue(), 0, 0));
                                 }
@@ -91,7 +111,6 @@ public class OrderDetailsViewFragment extends BaseFragment {
 
                             requireActivity().runOnUiThread(() -> {
                                 if (isAdded()) {
-                                    // Устанавливаем новый быстрый адаптер
                                     rv.setAdapter(new OrderHistoryItemsAdapter(preparedList));
                                 }
                             });
@@ -122,6 +141,18 @@ public class OrderDetailsViewFragment extends BaseFragment {
                                         CartManager.getInstance().setPaymentMethod(finalOrder.paymentMethod);
                                         CartManager.getInstance().setSeparateInvoice(finalOrder.needsSeparateInvoice);
 
+                                        // При редактировании не забываем установить процент магазина
+                                        // (чтобы он подхватился в OrderDetailsFragment)
+                                        // Нам нужно найти клиента в БД по имени магазина
+                                        new Thread(() -> {
+                                            ClientEntity client = db.clientDao().getAllClientsSync().stream()
+                                                    .filter(c -> c.name.equals(finalOrder.shopName))
+                                                    .findFirst().orElse(null);
+                                            if (client != null) {
+                                                CartManager.getInstance().setClientDefaultPercent(BigDecimal.valueOf(client.defaultPercent));
+                                            }
+                                        }).start();
+
                                         OrderDetailsFragment editFrag = new OrderDetailsFragment();
                                         Bundle b = new Bundle();
                                         b.putString("store_name", finalOrder.shopName);
@@ -143,34 +174,5 @@ public class OrderDetailsViewFragment extends BaseFragment {
 
         btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
         return view;
-    }
-
-    private void calculateTotal(OrderEntity order, TextView tvTotalSum) {
-        if (order == null || tvTotalSum == null) return;
-        final Context appContext = requireContext().getApplicationContext();
-
-        Executors.newSingleThreadExecutor().execute(() -> {
-            try {
-                double totalSum = 0;
-                int totalQty = 0;
-                AppDatabase db = AppDatabase.getInstance(appContext);
-
-                if (order.items != null) {
-                    for (Map.Entry<Long, Integer> entry : order.items.entrySet()) {
-                        double price = db.productDao().getPriceById(entry.getKey());
-                        totalSum += (price * entry.getValue());
-                        totalQty += entry.getValue();
-                    }
-                }
-
-                final String result = String.format("Товаров: %d шт. | Итого: %,.0f ֏", totalQty, totalSum);
-
-                if (isAdded() && getActivity() != null) {
-                    tvTotalSum.post(() -> tvTotalSum.setText(result));
-                }
-            } catch (Exception e) {
-                HostActivity.logToFile(appContext, "CALC_TOTAL_ERR", e.getMessage());
-            }
-        });
     }
 }

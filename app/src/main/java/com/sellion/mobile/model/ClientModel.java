@@ -9,6 +9,7 @@ public class ClientModel {
     public String phone;
     public String routeDay;
     public double debt;
+    public double defaultPercent;
 
     // Пустой конструктор для Retrofit
     public ClientModel() {}

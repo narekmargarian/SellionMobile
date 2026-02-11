@@ -46,7 +46,7 @@ public class ClientsFragment extends BaseFragment {
         View view = inflater.inflate(R.layout.fragment_clients, container, false);
 
         ImageButton btnBack = view.findViewById(R.id.btnBack);
-        ImageButton btnAdd = view.findViewById(R.id.btnAddClient);
+
         recyclerClients = view.findViewById(R.id.recyclerClients);
 
         recyclerClients.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -54,7 +54,6 @@ public class ClientsFragment extends BaseFragment {
         // ИЗМЕНЕНО: Теперь загружаем данные из локальной базы Room
         loadClientsFromLocalDB();
 
-        btnAdd.setOnClickListener(v -> showAddClientDialog());
 
         setupBackButton(btnBack, true); // Выход на Dashboard
         return view;
@@ -88,7 +87,7 @@ public class ClientsFragment extends BaseFragment {
                 if (clientList.isEmpty()) {
                     Toast.makeText(getContext(), "Список пуст. Загрузите данные в Синхронизации.", Toast.LENGTH_LONG).show();
                 }
-                adapter = new ClientAdapter(clientList, client -> showClientInfoDialog(client));
+                adapter = new ClientAdapter(clientList, this::showClientInfoDialog);
                 recyclerClients.setAdapter(adapter);
             });
         }).start();
@@ -103,7 +102,7 @@ public class ClientsFragment extends BaseFragment {
 
         tvName.setText(client.getName());
         tvAddress.setText(client.getAddress());
-        tvIp.setText(client.ownerName + " (ИНН: " + client.inn + ")");
+        tvIp.setText("ИНН/ՀՎՀՀ: " + client.inn );
 
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
         dialog.setContentView(dialogView);
@@ -111,38 +110,7 @@ public class ClientsFragment extends BaseFragment {
         dialog.show();
     }
 
-    private void showAddClientDialog() {
-        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_add_client, null);
-        EditText etName = dialogView.findViewById(R.id.etShopName);
-        EditText etAddress = dialogView.findViewById(R.id.etShopAddress);
 
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Добавление нового клиента")
-                .setView(dialogView)
-                .setNegativeButton("Отмена", null)
-                .setPositiveButton("Создать", (dialog, which) -> {
-                    String name = etName.getText().toString().trim();
-                    String address = etAddress.getText().toString().trim();
 
-                    if (!name.isEmpty() && !address.isEmpty()) {
-                        ClientModel newClient = new ClientModel(name, address, "");
-                        clientList.add(newClient);
-                        adapter.notifyItemInserted(clientList.size() - 1);
-                        showSuccessDialog();
-                    } else {
-                        Toast.makeText(getContext(), "Введите все данные!", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .show();
-    }
-
-    private void showSuccessDialog() {
-        new MaterialAlertDialogBuilder(getContext())
-                .setTitle("Успешно")
-                .setMessage("Клиент создан.")
-                .setPositiveButton("Понятно", null)
-                .setIcon(R.drawable.ic_add)
-                .show();
-    }
 }
 
