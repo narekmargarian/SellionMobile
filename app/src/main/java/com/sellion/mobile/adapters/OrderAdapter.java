@@ -14,12 +14,13 @@ import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.OrderEntity;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 
 public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderVH> {
 
-    private List<OrderEntity> list; // Изменено на OrderEntity
+    private List<OrderEntity> list;
     private OnOrderClickListener listener;
 
     public interface OnOrderClickListener {
@@ -43,8 +44,9 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderVH> {
         OrderEntity o = list.get(pos);
         h.tvShopName.setText(o.shopName);
 
-        // Используем уже сохраненную сумму в Entity, не мучаем БД в списке
-        h.tvTotalAmount.setText(String.format("%,.0f ֏", o.totalAmount));
+        // ИСПРАВЛЕНО: используем формат %,.1f для отображения точности 0.1
+        // Теперь вместо "1 012 ֏" будет отображаться "1 011.5 ֏"
+        h.tvTotalAmount.setText(String.format(Locale.getDefault(), "%,.1f ֏", o.totalAmount));
 
         if ("SENT".equals(o.status)) {
             h.tvStatus.setText("ОТПРАВЛЕН");
@@ -55,7 +57,6 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderVH> {
         }
         h.itemView.setOnClickListener(v -> listener.onOrderClick(o));
     }
-
 
     @Override
     public int getItemCount() {
@@ -72,8 +73,6 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderVH> {
             tvTotalAmount = v.findViewById(R.id.tvOrderTotalAmount);
         }
     }
-
-
 }
 
 

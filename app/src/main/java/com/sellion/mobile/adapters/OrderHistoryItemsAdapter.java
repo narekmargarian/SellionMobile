@@ -19,8 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-public class OrderHistoryItemsAdapter extends RecyclerView.Adapter<OrderHistoryItemsAdapter.ViewHolder> {
+import java.util.Map;public class OrderHistoryItemsAdapter extends RecyclerView.Adapter<OrderHistoryItemsAdapter.ViewHolder> {
 
     private final List<OrderItemInfo> preparedItems;
 
@@ -31,7 +30,6 @@ public class OrderHistoryItemsAdapter extends RecyclerView.Adapter<OrderHistoryI
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // Используем твой стандартный макет для элементов списка
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_category, parent, false);
         return new ViewHolder(view);
     }
@@ -40,27 +38,26 @@ public class OrderHistoryItemsAdapter extends RecyclerView.Adapter<OrderHistoryI
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         OrderItemInfo item = preparedItems.get(position);
 
-        // 1. Расчет суммы строки (item.price уже пришла со скидкой из фрагмента)
-        double rowTotal = item.price * item.quantity;
+        // 1. Расчет суммы строки с точностью до 0.1
+        // (item.price уже должна быть округлена во фрагменте, но закрепим результат здесь)
+        double rowTotal = Math.round((item.price * item.quantity) * 10.0) / 10.0;
 
         // 2. Формирование основной строки
-        // Если в item.name есть "(-", значит там акция, подсветим это визуально в будущем если нужно
         String info = String.format(Locale.getDefault(), "%s — %d шт.", item.name, item.quantity);
 
-        // Форматируем цену отдельно для красоты
-        String priceFormatted = String.format(Locale.getDefault(), "%,.0f ֏", rowTotal);
+        // ИСПРАВЛЕНО: %,.1f вместо %,.0f для отображения копеек (например, 1 011.5 ֏)
+        String priceFormatted = String.format(Locale.getDefault(), "%,.1f ֏", rowTotal);
 
-        // Устанавливаем текст: "Название (-10%) — 5 шт. (5,000 ֏)"
+        // Устанавливаем текст
         holder.tvName.setText(info + " (" + priceFormatted + ")");
 
-        // 3. Установка остатка (информативно для истории)
+        // 3. Установка остатка
         if (holder.tvStock != null) {
             holder.tvStock.setVisibility(View.VISIBLE);
             holder.tvStock.setText("На складе: " + item.stock + " шт.");
 
-            // Если есть пометка о скидке в названии, можно выделить текст остатка цветом
             if (item.name.contains("(-")) {
-                holder.tvStock.setTextColor(android.graphics.Color.parseColor("#2E7D32")); // Зеленый для акционных
+                holder.tvStock.setTextColor(android.graphics.Color.parseColor("#2E7D32"));
             } else {
                 holder.tvStock.setTextColor(android.graphics.Color.GRAY);
             }
@@ -81,5 +78,6 @@ public class OrderHistoryItemsAdapter extends RecyclerView.Adapter<OrderHistoryI
         }
     }
 }
+
 
 

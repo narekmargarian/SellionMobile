@@ -240,33 +240,39 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
                     itemsMap.put(item.productId, item.quantity);
 
                     // Определяем процент: Акция имеет приоритет над процентом магазина
-                    BigDecimal finalPercent = shopPercent; // По умолчанию
+                    BigDecimal finalPercent = shopPercent;
                     if (promoItems.containsKey(item.productId)) {
                         finalPercent = promoItems.get(item.productId);
                     }
 
-                    // Сохраняем, какой процент применился к конкретному товару
+                    // Сохраняем примененный процент
                     appliedPromos.put(item.productId, finalPercent);
 
-                    // Вычисляем цену со скидкой
+                    // --- ИСПРАВЛЕННЫЙ РАСЧЕТ ЦЕНЫ (Точность 0.1) ---
                     double discountFactor = 1.0 - (finalPercent.doubleValue() / 100.0);
-                    double discountedPrice = item.price * discountFactor;
 
+                    // Вычисляем цену со скидкой и округляем до 1 знака (как на сервере)
+                    double rawPrice = item.price * discountFactor;
+                    double discountedPrice = Math.round(rawPrice * 10.0) / 10.0;
+
+                    // Накапливаем итоговую сумму
                     totalAmount += (discountedPrice * item.quantity);
                 }
 
                 // 3. Формируем сущность заказа
                 OrderEntity order = new OrderEntity();
 
-                // Используем переданный ID, если мы в режиме редактирования
                 if (orderIdToUpdate != -1) {
                     order.id = orderIdToUpdate;
                 }
 
                 order.shopName = storeName;
                 order.items = itemsMap;
-                order.appliedPromoItems = appliedPromos; // Сохраняем детализацию скидок в БД Room
-                order.totalAmount = totalAmount;
+                order.appliedPromoItems = appliedPromos;
+
+                // ИСПРАВЛЕНО: Фиксируем итоговую сумму с 1 знаком
+                order.totalAmount = Math.round(totalAmount * 10.0) / 10.0;
+
                 order.status = "PENDING";
                 order.managerId = com.sellion.mobile.managers.SessionManager.getInstance().getManagerId();
                 order.deliveryDate = CartManager.getInstance().getDeliveryDate();
@@ -274,21 +280,22 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
                 order.needsSeparateInvoice = CartManager.getInstance().isSeparateInvoice();
                 order.createdAt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(new Date());
 
-                // Генерация уникального ID для защиты от дубликатов на сервере
                 String deviceId = android.provider.Settings.Secure.getString(appContext.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
                 order.androidId = deviceId + "_" + System.currentTimeMillis();
 
                 // 4. Запись в локальную базу данных
                 db.orderDao().insert(order);
-                HostActivity.logToFile(appContext, "SAVE_ORDER", "Заказ сохранен: " + storeName + " Сумма: " + totalAmount);
+
+                // Логируем точную сумму для проверки
+                HostActivity.logToFile(appContext, "SAVE_ORDER",
+                        String.format(Locale.US, "Заказ: %s | Итог: %.1f", storeName, order.totalAmount));
 
                 // 5. Обновление UI
                 if (getActivity() != null) {
                     requireActivity().runOnUiThread(() -> {
                         CartManager.getInstance().clearCart();
-                        Toast.makeText(appContext, "Заказ сохранен со скидками!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(appContext, "Заказ сохранен ", Toast.LENGTH_SHORT).show();
 
-                        // Переход в список заказов
                         if (isAdded()) {
                             getParentFragmentManager().beginTransaction()
                                     .replace(R.id.fragment_container, new OrdersFragment())
@@ -306,6 +313,7 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
             }
         }).start();
     }
+
 
 
 

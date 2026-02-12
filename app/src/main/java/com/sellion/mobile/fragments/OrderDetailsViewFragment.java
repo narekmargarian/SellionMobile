@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Executors;
+
+
 public class OrderDetailsViewFragment extends BaseFragment {
 
     @Nullable
@@ -76,31 +78,32 @@ public class OrderDetailsViewFragment extends BaseFragment {
                 tvInvoiceStatus.setText("Раздельная фактура: " + (finalOrder.needsSeparateInvoice ? "Да" : "Нет"));
                 tvDate.setText("Дата доставки: " + (finalOrder.deliveryDate != null ? finalOrder.deliveryDate : "Не указано"));
 
-                // ИСПРАВЛЕНО: Выводим сохраненную итоговую сумму (она уже со всеми скидками)
-                tvTotalSum.setText(String.format(Locale.getDefault(), "Итого: %,.0f ֏", finalOrder.totalAmount));
+                // ИСПРАВЛЕНО: %,.1f вместо %,.0f для отображения итоговой суммы с копейками
+                tvTotalSum.setText(String.format(Locale.getDefault(), "Итого: %,.1f ֏", finalOrder.totalAmount));
 
-                // --- ПОДГОТОВКА ДАННЫХ ДЛЯ АДАПТЕРА ---
                 if (finalOrder.items != null) {
                     new Thread(() -> {
                         try {
                             List<OrderItemInfo> preparedList = new ArrayList<>();
-                            // Извлекаем примененные в этом заказе скидки
                             Map<Long, BigDecimal> appliedDiscounts = finalOrder.appliedPromoItems != null ?
                                     finalOrder.appliedPromoItems : new HashMap<>();
 
                             for (Map.Entry<Long, Integer> entry : finalOrder.items.entrySet()) {
                                 ProductEntity p = db.productDao().getProductById(entry.getKey());
                                 if (p != null) {
-                                    // 1. Получаем процент скидки из заказа
                                     BigDecimal disc = appliedDiscounts.getOrDefault(p.id, BigDecimal.ZERO);
 
-                                    // 2. Считаем цену со скидкой
-                                    double finalPrice = p.price * (1.0 - (disc.doubleValue() / 100.0));
+                                    // ИСПРАВЛЕНО: Расчет цены с округлением до 0.1
+                                    double rawFinalPrice = p.price * (1.0 - (disc.doubleValue() / 100.0));
+                                    double finalPrice = Math.round(rawFinalPrice * 10.0) / 10.0;
 
-                                    // 3. Добавляем пометку о скидке в название, если она была
                                     String displayName = p.name;
                                     if (disc.compareTo(BigDecimal.ZERO) > 0) {
-                                        displayName += String.format(Locale.getDefault(), " (-%.0f%%)", disc);
+                                        // ИСПРАВЛЕНО: Динамический формат для процентов (15% или 12.5%)
+                                        String discStr = (disc.doubleValue() % 1 == 0) ?
+                                                String.format(Locale.getDefault(), "%.0f", disc) :
+                                                String.format(Locale.getDefault(), "%.1f", disc);
+                                        displayName += " (-" + discStr + "%)";
                                     }
 
                                     preparedList.add(new OrderItemInfo(displayName, entry.getValue(), finalPrice, p.stockQuantity));
@@ -141,9 +144,6 @@ public class OrderDetailsViewFragment extends BaseFragment {
                                         CartManager.getInstance().setPaymentMethod(finalOrder.paymentMethod);
                                         CartManager.getInstance().setSeparateInvoice(finalOrder.needsSeparateInvoice);
 
-                                        // При редактировании не забываем установить процент магазина
-                                        // (чтобы он подхватился в OrderDetailsFragment)
-                                        // Нам нужно найти клиента в БД по имени магазина
                                         new Thread(() -> {
                                             ClientEntity client = db.clientDao().getAllClientsSync().stream()
                                                     .filter(c -> c.name.equals(finalOrder.shopName))
@@ -176,3 +176,4 @@ public class OrderDetailsViewFragment extends BaseFragment {
         return view;
     }
 }
+
