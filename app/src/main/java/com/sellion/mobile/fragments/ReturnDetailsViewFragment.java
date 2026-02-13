@@ -27,6 +27,9 @@ import com.sellion.mobile.managers.ReturnManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+
+
 public class ReturnDetailsViewFragment extends BaseFragment {
 
     private static final String TAG = "RETURN_VIEW";

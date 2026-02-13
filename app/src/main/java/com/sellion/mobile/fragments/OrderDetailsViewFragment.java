@@ -38,7 +38,6 @@ public class OrderDetailsViewFragment extends BaseFragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_order_details_view, container, false);
-
         String shopName = getArguments() != null ? getArguments().getString("order_shop_name") : "";
         int orderId = getArguments() != null ? getArguments().getInt("order_id", -1) : -1;
 
@@ -50,10 +49,8 @@ public class OrderDetailsViewFragment extends BaseFragment {
         RecyclerView rv = view.findViewById(R.id.rvViewOrderItems);
         Button btnEdit = view.findViewById(R.id.btnEditThisOrder);
         View btnBack = view.findViewById(R.id.btnBackFromView);
-
         tvTitle.setText(shopName);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
-
         final Context appContext = requireContext().getApplicationContext();
         AppDatabase db = AppDatabase.getInstance(appContext);
 
@@ -71,14 +68,10 @@ public class OrderDetailsViewFragment extends BaseFragment {
 
             if (currentOrder != null) {
                 final OrderEntity finalOrder = currentOrder;
-
                 String paymentText = (finalOrder.paymentMethod != null) ? finalOrder.paymentMethod.getTitle() : "Не указано";
                 tvPaymentMethod.setText("Оплата: " + paymentText);
-
                 tvInvoiceStatus.setText("Раздельная фактура: " + (finalOrder.needsSeparateInvoice ? "Да" : "Нет"));
                 tvDate.setText("Дата доставки: " + (finalOrder.deliveryDate != null ? finalOrder.deliveryDate : "Не указано"));
-
-                // ИСПРАВЛЕНО: %,.1f вместо %,.0f для отображения итоговой суммы с копейками
                 tvTotalSum.setText(String.format(Locale.getDefault(), "Итого: %,.1f ֏", finalOrder.totalAmount));
 
                 if (finalOrder.items != null) {
@@ -93,13 +86,11 @@ public class OrderDetailsViewFragment extends BaseFragment {
                                 if (p != null) {
                                     BigDecimal disc = appliedDiscounts.getOrDefault(p.id, BigDecimal.ZERO);
 
-                                    // ИСПРАВЛЕНО: Расчет цены с округлением до 0.1
                                     double rawFinalPrice = p.price * (1.0 - (disc.doubleValue() / 100.0));
                                     double finalPrice = Math.round(rawFinalPrice * 10.0) / 10.0;
 
                                     String displayName = p.name;
                                     if (disc.compareTo(BigDecimal.ZERO) > 0) {
-                                        // ИСПРАВЛЕНО: Динамический формат для процентов (15% или 12.5%)
                                         String discStr = (disc.doubleValue() % 1 == 0) ?
                                                 String.format(Locale.getDefault(), "%.0f", disc) :
                                                 String.format(Locale.getDefault(), "%.1f", disc);
