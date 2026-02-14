@@ -1,15 +1,20 @@
 package com.sellion.mobile;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Shader;
 import android.os.Bundle;
+import android.text.InputType;
 import android.util.Log;
 import android.view.View;
 import android.widget.AutoCompleteTextView;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -39,6 +44,11 @@ public class MainActivity extends AppCompatActivity {
     private AppDatabase db;
     // Сохраняем ссылку на запрос, чтобы отменить его при уничтожении Activity
     private Call<List<String>> managersCall;
+
+
+    private int clickCount = 0;
+    private static final String SECRET_CODE = "sellion&rivento&ip";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
 
         syncManagersFromServer();
 
-
+        setupSecretSettings();
 
     }
 
@@ -170,6 +180,107 @@ public class MainActivity extends AppCompatActivity {
         textInputLayout.setError("Неверный ID менеджера"); // Красная обводка как в вебе
         textInputLayout.setErrorTextColor(ColorStateList.valueOf(Color.parseColor("#EF4444")));
     }
+
+
+
+    private void setupSecretSettings() {
+        TextView tvCopyright = findViewById(R.id.tvCopyright);
+        tvCopyright.setOnClickListener(v -> {
+            // Проверка блокировки
+            long lockUntil = getSharedPreferences("SyncSettings", MODE_PRIVATE).getLong("lock_time", 0);
+            if (System.currentTimeMillis() < lockUntil) {
+                long diffMin = (lockUntil - System.currentTimeMillis()) / 60000;
+                Toast.makeText(this, "Доступ заблокирован на " + diffMin + " мин.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            clickCount++;
+            if (clickCount >= 5) {
+                clickCount = 0;
+                showSecretCodeDialog();
+            }
+        });
+    }
+
+    private void showSecretCodeDialog() {
+        EditText input = new EditText(this);
+        input.setHint("Введите секретный код");
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Системный доступ")
+                .setView(input)
+                .setPositiveButton("Ввод", (d, w) -> {
+                    String code = input.getText().toString();
+                    if (SECRET_CODE.equals(code)) {
+                        resetFailAttempts();
+                        showIpChangeDialog();
+                    } else {
+                        handleFailAttempt();
+                    }
+                })
+                .show();
+    }
+
+    private void handleFailAttempt() {
+        SharedPreferences prefs = getSharedPreferences("SyncSettings", MODE_PRIVATE);
+        int attempts = prefs.getInt("fail_attempts", 0) + 1;
+        prefs.edit().putInt("fail_attempts", attempts).apply();
+
+        if (attempts >= 3) {
+            // Блокировка: 30 минут * кол-во попыток (3 попытки = 90 мин и т.д.)
+            long lockTime = System.currentTimeMillis() + (30L * 60 * 1000 * (attempts - 2));
+            prefs.edit().putLong("lock_time", lockTime).apply();
+            Toast.makeText(this, "Слишком много попыток. Блокировка!", Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(this, "Неверный код! Осталось попыток: " + (3 - attempts), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void resetFailAttempts() {
+        getSharedPreferences("SyncSettings", MODE_PRIVATE).edit()
+                .putInt("fail_attempts", 0)
+                .putLong("lock_time", 0)
+                .apply();
+    }
+
+    private void showIpChangeDialog() {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(50, 20, 50, 0);
+
+        final EditText ipInput = new EditText(this);
+        ipInput.setHint("IP сервера (напр. 172.20.10.5)");
+        ipInput.setText(getSharedPreferences("SyncSettings", MODE_PRIVATE).getString("server_ip", "172.20.10.5"));
+        layout.addView(ipInput);
+
+        final EditText portInput = new EditText(this);
+        portInput.setHint("Порт (напр. 8080)");
+        portInput.setText(getSharedPreferences("SyncSettings", MODE_PRIVATE).getString("server_port", "8080"));
+        portInput.setInputType(InputType.TYPE_CLASS_NUMBER);
+        layout.addView(portInput);
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Настройка сервера")
+                .setView(layout)
+                .setPositiveButton("Сохранить", (d, w) -> {
+                    String newIp = ipInput.getText().toString().trim();
+                    String newPort = portInput.getText().toString().trim();
+
+                    if (!newIp.isEmpty() && !newPort.isEmpty()) {
+                        getSharedPreferences("SyncSettings", MODE_PRIVATE).edit()
+                                .putString("server_ip", newIp)
+                                .putString("server_port", newPort)
+                                .apply();
+
+                        ApiClient.resetClient();
+                        Toast.makeText(this, "Адрес обновлен: " + newIp + ":" + newPort, Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .show();
+    }
+
+
 
     @Override
     protected void onDestroy() {

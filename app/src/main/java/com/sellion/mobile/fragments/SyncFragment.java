@@ -233,7 +233,7 @@ public class SyncFragment extends BaseFragment {
                 requireActivity().runOnUiThread(() -> {
                     if (isAdded()) {
                         progressDialog.dismiss();
-                        showSyncError("Ошибка: " + e.getMessage());
+                        showSyncError("Ошибка с соединением с сервером обратитесь офис");
                     }
                 });
             }
