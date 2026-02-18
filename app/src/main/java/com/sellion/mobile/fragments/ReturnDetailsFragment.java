@@ -145,7 +145,7 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
                 requireActivity().runOnUiThread(() -> {
                     CartManager.getInstance().clearCart();
                     if (isAdded()) {
-                        Toast.makeText(appContext, "Возврат сохранен локально", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(appContext, "Возврат сохранен", Toast.LENGTH_SHORT).show();
                         NavigationHelper.finishAndGoTo(getParentFragmentManager(), new ReturnsFragment());
                     }
                 });

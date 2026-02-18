@@ -5,7 +5,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,9 +18,7 @@ import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.ProductEntity;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -42,8 +39,10 @@ public class CatalogFragment extends BaseFragment {
         recyclerView = view.findViewById(R.id.recyclerViewCatalog);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        orderMode = isInsideAnyProcess();
-        isReturn = isInsideReturnProcess();
+//        orderMode = isInsideAnyProcess();
+//        isReturn = isInsideReturnProcess();
+
+        checkProcessStatus();
 
         // Если мы внутри процесса заказа/возврата, скрываем кнопку назад (управляет HostActivity)
         if (orderMode || isReturn) {
@@ -99,21 +98,42 @@ public class CatalogFragment extends BaseFragment {
     }
 
 
-    private boolean isInsideAnyProcess() {
+//    private boolean isInsideAnyProcess() {
+//        Fragment parent = getParentFragment();
+//        while (parent != null) {
+//            if (parent instanceof OrderDetailsFragment || parent instanceof ReturnDetailsFragment) return true;
+//            parent = parent.getParentFragment();
+//        }
+//        return false;
+//    }
+//
+//    private boolean isInsideReturnProcess() {
+//        Fragment parent = getParentFragment();
+//        while (parent != null) {
+//            if (parent instanceof ReturnDetailsFragment) return true;
+//            parent = parent.getParentFragment();
+//        }
+//        return false;
+//    }
+
+
+    private void checkProcessStatus() {
         Fragment parent = getParentFragment();
+        this.orderMode = false;
+        this.isReturn = false;
+
         while (parent != null) {
-            if (parent instanceof OrderDetailsFragment || parent instanceof ReturnDetailsFragment) return true;
+            if (parent instanceof ReturnDetailsFragment) {
+                this.isReturn = true;
+                this.orderMode = true; // Возврат — это тоже процесс
+                break; // Нашли, выходим
+            }
+            if (parent instanceof OrderDetailsFragment) {
+                this.orderMode = true;
+                break; // Нашли, выходим
+            }
             parent = parent.getParentFragment();
         }
-        return false;
     }
 
-    private boolean isInsideReturnProcess() {
-        Fragment parent = getParentFragment();
-        while (parent != null) {
-            if (parent instanceof ReturnDetailsFragment) return true;
-            parent = parent.getParentFragment();
-        }
-        return false;
-    }
 }

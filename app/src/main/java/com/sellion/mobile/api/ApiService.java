@@ -20,14 +20,11 @@ import retrofit2.http.Query;
 
 public interface ApiService {
 
-    // ИСПРАВЛЕНО: Сервер возвращает ApiResponse.ok(..., result)
+
     @GET("api/products/catalog")
     Call<ApiResponse<List<CategoryGroupDto>>> getCatalog();
 
-    // ИСПРАВЛЕНО: ClientApiController возвращает чистый List (судя по вашему коду контроллера)
-    // Но если вы добавите ApiResponse и туда — оберните в ApiResponse<List<ClientModel>>
-//    @GET("api/clients")
-//    Call<List<ClientModel>> getClients();
+
 
     @GET("api/clients")
     Call<List<ClientModel>> getClients(@Query("managerId") String managerId);

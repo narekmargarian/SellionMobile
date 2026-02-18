@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -26,7 +25,7 @@
                 android:layout_alignParentStart="true"
                 android:layout_centerVertical="true"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_back" /> <!-- Нужно создать иконку назад -->
+                android:src="@drawable/ic_back" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -37,9 +36,83 @@
                 android:textSize="20sp"
                 android:textStyle="bold" />
 
+            <!-- Кнопка поиска в правом углу -->
+            <ImageButton
+                android:id="@+id/btnOpenSearch"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_search"
+                app:tint="#1B1B1F" />
 
         </RelativeLayout>
     </androidx.appcompat.widget.Toolbar>
+
+    <!-- Выпадающая панель поиска (Скрыта по умолчанию) -->
+    <LinearLayout
+        android:id="@+id/layoutSearchFields"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#FFFFFF"
+        android:padding="12dp"
+        android:elevation="2dp"
+        android:visibility="gone">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Поиск клиента"
+                android:textStyle="bold"
+                android:textColor="#757575"/>
+
+            <ImageButton
+                android:id="@+id/btnCloseSearch"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_alignParentEnd="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                app:tint="#FF5252" />
+        </RelativeLayout>
+
+        <EditText
+            android:id="@+id/etSearchInn"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:hint="Введите ИНН (100% совпадение)"
+            android:inputType="number"
+            android:background="@android:drawable/editbox_background"
+            android:padding="10dp"
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp"/>
+
+        <EditText
+            android:id="@+id/etSearchName"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:hint="Имя магазина или Владелец"
+            android:inputType="text"
+            android:background="@android:drawable/editbox_background"
+            android:padding="10dp"
+            android:textSize="14sp"
+            android:layout_marginBottom="12dp"/>
+
+        <Button
+            android:id="@+id/btnExecuteSearch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Найти"
+            android:backgroundTint="#1B1B1F"
+            android:textColor="#FFFFFF" />
+    </LinearLayout>
 
     <!-- Список магазинов -->
     <androidx.recyclerview.widget.RecyclerView

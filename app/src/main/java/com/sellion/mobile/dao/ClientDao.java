@@ -25,5 +25,10 @@ public interface ClientDao {
     void deleteAll();
 
 
+    @Query("SELECT * FROM clients WHERE " +
+            "(:inn IS NOT NULL AND inn = :inn) OR " +
+            "(:name IS NOT NULL AND (name LIKE '%' || :name || '%' OR ownerName LIKE '%' || :name || '%'))")
+    List<ClientEntity> searchClients(String inn, String name);
+
 
 }
