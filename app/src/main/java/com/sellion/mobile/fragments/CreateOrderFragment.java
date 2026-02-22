@@ -18,7 +18,8 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.CreateOrderPagerAdapter;
 import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.OrderEntity;
-
+import com.sellion.mobile.managers.CartManager;
+import com.sellion.mobile.model.ClientModel;
 
 public class CreateOrderFragment extends BaseFragment {
 
@@ -36,7 +37,6 @@ public class CreateOrderFragment extends BaseFragment {
 
         viewPager.setAdapter(new CreateOrderPagerAdapter(this));
 
-
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             tab.setText(position == 0 ? "Маршрут" : "Клиенты");
         }).attach();
@@ -46,37 +46,57 @@ public class CreateOrderFragment extends BaseFragment {
         return view;
     }
 
-    // Центральный метод обработки выбора клиента
-    public void onClientSelected(String storeName) {
-        // Проверка в фоновом потоке через Room
+    // ИСПРАВЛЕНО: Теперь принимаем объект ClientModel целиком
+    public void onClientSelected(ClientModel client) {
+        if (client == null) return;
+
+        final String storeName = client.getName();
+
+        // 1. ОЧИСТКА: Принудительно очищаем корзину, чтобы не было "синих товаров" от старых заказов
+        CartManager.getInstance().clearCart();
+
+        // 2. ПРОЦЕНТ: Устанавливаем процент магазина (например, 5%) в менеджер корзины
+        if (client.defaultPercent > 0) {
+            CartManager.getInstance().setClientDefaultPercent(java.math.BigDecimal.valueOf(client.defaultPercent));
+        } else {
+            CartManager.getInstance().setClientDefaultPercent(java.math.BigDecimal.ZERO);
+        }
+
+        // 3. ПРОВЕРКА ДУБЛИКАТОВ (Твой код в фоновом потоке)
         new Thread(() -> {
-            AppDatabase db = AppDatabase.getInstance(requireContext());
+            try {
+                AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
 
-            // Получаем все заказы для этого магазина из базы
-            java.util.List<OrderEntity> orders = db.orderDao().getPendingOrdersSync();
+                // Проверяем все заказы в статусе PENDING
+                java.util.List<OrderEntity> pendingOrders = db.orderDao().getOrdersByStatusSync("PENDING");
 
-            boolean hasPendingOrder = false;
-            for (OrderEntity order : orders) {
-                if (order.shopName.equals(storeName) && "PENDING".equals(order.status)) {
-                    hasPendingOrder = true;
-                    break;
+                boolean hasPendingOrder = false;
+                for (OrderEntity order : pendingOrders) {
+                    if (order.shopName != null && order.shopName.equals(storeName)) {
+                        hasPendingOrder = true;
+                        break;
+                    }
                 }
+
+                final boolean finalHasPending = hasPendingOrder;
+
+                requireActivity().runOnUiThread(() -> {
+                    if (isAdded()) {
+                        if (finalHasPending) {
+                            new AlertDialog.Builder(requireContext())
+                                    .setTitle("Внимание")
+                                    .setMessage("Для магазина '" + storeName + "' уже есть активный заказ. Отредактируйте его в истории.")
+                                    .setPositiveButton("Понятно", null)
+                                    .show();
+                        } else {
+                            // Если всё чисто — открываем сборку заказа
+                            openStoreDetails(storeName);
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-
-            final boolean finalHasPending = hasPendingOrder;
-
-            // Возвращаемся в главный поток для UI
-            requireActivity().runOnUiThread(() -> {
-                if (finalHasPending) {
-                    new AlertDialog.Builder(requireContext())
-                            .setTitle("Внимание")
-                            .setMessage("Для магазина '" + storeName + "' уже есть активный заказ. Отредактируйте его в истории или отправьте текущий.")
-                            .setPositiveButton("Понятно", null)
-                            .show();
-                } else {
-                    openStoreDetails(storeName);
-                }
-            });
         }).start();
     }
 
@@ -92,4 +112,6 @@ public class CreateOrderFragment extends BaseFragment {
                 .addToBackStack(null)
                 .commit();
     }
+
+    // ... (CreateOrderPagerAdapter остается без изменений)
 }

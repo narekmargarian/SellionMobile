@@ -12,13 +12,18 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.sellion.mobile.R;
 import com.sellion.mobile.model.PromoAction;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
 
 public class PromoAdapter extends RecyclerView.Adapter<PromoAdapter.ViewHolder> {
 
     private final List<PromoAction> promoList;
     private final OnPromoClickListener listener;
-    private int selectedPosition = -1;
+    // Используем Set для хранения нескольких выбранных позиций
+    private final Set<Integer> selectedPositions = new HashSet<>();
 
     public interface OnPromoClickListener {
         void onPromoClick(PromoAction promo);
@@ -42,14 +47,23 @@ public class PromoAdapter extends RecyclerView.Adapter<PromoAdapter.ViewHolder> 
         PromoAction promo = promoList.get(position);
 
         holder.tvTitle.setText(promo.getTitle());
-        holder.tvPeriod.setText("До: " + promo.getEndDate().toString());
+        holder.tvPeriod.setText("До: " + promo.getEndDate());
 
-        // Логика выбора только одного элемента (RadioGroup effect)
-        holder.radioButton.setChecked(position == selectedPosition);
+        // ИСПРАВЛЕНО: Теперь работаем с CheckBox, чтобы избежать ClassCastException
+        holder.checkBox.setChecked(selectedPositions.contains(position));
 
         holder.itemView.setOnClickListener(v -> {
-            selectedPosition = holder.getAbsoluteAdapterPosition();
-            notifyDataSetChanged();
+            int currentPos = holder.getAbsoluteAdapterPosition();
+
+            if (selectedPositions.contains(currentPos)) {
+                selectedPositions.remove(currentPos);
+            } else {
+                selectedPositions.add(currentPos);
+            }
+
+            // Обновляем только этот элемент
+            notifyItemChanged(currentPos);
+
             if (listener != null) {
                 listener.onPromoClick(promo);
             }
@@ -61,15 +75,25 @@ public class PromoAdapter extends RecyclerView.Adapter<PromoAdapter.ViewHolder> 
         return promoList != null ? promoList.size() : 0;
     }
 
+    public List<PromoAction> getSelectedPromos() {
+        List<PromoAction> selected = new ArrayList<>();
+        for (Integer pos : selectedPositions) {
+            selected.add(promoList.get(pos));
+        }
+        return selected;
+    }
+
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvTitle, tvPeriod;
-        RadioButton radioButton;
+        // ИСПРАВЛЕНО: Заменили RadioButton на CheckBox
+        android.widget.CheckBox checkBox;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             tvTitle = itemView.findViewById(R.id.tvPromoTitle);
             tvPeriod = itemView.findViewById(R.id.tvPromoPeriod);
-            radioButton = itemView.findViewById(R.id.rbSelectPromo);
+            // ИСПРАВЛЕНО: Находим CheckBox по ID из твоего XML
+            checkBox = itemView.findViewById(R.id.rbSelectPromo);
         }
     }
 }

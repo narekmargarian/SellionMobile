@@ -43,21 +43,39 @@ public class OrderClientFragment extends Fragment {
             List<ClientModel> models = new ArrayList<>();
             for (ClientEntity e : entities) {
                 ClientModel m = new ClientModel();
-                m.id = e.id; m.name = e.name; m.address = e.address;
+                m.id = e.id;
+                m.name = e.name;
+                m.address = e.address;
+                m.defaultPercent = e.defaultPercent; // Передаем процент из БД
                 models.add(m);
             }
 
-            requireActivity().runOnUiThread(() -> {
-                ClientAdapter adapter = new ClientAdapter(models, client -> {
-                    Fragment parent = getParentFragment();
-                    if (parent instanceof CreateOrderFragment) {
-                        ((CreateOrderFragment) parent).onClientSelected(client.getName());
-                    } else if (parent instanceof CreateReturnFragment) {
-                        ((CreateReturnFragment) parent).onClientSelected(client.getName());
-                    }
+            if (isAdded()) {
+                requireActivity().runOnUiThread(() -> {
+                    ClientAdapter adapter = new ClientAdapter(models, client -> {
+
+                        Fragment parent = getParentFragment();
+
+                        if (parent instanceof CreateOrderFragment) {
+                            // 1. ОЧИСТКА КОРЗИНЫ (от синих товаров)
+                            com.sellion.mobile.managers.CartManager.getInstance().clearCart();
+
+                            // 2. УСТАНОВКА ПРОЦЕНТА (для расчета 5%)
+                            com.sellion.mobile.managers.CartManager.getInstance()
+                                    .setClientDefaultPercent(java.math.BigDecimal.valueOf(client.defaultPercent));
+
+                            // 3. ПЕРЕДАЧА ОБЪЕКТА (для CreateOrderFragment)
+                            ((CreateOrderFragment) parent).onClientSelected(client);
+
+                        } else if (parent instanceof CreateReturnFragment) {
+                            // ДЛЯ ВОЗВРАТА: Процент не нужен, передаем только строку имени
+                            // Это исправит ошибку "Required String, Provided ClientModel"
+                            ((CreateReturnFragment) parent).onClientSelected(client.getName());
+                        }
+                    });
+                    rv.setAdapter(adapter);
                 });
-                rv.setAdapter(adapter);
-            });
-        }).start();
+            }
+        }).start(); // ИСПРАВЛЕНО: Закрыта скобка потока и добавлен запуск
     }
 }

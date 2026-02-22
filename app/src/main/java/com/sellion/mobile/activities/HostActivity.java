@@ -30,6 +30,16 @@ public class HostActivity extends AppCompatActivity {
         // 1. Инициализируем корзину (используем appContext для защиты от утечек)
         CartManager.init(getApplicationContext());
 
+
+        new Thread(() -> {
+            try {
+                CartManager.getInstance().clearCart();
+                logToFile(getApplicationContext(), "SYSTEM", "Cart cleared on startup to prevent ghost items");
+            } catch (Exception e) {
+                logToFile(getApplicationContext(), "ERROR", "Failed to clear cart: " + e.getMessage());
+            }
+        }).start();
+
         // 2. Настраиваем сессию с проверкой на null (защита при восстановлении процесса)
         String managerId = getIntent().getStringExtra("MANAGER_ID");
 

@@ -24,6 +24,7 @@ public class OrderEntity {
     public String createdAt;
     public String androidId;
     public Map<Long, BigDecimal> appliedPromoItems = new HashMap<>();
+    public double discountPercent;
 
 
 

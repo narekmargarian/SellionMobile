@@ -20,10 +20,11 @@ import java.util.List;
 public class PromoSelectionDialog extends BottomSheetDialogFragment {
     private List<PromoAction> promos;
     private OnPromoSelectedListener listener;
+    private PromoAdapter adapter; // Вынесли в поле, чтобы достать данные при нажатии кнопки
 
-    // Интерфейс должен быть public и использовать конкретную модель
+    // ИСПРАВЛЕНО: Теперь принимает List<PromoAction>
     public interface OnPromoSelectedListener {
-        void onConfirmed(PromoAction selectedPromo);
+        void onConfirmed(List<com.sellion.mobile.model.PromoAction> selectedPromos);
         void onSkip();
     }
 
@@ -37,22 +38,34 @@ public class PromoSelectionDialog extends BottomSheetDialogFragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // Убедись, что файл разметки называется именно так
         View v = inflater.inflate(R.layout.fragment_promo_selection_dialog, container, false);
 
         RecyclerView rv = v.findViewById(R.id.rvPromos);
         Button btnSkip = v.findViewById(R.id.btnSkipPromo);
 
+        // ВАЖНО: В разметке R.layout.fragment_promo_selection_dialog
+        // должна быть кнопка подтверждения (например, btnConfirmPromo)
+        Button btnConfirm = v.findViewById(R.id.btnConfirmPromo);
+
         if (promos != null) {
             rv.setLayoutManager(new LinearLayoutManager(getContext()));
-            // Передаем модель в адаптер
-            PromoAdapter adapter = new PromoAdapter(promos, promo -> {
-                if (listener != null) {
-                    listener.onConfirmed(promo);
+
+            // Инициализируем адаптер (логика клика внутри адаптера просто меняет галочки)
+            adapter = new PromoAdapter(promos, promo -> {
+                // Здесь можно ничего не делать или обновлять какой-то счетчик в UI
+            });
+            rv.setAdapter(adapter);
+        }
+
+        // КНОПКА ПОДТВЕРЖДЕНИЯ (Для применения выбранного списка)
+        if (btnConfirm != null) {
+            btnConfirm.setOnClickListener(view -> {
+                if (listener != null && adapter != null) {
+                    // Используем метод getSelectedPromos(), который мы добавили в PromoAdapter
+                    listener.onConfirmed(adapter.getSelectedPromos());
                 }
                 dismiss();
             });
-            rv.setAdapter(adapter);
         }
 
         btnSkip.setOnClickListener(view -> {
@@ -68,7 +81,7 @@ public class PromoSelectionDialog extends BottomSheetDialogFragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        // Зануляем слушателя для предотвращения утечек памяти
         listener = null;
     }
 }
+

@@ -79,22 +79,39 @@ public class OrderRouteFragment extends Fragment {
             for (ClientEntity e : allClients) {
                 if (e.routeDay != null && e.routeDay.trim().equalsIgnoreCase(targetDay.trim())) {
                     ClientModel m = new ClientModel();
-                    m.id = e.id; m.name = e.name; m.address = e.address;
+                    m.id = e.id;
+                    m.name = e.name;
+                    m.address = e.address;
+                    // ВАЖНО: Добавляем процент из БД, чтобы он не был 0
+                    m.defaultPercent = e.defaultPercent;
                     filteredList.add(m);
                 }
             }
 
-            requireActivity().runOnUiThread(() -> {
-                ClientAdapter adapter = new ClientAdapter(filteredList, client -> {
-                    Fragment parent = getParentFragment();
-                    if (parent instanceof CreateOrderFragment) {
-                        ((CreateOrderFragment) parent).onClientSelected(client.getName());
-                    } else if (parent instanceof CreateReturnFragment) {
-                        ((CreateReturnFragment) parent).onClientSelected(client.getName());
-                    }
+            if (isAdded()) {
+                requireActivity().runOnUiThread(() -> {
+                    ClientAdapter adapter = new ClientAdapter(filteredList, client -> {
+                        Fragment parent = getParentFragment();
+
+                        if (parent instanceof CreateOrderFragment) {
+                            // 1. ОЧИСТКА: чтобы товары не были синими
+                            com.sellion.mobile.managers.CartManager.getInstance().clearCart();
+
+                            // 2. ПРОЦЕНТ: устанавливаем 5% (или сколько в базе)
+                            com.sellion.mobile.managers.CartManager.getInstance()
+                                    .setClientDefaultPercent(java.math.BigDecimal.valueOf(client.defaultPercent));
+
+                            // 3. ЛОГИКА: Передаем весь объект (исправляет расчет 5%)
+                            ((CreateOrderFragment) parent).onClientSelected(client);
+
+                        } else if (parent instanceof CreateReturnFragment) {
+                            // Для возврата оставляем строку, чтобы не было ошибки типов
+                            ((CreateReturnFragment) parent).onClientSelected(client.getName());
+                        }
+                    });
+                    recyclerView.setAdapter(adapter);
                 });
-                recyclerView.setAdapter(adapter);
-            });
+            }
         }).start();
     }
 }

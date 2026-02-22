@@ -24,7 +24,7 @@ import com.sellion.mobile.entity.ReturnEntity;
 
 @Database(entities = {OrderEntity.class, ReturnEntity.class,
         CartEntity.class, ClientEntity.class, ProductEntity.class, ManagerEntity.class},
-        version = 6, exportSchema = false)
+        version = 7, exportSchema = false)
 @TypeConverters({Converters.class})
 public abstract class AppDatabase extends RoomDatabase {
 
