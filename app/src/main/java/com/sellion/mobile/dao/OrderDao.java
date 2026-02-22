@@ -35,4 +35,6 @@ public interface OrderDao {
     @Query("SELECT * FROM orders WHERE createdAt >= :start AND createdAt <= :end ORDER BY id DESC")
     LiveData<List<OrderEntity>> getOrdersBetweenDates(String start, String end);
 
+    @Query("SELECT * FROM orders WHERE status = :status")
+    List<OrderEntity> getOrdersByStatusSync(String status);
 }

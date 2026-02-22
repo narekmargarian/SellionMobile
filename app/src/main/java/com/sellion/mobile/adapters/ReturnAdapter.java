@@ -13,13 +13,19 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.ReturnEntity;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
-public class ReturnAdapter  extends RecyclerView.Adapter<ReturnAdapter.ReturnVH> {
+public class ReturnAdapter extends RecyclerView.Adapter<ReturnAdapter.ReturnVH> {
 
     private List<ReturnEntity> list; // Список теперь из базы данных Room
     private final OnItemClickListener listener;
+
+    // ДОБАВЛЕНО: Умный форматтер (макс 2 знака, пробел как разделитель тысяч)
+    private final DecimalFormat smartFormat;
 
     // Интерфейс для обработки клика, принимает ReturnEntity
     public interface OnItemClickListener {
@@ -29,6 +35,11 @@ public class ReturnAdapter  extends RecyclerView.Adapter<ReturnAdapter.ReturnVH>
     public ReturnAdapter(List<ReturnEntity> list, OnItemClickListener listener) {
         this.list = list;
         this.listener = listener;
+
+        // Настройка умного формата
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
+        symbols.setGroupingSeparator(' '); // Разделитель тысяч — пробел
+        this.smartFormat = new DecimalFormat("#,###.##", symbols);
     }
 
     @NonNull
@@ -38,8 +49,6 @@ public class ReturnAdapter  extends RecyclerView.Adapter<ReturnAdapter.ReturnVH>
         View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_return, parent, false);
         return new ReturnVH(v);
     }
-
-
 
     @Override
     public int getItemCount() {
@@ -56,13 +65,11 @@ public class ReturnAdapter  extends RecyclerView.Adapter<ReturnAdapter.ReturnVH>
             tvStatus = v.findViewById(R.id.tvReturnStatus);
         }
     }
+
     public void updateData(List<ReturnEntity> newList) {
         this.list = newList;
         notifyDataSetChanged();
     }
-
-
-
 
     @Override
     public void onBindViewHolder(@NonNull ReturnVH holder, int position) {
@@ -74,7 +81,8 @@ public class ReturnAdapter  extends RecyclerView.Adapter<ReturnAdapter.ReturnVH>
         // Если в Entity уже сохранена сумма (мы добавили расчет при сохранении),
         // берем её сразу, чтобы не нагружать БД в списке.
         if (item.totalAmount > 0) {
-            holder.tvTotalAmount.setText(String.format("%,.0f ֏", item.totalAmount));
+            // ИСПРАВЛЕНО: Умный формат вместо String.format("%,.0f")
+            holder.tvTotalAmount.setText(smartFormat.format(item.totalAmount) + " ֏");
         } else {
             // Фоновый расчет, если сумма почему-то равна 0 (для старых записей)
             new Thread(() -> {
@@ -90,7 +98,8 @@ public class ReturnAdapter  extends RecyclerView.Adapter<ReturnAdapter.ReturnVH>
                     }
                 }
 
-                final String totalStr = String.format("%,.0f ֏", total);
+                // ИСПРАВЛЕНО: Умный формат вместо String.format("%,.0f")
+                final String totalStr = smartFormat.format(total) + " ֏";
                 holder.tvTotalAmount.post(() -> holder.tvTotalAmount.setText(totalStr));
             }).start();
         }
@@ -108,5 +117,4 @@ public class ReturnAdapter  extends RecyclerView.Adapter<ReturnAdapter.ReturnVH>
             if (listener != null) listener.onItemClick(item);
         });
     }
-
 }

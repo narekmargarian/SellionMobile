@@ -23,7 +23,7 @@ public class CartManager {
     private final ExecutorService executor = Executors.newFixedThreadPool(2);
 
     private String deliveryDate = "";
-    private PaymentMethod paymentMethod = PaymentMethod.CASH; // По умолчанию наличные
+    private PaymentMethod paymentMethod = PaymentMethod.TRANSFER; // По умолчанию наличные
     private boolean isSeparateInvoice = false;
     private ReturnReason returnReason = ReturnReason.OTHER;
     private String returnDate = "";

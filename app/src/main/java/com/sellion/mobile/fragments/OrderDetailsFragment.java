@@ -35,6 +35,7 @@ import com.sellion.mobile.managers.SessionManager;
 import com.sellion.mobile.model.PromoAction;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -49,6 +50,8 @@ import retrofit2.Response;
 public class OrderDetailsFragment extends BaseFragment implements BackPressHandler {
     private TextView tvStoreName;
     private ViewPager2 viewPager;
+    private static final String TAG = "OrderDetailsFragment";
+
 
 
     String currentDateTime = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", new Locale("ru"))
@@ -97,7 +100,6 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
     }
 
     private void saveOrderToDatabase() {
-        // 1. Получаем данные
         final int orderIdToUpdate = getArguments() != null ? getArguments().getInt("order_id_to_update", -1) : -1;
         final Context appContext = requireContext().getApplicationContext();
         final String storeName = tvStoreName.getText().toString();
@@ -113,7 +115,6 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
                     return;
                 }
 
-                // 2. Проверка остатков
                 StringBuilder outOfStockItems = new StringBuilder();
                 List<Long> productIds = new ArrayList<>();
                 for (CartEntity item : cartItems) {
@@ -135,9 +136,7 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
                     return;
                 }
 
-                // 3. Проверка акций на сервере
                 ApiService api = ApiClient.getClient(appContext).create(ApiService.class);
-                // Используем полный путь к модели в списке, если есть конфликт
                 Response<List<com.sellion.mobile.model.PromoAction>> promoResponse = api.checkActiveForItems(productIds).execute();
 
                 if (promoResponse.isSuccessful() && promoResponse.body() != null && !promoResponse.body().isEmpty()) {
@@ -149,7 +148,6 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
 
                                 @Override
                                 public void onConfirmed(com.sellion.mobile.model.PromoAction selectedPromo) {
-                                    // ИСПОЛЬЗУЕМ ПОЛНЫЙ ПУТЬ К КЛАССУ В АРГУМЕНТЕ
                                     CartManager.getInstance().setPromo(selectedPromo.getId(), selectedPromo.getItems());
                                     proceedToFinalSave(appContext, cartItems, storeName, orderIdToUpdate);
                                 }
@@ -164,14 +162,12 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
                         }
                     });
                 } else {
-                    // Если акций нет
                     CartManager.getInstance().setPromo(null, null);
                     proceedToFinalSave(appContext, cartItems, storeName, orderIdToUpdate);
                 }
 
             } catch (Exception e) {
                 HostActivity.logToFile(appContext, "OrderDetails_ERR", e.getMessage());
-                // В случае ошибки сети — сохраняем с дефолтным процентом магазина (извлекаем cartItems повторно)
                 try {
                     final List<CartEntity> retryItems = AppDatabase.getInstance(appContext).cartDao().getCartItemsSync();
                     proceedToFinalSave(appContext, retryItems, storeName, orderIdToUpdate);
@@ -226,52 +222,43 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
         new Thread(() -> {
             try {
                 AppDatabase db = AppDatabase.getInstance(appContext);
-
-                // 1. Извлекаем настройки из CartManager
                 BigDecimal shopPercent = CartManager.getInstance().getClientDefaultPercent();
                 Map<Long, BigDecimal> promoItems = CartManager.getInstance().getAppliedPromoItems();
 
-                double totalAmount = 0;
+                BigDecimal totalAcc = BigDecimal.ZERO;
                 Map<Long, Integer> itemsMap = new HashMap<>();
                 Map<Long, BigDecimal> appliedPromos = new HashMap<>();
 
-                // 2. Расчет каждой позиции с учетом иерархии скидок
+
                 for (CartEntity item : cartItems) {
                     itemsMap.put(item.productId, item.quantity);
 
-                    // Определяем процент: Акция имеет приоритет над процентом магазина
-                    BigDecimal finalPercent = shopPercent;
-                    if (promoItems.containsKey(item.productId)) {
-                        finalPercent = promoItems.get(item.productId);
-                    }
+                    BigDecimal finalPercent = promoItems.containsKey(item.productId)
+                            ? promoItems.get(item.productId)
+                            : shopPercent;
 
-                    // Сохраняем примененный процент
                     appliedPromos.put(item.productId, finalPercent);
 
-                    // --- ИСПРАВЛЕННЫЙ РАСЧЕТ ЦЕНЫ (Точность 0.1) ---
-                    double discountFactor = 1.0 - (finalPercent.doubleValue() / 100.0);
+                    BigDecimal pricePerUnit = BigDecimal.valueOf(item.price);
+                    BigDecimal discountMultiplier = BigDecimal.valueOf(100)
+                            .subtract(finalPercent)
+                            .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
 
-                    // Вычисляем цену со скидкой и округляем до 1 знака (как на сервере)
-                    double rawPrice = item.price * discountFactor;
-                    double discountedPrice = Math.round(rawPrice * 10.0) / 10.0;
+                    BigDecimal discountedPrice = pricePerUnit.multiply(discountMultiplier)
+                            .setScale(2, RoundingMode.HALF_UP);
 
-                    // Накапливаем итоговую сумму
-                    totalAmount += (discountedPrice * item.quantity);
+                    BigDecimal lineTotal = discountedPrice.multiply(BigDecimal.valueOf(item.quantity));
+                    totalAcc = totalAcc.add(lineTotal);
+
                 }
 
-                // 3. Формируем сущность заказа
                 OrderEntity order = new OrderEntity();
-
-                if (orderIdToUpdate != -1) {
-                    order.id = orderIdToUpdate;
-                }
-
+                if (orderIdToUpdate != -1) order.id = orderIdToUpdate;
                 order.shopName = storeName;
                 order.items = itemsMap;
                 order.appliedPromoItems = appliedPromos;
 
-                // ИСПРАВЛЕНО: Фиксируем итоговую сумму с 1 знаком
-                order.totalAmount = Math.round(totalAmount * 10.0) / 10.0;
+                order.totalAmount = totalAcc.setScale(2, RoundingMode.HALF_UP).doubleValue();
 
                 order.status = "PENDING";
                 order.managerId = com.sellion.mobile.managers.SessionManager.getInstance().getManagerId();
@@ -279,40 +266,31 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
                 order.paymentMethod = CartManager.getInstance().getPaymentMethod();
                 order.needsSeparateInvoice = CartManager.getInstance().isSeparateInvoice();
                 order.createdAt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(new Date());
-
                 String deviceId = android.provider.Settings.Secure.getString(appContext.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
                 order.androidId = deviceId + "_" + System.currentTimeMillis();
 
-                // 4. Запись в локальную базу данных
+
                 db.orderDao().insert(order);
 
-                // Логируем точную сумму для проверки
-                HostActivity.logToFile(appContext, "SAVE_ORDER",
-                        String.format(Locale.US, "Заказ: %s | Итог: %.1f", storeName, order.totalAmount));
-
-                // 5. Обновление UI
                 if (getActivity() != null) {
                     requireActivity().runOnUiThread(() -> {
-                        CartManager.getInstance().clearCart();
-                        Toast.makeText(appContext, "Заказ сохранен ", Toast.LENGTH_SHORT).show();
-
                         if (isAdded()) {
+                            CartManager.getInstance().clearCart();
+                            Toast.makeText(appContext, "Заказ сохранен! См. логи.", Toast.LENGTH_SHORT).show();
                             getParentFragmentManager().beginTransaction()
                                     .replace(R.id.fragment_container, new OrdersFragment())
                                     .commit();
                         }
                     });
                 }
-
             } catch (Exception e) {
                 HostActivity.logToFile(appContext, "SAVE_ORDER_ERR", e.getMessage());
-                if (getActivity() != null) {
-                    requireActivity().runOnUiThread(() ->
-                            Toast.makeText(appContext, "Ошибка сохранения: " + e.getMessage(), Toast.LENGTH_LONG).show());
-                }
             }
         }).start();
     }
+
+
+
 
 
 

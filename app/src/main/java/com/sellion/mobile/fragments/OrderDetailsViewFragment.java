@@ -24,6 +24,8 @@ import com.sellion.mobile.entity.ProductEntity;
 import com.sellion.mobile.managers.CartManager;
 
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,13 +33,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Executors;
 
-
 public class OrderDetailsViewFragment extends BaseFragment {
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_order_details_view, container, false);
+
         String shopName = getArguments() != null ? getArguments().getString("order_shop_name") : "";
         int orderId = getArguments() != null ? getArguments().getInt("order_id", -1) : -1;
 
@@ -49,6 +51,7 @@ public class OrderDetailsViewFragment extends BaseFragment {
         RecyclerView rv = view.findViewById(R.id.rvViewOrderItems);
         Button btnEdit = view.findViewById(R.id.btnEditThisOrder);
         View btnBack = view.findViewById(R.id.btnBackFromView);
+
         tvTitle.setText(shopName);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
         final Context appContext = requireContext().getApplicationContext();
@@ -72,7 +75,9 @@ public class OrderDetailsViewFragment extends BaseFragment {
                 tvPaymentMethod.setText("Оплата: " + paymentText);
                 tvInvoiceStatus.setText("Раздельная фактура: " + (finalOrder.needsSeparateInvoice ? "Да" : "Нет"));
                 tvDate.setText("Дата доставки: " + (finalOrder.deliveryDate != null ? finalOrder.deliveryDate : "Не указано"));
-                tvTotalSum.setText(String.format(Locale.getDefault(), "Итого: %,.1f ֏", finalOrder.totalAmount));
+
+                // ИСПОЛЬЗУЕМ МЕТОД ИЗ BaseFragment ДЛЯ ИТОГО
+                tvTotalSum.setText("Итого: " + formatSmart(finalOrder.totalAmount) + " ֏");
 
                 if (finalOrder.items != null) {
                     new Thread(() -> {
@@ -87,14 +92,14 @@ public class OrderDetailsViewFragment extends BaseFragment {
                                     BigDecimal disc = appliedDiscounts.getOrDefault(p.id, BigDecimal.ZERO);
 
                                     double rawFinalPrice = p.price * (1.0 - (disc.doubleValue() / 100.0));
-                                    double finalPrice = Math.round(rawFinalPrice * 10.0) / 10.0;
+
+                                    // Округляем до 2 знаков перед передачей (бэкенд логика)
+                                    double finalPrice = Math.round(rawFinalPrice * 100.0) / 100.0;
 
                                     String displayName = p.name;
                                     if (disc.compareTo(BigDecimal.ZERO) > 0) {
-                                        String discStr = (disc.doubleValue() % 1 == 0) ?
-                                                String.format(Locale.getDefault(), "%.0f", disc) :
-                                                String.format(Locale.getDefault(), "%.1f", disc);
-                                        displayName += " (-" + discStr + "%)";
+                                        // ИСПОЛЬЗУЕМ МЕТОД ИЗ BaseFragment ДЛЯ ПРОЦЕНТА
+                                        displayName += " (-" + formatSmart(disc.doubleValue()) + "%)";
                                     }
 
                                     preparedList.add(new OrderItemInfo(displayName, entry.getValue(), finalPrice, p.stockQuantity));
@@ -122,39 +127,43 @@ public class OrderDetailsViewFragment extends BaseFragment {
                         CartManager.getInstance().clearCart();
                         if (finalOrder.items != null) {
                             new Thread(() -> {
-                                for (Map.Entry<Long, Integer> entry : finalOrder.items.entrySet()) {
-                                    ProductEntity p = db.productDao().getProductById(entry.getKey());
-                                    if (p != null) {
-                                        CartManager.getInstance().addProduct(p.id, p.name, entry.getValue(), p.price);
+                                try {
+                                    for (Map.Entry<Long, Integer> entry : finalOrder.items.entrySet()) {
+                                        ProductEntity p = db.productDao().getProductById(entry.getKey());
+                                        if (p != null) {
+                                            CartManager.getInstance().addProduct(p.id, p.name, entry.getValue(), p.price);
+                                        }
                                     }
-                                }
 
-                                if (getActivity() != null) {
-                                    getActivity().runOnUiThread(() -> {
-                                        CartManager.getInstance().setDeliveryDate(finalOrder.deliveryDate);
-                                        CartManager.getInstance().setPaymentMethod(finalOrder.paymentMethod);
-                                        CartManager.getInstance().setSeparateInvoice(finalOrder.needsSeparateInvoice);
+                                    if (getActivity() != null) {
+                                        getActivity().runOnUiThread(() -> {
+                                            CartManager.getInstance().setDeliveryDate(finalOrder.deliveryDate);
+                                            CartManager.getInstance().setPaymentMethod(finalOrder.paymentMethod);
+                                            CartManager.getInstance().setSeparateInvoice(finalOrder.needsSeparateInvoice);
 
-                                        new Thread(() -> {
-                                            ClientEntity client = db.clientDao().getAllClientsSync().stream()
-                                                    .filter(c -> c.name.equals(finalOrder.shopName))
-                                                    .findFirst().orElse(null);
-                                            if (client != null) {
-                                                CartManager.getInstance().setClientDefaultPercent(BigDecimal.valueOf(client.defaultPercent));
-                                            }
-                                        }).start();
+                                            new Thread(() -> {
+                                                ClientEntity client = db.clientDao().getAllClientsSync().stream()
+                                                        .filter(c -> c.name.equals(finalOrder.shopName))
+                                                        .findFirst().orElse(null);
+                                                if (client != null) {
+                                                    CartManager.getInstance().setClientDefaultPercent(BigDecimal.valueOf(client.defaultPercent));
+                                                }
+                                            }).start();
 
-                                        OrderDetailsFragment editFrag = new OrderDetailsFragment();
-                                        Bundle b = new Bundle();
-                                        b.putString("store_name", finalOrder.shopName);
-                                        b.putInt("order_id_to_update", finalOrder.id);
-                                        editFrag.setArguments(b);
+                                            OrderDetailsFragment editFrag = new OrderDetailsFragment();
+                                            Bundle b = new Bundle();
+                                            b.putString("store_name", finalOrder.shopName);
+                                            b.putInt("order_id_to_update", finalOrder.id);
+                                            editFrag.setArguments(b);
 
-                                        getParentFragmentManager().beginTransaction()
-                                                .replace(R.id.fragment_container, editFrag)
-                                                .addToBackStack(null)
-                                                .commit();
-                                    });
+                                            getParentFragmentManager().beginTransaction()
+                                                    .replace(R.id.fragment_container, editFrag)
+                                                    .addToBackStack(null)
+                                                    .commit();
+                                        });
+                                    }
+                                } catch (Exception e) {
+                                    e.printStackTrace();
                                 }
                             }).start();
                         }

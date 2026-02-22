@@ -12,7 +12,6 @@ import androidx.annotation.Nullable;
 
 import com.sellion.mobile.R;
 
-
 public class DebtDetailsFragment extends BaseFragment {
 
     @Nullable
@@ -35,7 +34,10 @@ public class DebtDetailsFragment extends BaseFragment {
             tvAddress.setText(getArguments().getString("ADDRESS"));
 
             double amount = getArguments().getDouble("AMOUNT");
-            tvAmount.setText(String.format("%,.0f Драм", amount)); // Форматируем число
+
+            // ИСПОЛЬЗУЕМ "УМНЫЙ" МЕТОД ИЗ BaseFragment
+            // Теперь 1540.00 -> 1540, а 1540.60 -> 1540.6
+            tvAmount.setText(formatSmart(amount) + " ֏");
         }
 
         // Кнопка назад к списку долгов

@@ -14,16 +14,20 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.entity.CartEntity;
 import com.sellion.mobile.model.Product;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
-
 public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHolder> {
     private final List<Product> products;
     private final OnProductClickListener listener;
-    // ИСПРАВЛЕНО: Используем Long для хранения ID товаров, которые в корзине
     private Set<Long> itemsInCartIds = new HashSet<>();
     private final boolean showStockInfo;
+
+    // ДОБАВЛЕНО: Умный форматтер (макс 2 знака, пробел как разделитель тысяч)
+    private final DecimalFormat smartFormat;
 
     public interface OnProductClickListener {
         void onProductClick(Product product);
@@ -33,13 +37,17 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
         this.products = products;
         this.listener = listener;
         this.showStockInfo = showStockInfo;
+
+        // Настройка умного формата
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
+        symbols.setGroupingSeparator(' '); // Разделитель тысяч — пробел
+        this.smartFormat = new DecimalFormat("#,###.##", symbols);
     }
 
     public void setItemsInCart(List<CartEntity> cartEntities) {
         itemsInCartIds.clear();
         if (cartEntities != null) {
             for (CartEntity entity : cartEntities) {
-                // ИСПРАВЛЕНО: Привязка по ID — это 100% надежность
                 itemsInCartIds.add(entity.productId);
             }
         }
@@ -59,26 +67,24 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
 
         if (product == null) return;
 
-        Context context = holder.itemView.getContext();
-
-        // 2. СБРОС СОСТОЯНИЯ (Для корректного ресайклинга)
+        // СБРОС СОСТОЯНИЯ
         holder.tvName.setAlpha(1.0f);
         holder.tvName.setTextColor(Color.BLACK);
         holder.tvStock.setTextColor(Color.GRAY);
         holder.tvStock.setVisibility(View.GONE);
 
-        // 3. УСТАНОВКА ДАННЫХ
+        // УСТАНОВКА ДАННЫХ
         String name = product.getName();
-        // Используем строковой ресурс для цены (можно менять формат в XML)
-        String priceFormatted = String.format("%,.0f", product.getPrice());
+
+        // ИСПРАВЛЕНО: Умный формат вместо String.format("%,.0f")
+        // Теперь 1540.00 -> 1 540 | 1540.60 -> 1 540.6 | 1540.12 -> 1 540.12
+        String priceFormatted = smartFormat.format(product.getPrice());
         holder.tvName.setText(name + " — " + priceFormatted + " ֏");
 
-        // 4. ЛОГИКА ОТОБРАЖЕНИЯ ОСТАТКА
+        // ЛОГИКА ОТОБРАЖЕНИЯ ОСТАТКА
         if (showStockInfo) {
             holder.tvStock.setVisibility(View.VISIBLE);
             int stock = product.getStockQuantity();
-
-            // ИСПРАВЛЕНО: Текст через getString (R.string.format_stock)
             holder.tvStock.setText("Остаток: " + stock + " шт.");
 
             if (stock <= 0) {
@@ -93,15 +99,13 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
             holder.tvName.setAlpha(1.0f);
         }
 
-        // 5. ПОДСВЕТКА ТОВАРОВ В КОРЗИНЕ (Синий цвет)
-        // ИСПРАВЛЕНО: Сравнение по ID гарантирует, что цвет не "мигнет"
+        // ПОДСВЕТКА ТОВАРОВ В КОРЗИНЕ (Синий цвет)
         if (itemsInCartIds.contains(product.getId())) {
             holder.tvName.setTextColor(Color.BLUE);
         } else {
             holder.tvName.setTextColor(Color.BLACK);
         }
 
-        // 6. ОБРАБОТКА КЛИКА
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
                 listener.onProductClick(product);

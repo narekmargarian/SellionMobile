@@ -13,6 +13,8 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.OrderEntity;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -23,6 +25,9 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderVH> {
     private List<OrderEntity> list;
     private OnOrderClickListener listener;
 
+    // ДОБАВЛЕНО: Умный форматтер для сумм
+    private final DecimalFormat smartFormat;
+
     public interface OnOrderClickListener {
         void onOrderClick(OrderEntity o);
     }
@@ -30,6 +35,11 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderVH> {
     public OrderAdapter(List<OrderEntity> list, OnOrderClickListener l) {
         this.list = list;
         this.listener = l;
+
+        // Настройка умного формата (разделение тысяч пробелом + макс 2 знака)
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
+        symbols.setGroupingSeparator(' '); // Чтобы было "1 540", а не "1,540"
+        this.smartFormat = new DecimalFormat("#,###.##", symbols);
     }
 
     @NonNull
@@ -42,11 +52,13 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderVH> {
     @Override
     public void onBindViewHolder(@NonNull OrderVH h, int pos) {
         OrderEntity o = list.get(pos);
+        if (o == null) return;
+
         h.tvShopName.setText(o.shopName);
 
-        // ИСПРАВЛЕНО: используем формат %,.1f для отображения точности 0.1
-        // Теперь вместо "1 012 ֏" будет отображаться "1 011.5 ֏"
-        h.tvTotalAmount.setText(String.format(Locale.getDefault(), "%,.1f ֏", o.totalAmount));
+        // ИСПРАВЛЕНО: Используем умный формат вместо String.format(Locale.getDefault(), "%,.1f ֏", ...)
+        // Теперь 1540.00 -> 1 540 ֏ | 1540.60 -> 1 540.6 ֏ | 1540.12 -> 1 540.12 ֏
+        h.tvTotalAmount.setText(smartFormat.format(o.totalAmount) + " ֏");
 
         if ("SENT".equals(o.status)) {
             h.tvStatus.setText("ОТПРАВЛЕН");
@@ -74,6 +86,5 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderVH> {
         }
     }
 }
-
 
 

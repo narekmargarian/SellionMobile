@@ -98,24 +98,6 @@ public class CatalogFragment extends BaseFragment {
     }
 
 
-//    private boolean isInsideAnyProcess() {
-//        Fragment parent = getParentFragment();
-//        while (parent != null) {
-//            if (parent instanceof OrderDetailsFragment || parent instanceof ReturnDetailsFragment) return true;
-//            parent = parent.getParentFragment();
-//        }
-//        return false;
-//    }
-//
-//    private boolean isInsideReturnProcess() {
-//        Fragment parent = getParentFragment();
-//        while (parent != null) {
-//            if (parent instanceof ReturnDetailsFragment) return true;
-//            parent = parent.getParentFragment();
-//        }
-//        return false;
-//    }
-
 
     private void checkProcessStatus() {
         Fragment parent = getParentFragment();

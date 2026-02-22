@@ -12,11 +12,17 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.managers.CartManager;
 import com.sellion.mobile.model.Product;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.List;
+import java.util.Locale;
 
 public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
     private final List<Product> selectedProducts;
     private final OnItemClickListener listener;
+
+    // ДОБАВЛЕНО: Умный форматтер (макс 2 знака, пробел как разделитель тысяч)
+    private final DecimalFormat smartFormat;
 
     public interface OnItemClickListener {
         void onItemClick(Product product);
@@ -25,6 +31,11 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
     public CartAdapter(List<Product> selectedProducts, OnItemClickListener listener) {
         this.selectedProducts = selectedProducts;
         this.listener = listener;
+
+        // Настройка умного формата
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
+        symbols.setGroupingSeparator(' '); // Разделитель тысяч — пробел
+        this.smartFormat = new DecimalFormat("#,###.##", symbols);
     }
 
     @NonNull
@@ -37,21 +48,28 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Product product = selectedProducts.get(position);
+        if (product == null) return;
 
+        // Получаем количество из CartManager
+        // Примечание: Убедитесь, что в CartManager ключом является именно Name,
+        // если нет — лучше использовать getId()
         Integer qty = CartManager.getInstance().getCartItems().get(product.getName());
         int currentQty = (qty != null) ? qty : 0;
 
-        double itemTotal = product.getPrice() * currentQty;
+        // Расчет суммы строки с округлением до 2 знаков (как на бэкенде)
+        double itemTotal = Math.round((product.getPrice() * currentQty) * 100.0) / 100.0;
 
-        // ИСПРАВЛЕНИЕ: %,.0f вместо %,.0d
-        String priceText = String.format("%,.0f", itemTotal);
+        // ИСПРАВЛЕНО: Умный формат вместо String.format("%,.0f")
+        // Теперь 1540.00 -> 1 540 | 1540.60 -> 1 540.6 | 1540.12 -> 1 540.12
+        String priceFormatted = smartFormat.format(itemTotal);
 
-        holder.tvName.setText(product.getName() + " — " + currentQty + " шт. (" + priceText + " ֏)");
+        holder.tvName.setText(product.getName() + " — " + currentQty + " шт. (" + priceFormatted + " ֏)");
 
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onItemClick(product);
         });
     }
+
     @Override
     public int getItemCount() {
         return selectedProducts != null ? selectedProducts.size() : 0;

@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 
 
-
 public class ReturnDetailsViewFragment extends BaseFragment {
 
     private static final String TAG = "RETURN_VIEW";
@@ -74,9 +73,9 @@ public class ReturnDetailsViewFragment extends BaseFragment {
                 tvReason.setText("Причина: " + reasonStr);
                 tvDate.setText("Дата возврата: " + (finalReturn.returnDate != null ? finalReturn.returnDate : "Не указана"));
 
+                // Расчет и отображение итога через formatSmart()
                 calculateTotal(finalReturn, tvTotalSum);
 
-                // --- ПОДГОТОВКА ДАННЫХ ДЛЯ АДАПТЕРА (10/10 СТАБИЛЬНОСТЬ) ---
                 if (finalReturn.items != null) {
                     new Thread(() -> {
                         try {
@@ -84,6 +83,8 @@ public class ReturnDetailsViewFragment extends BaseFragment {
                             for (Map.Entry<Long, Integer> entry : finalReturn.items.entrySet()) {
                                 ProductEntity p = db.productDao().getProductById(entry.getKey());
                                 if (p != null) {
+                                    // Здесь finalPrice будет отрисован адаптером,
+                                    // убедитесь, что в OrderHistoryItemsAdapter тоже используется formatSmart
                                     preparedList.add(new OrderItemInfo(p.name, entry.getValue(), p.price, p.stockQuantity));
                                 } else {
                                     preparedList.add(new OrderItemInfo("Удаленный товар ID:" + entry.getKey(), entry.getValue(), 0, 0));
@@ -92,7 +93,6 @@ public class ReturnDetailsViewFragment extends BaseFragment {
 
                             requireActivity().runOnUiThread(() -> {
                                 if (isAdded()) {
-                                    // Устанавливаем быстрый адаптер с готовыми данными
                                     rv.setAdapter(new OrderHistoryItemsAdapter(preparedList));
                                 }
                             });
@@ -155,8 +155,9 @@ public class ReturnDetailsViewFragment extends BaseFragment {
     private void calculateTotal(ReturnEntity ret, TextView tvTotalSum) {
         if (ret == null || tvTotalSum == null) return;
 
+        // Если сумма уже есть в БД
         if (ret.totalAmount > 0) {
-            tvTotalSum.setText(String.format("Итого: %,.0f ֏", ret.totalAmount));
+            tvTotalSum.setText("Итого: " + formatSmart(ret.totalAmount) + " ֏");
             return;
         }
 
@@ -171,7 +172,10 @@ public class ReturnDetailsViewFragment extends BaseFragment {
                     for (Map.Entry<Long, Integer> entry : ret.items.entrySet()) {
                         int itemQty = entry.getValue();
                         double price = db.productDao().getPriceById(entry.getKey());
-                        total += (itemQty * price);
+
+                        // Округляем цену позиции до 2 знаков перед сложением (как на бэкенде)
+                        double lineTotal = Math.round((itemQty * price) * 100.0) / 100.0;
+                        total += lineTotal;
                         qty += itemQty;
                     }
                 }
@@ -181,7 +185,7 @@ public class ReturnDetailsViewFragment extends BaseFragment {
 
                 if (isAdded() && getActivity() != null) {
                     tvTotalSum.post(() ->
-                            tvTotalSum.setText(String.format("Товаров: %d шт. | Итого: %,.0f ֏", finalQty, finalTotal))
+                            tvTotalSum.setText("Товаров: " + finalQty + " шт. | Итого: " + formatSmart(finalTotal) + " ֏")
                     );
                 }
             } catch (Exception e) {
@@ -190,3 +194,4 @@ public class ReturnDetailsViewFragment extends BaseFragment {
         }).start();
     }
 }
+

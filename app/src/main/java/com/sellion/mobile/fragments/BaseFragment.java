@@ -13,6 +13,10 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.handler.BackPressHandler;
 import com.sellion.mobile.helper.NavigationHelper;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
+
 
 public abstract class BaseFragment extends Fragment {
     protected void setupBackButton(View btnBack, boolean returnToRoot) {
@@ -53,4 +57,11 @@ public abstract class BaseFragment extends Fragment {
                     }
                 });
     }
+
+    public String formatSmart(double value) {
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
+        DecimalFormat df = new DecimalFormat("#.##", symbols);
+        return df.format(value);
+    }
+
 }

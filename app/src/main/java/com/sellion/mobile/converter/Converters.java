@@ -43,12 +43,15 @@ public class Converters {
     // 3. НОВОЕ: Для одиночных значений BigDecimal (используется внутри Map и может быть в полях)
     @TypeConverter
     public static String fromBigDecimal(BigDecimal value) {
-        return value == null ? null : value.toString();
+        // toPlainString() — самый надежный способ сохранить 100% точность
+        return value == null ? null : value.toPlainString();
     }
 
     @TypeConverter
     public static BigDecimal toBigDecimal(String value) {
-        return value == null ? null : new BigDecimal(value);
+        // Убираем проверку на пустоту или пробелы для стабильности
+        if (value == null || value.isEmpty()) return BigDecimal.ZERO;
+        return new BigDecimal(value);
     }
 
     // 4. Способы оплаты

@@ -1,6 +1,5 @@
 package com.sellion.mobile.adapters;
 
-import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,21 +9,24 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.sellion.mobile.R;
-import com.sellion.mobile.activities.HostActivity;
-import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.OrderItemInfo;
-import com.sellion.mobile.entity.ProductEntity;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;public class OrderHistoryItemsAdapter extends RecyclerView.Adapter<OrderHistoryItemsAdapter.ViewHolder> {
+public class OrderHistoryItemsAdapter extends RecyclerView.Adapter<OrderHistoryItemsAdapter.ViewHolder> {
 
     private final List<OrderItemInfo> preparedItems;
+    // Создаем форматтер внутри адаптера для независимости
+    private final DecimalFormat smartFormat;
 
     public OrderHistoryItemsAdapter(List<OrderItemInfo> preparedItems) {
         this.preparedItems = preparedItems != null ? preparedItems : new ArrayList<>();
+
+        // Настройка формата как в BaseFragment (2 знака, отсечение нулей)
+        this.smartFormat = new DecimalFormat("#.##", new DecimalFormatSymbols(Locale.US));
     }
 
     @NonNull
@@ -38,24 +40,22 @@ import java.util.Map;public class OrderHistoryItemsAdapter extends RecyclerView.
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         OrderItemInfo item = preparedItems.get(position);
 
-        // 1. Расчет суммы строки с точностью до 0.1
-        // (item.price уже должна быть округлена во фрагменте, но закрепим результат здесь)
-        double rowTotal = Math.round((item.price * item.quantity) * 10.0) / 10.0;
+        // 1. Расчет суммы строки с точностью до 2 знаков (согласно бэкенду)
+        double rowTotal = Math.round((item.price * item.quantity) * 100.0) / 100.0;
 
-        // 2. Формирование основной строки
+        // 2. Формирование текста
+        // Используем smartFormat вместо String.format
+        String priceFormatted = smartFormat.format(rowTotal);
+
         String info = String.format(Locale.getDefault(), "%s — %d шт.", item.name, item.quantity);
-
-        // ИСПРАВЛЕНО: %,.1f вместо %,.0f для отображения копеек (например, 1 011.5 ֏)
-        String priceFormatted = String.format(Locale.getDefault(), "%,.1f ֏", rowTotal);
-
-        // Устанавливаем текст
-        holder.tvName.setText(info + " (" + priceFormatted + ")");
+        holder.tvName.setText(info + " (" + priceFormatted + " ֏)");
 
         // 3. Установка остатка
         if (holder.tvStock != null) {
             holder.tvStock.setVisibility(View.VISIBLE);
             holder.tvStock.setText("На складе: " + item.stock + " шт.");
 
+            // Если товар со скидкой (есть скобка в имени), красим в зеленый
             if (item.name.contains("(-")) {
                 holder.tvStock.setTextColor(android.graphics.Color.parseColor("#2E7D32"));
             } else {
@@ -71,6 +71,7 @@ import java.util.Map;public class OrderHistoryItemsAdapter extends RecyclerView.
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvName, tvStock;
+
         public ViewHolder(View itemView) {
             super(itemView);
             tvName = itemView.findViewById(R.id.tvCategoryName);
@@ -78,6 +79,3 @@ import java.util.Map;public class OrderHistoryItemsAdapter extends RecyclerView.
         }
     }
 }
-
-
-

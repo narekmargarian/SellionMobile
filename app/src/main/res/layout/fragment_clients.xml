@@ -87,7 +87,7 @@
             android:id="@+id/etSearchInn"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:hint="Введите ИНН (100% совпадение)"
+            android:hint="Введите ИНН (ՀՎՀՀ)"
             android:inputType="number"
             android:background="@android:drawable/editbox_background"
             android:padding="10dp"
