@@ -52,6 +52,7 @@ public class OrdersFragment extends BaseFragment {
             }
         }
 
+
         view.findViewById(R.id.btnBackOrders).setOnClickListener(v -> NavigationHelper.backToDashboard(getParentFragmentManager()));
         view.findViewById(R.id.btnAddOrder).setOnClickListener(v ->
                 getParentFragmentManager().beginTransaction().replace(R.id.fragment_container, new CreateOrderFragment()).addToBackStack(null).commit()

@@ -94,7 +94,7 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
             }
         }).attach();
         btnBack.setOnClickListener(v -> onBackPressedHandled());
-        setupBackButton(btnBack, false);
+//        setupBackButton(btnBack, false);
 
         return view;
     }
@@ -308,9 +308,7 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
                         if (isAdded()) {
                             CartManager.getInstance().clearCart();
                             Toast.makeText(appContext, "Заказ сохранен!", Toast.LENGTH_SHORT).show();
-                            getParentFragmentManager().beginTransaction()
-                                    .replace(R.id.fragment_container, new OrdersFragment())
-                                    .commit();
+                            NavigationHelper.finishAndGoTo(getParentFragmentManager(), new OrdersFragment());
                         }
                     });
                 }

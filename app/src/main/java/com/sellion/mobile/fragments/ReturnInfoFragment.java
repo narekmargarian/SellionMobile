@@ -53,9 +53,17 @@ public class ReturnInfoFragment extends BaseFragment {
                 tvReturnDate.setText(savedDate);
             }
         } else {
-            // Если дата еще не выбрана, ставим ЗАВТРА
+            // По умолчанию ставим ЗАВТРА с учетом 5-дневной рабочей недели
             Calendar calendar = Calendar.getInstance();
             calendar.add(Calendar.DAY_OF_MONTH, 1);
+
+            // Если завтра суббота (7) или воскресенье (1) — переносим на понедельник
+            int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
+            if (dayOfWeek == Calendar.SATURDAY) {
+                calendar.add(Calendar.DAY_OF_MONTH, 2);
+            } else if (dayOfWeek == Calendar.SUNDAY) {
+                calendar.add(Calendar.DAY_OF_MONTH, 1);
+            }
 
             String dateForServer = serverFormat.format(calendar.getTime());
             String dateForDisplay = displayFormat.format(calendar.getTime());

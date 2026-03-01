@@ -19,7 +19,7 @@ public class OrderEntity {
     public String deliveryDate;
     public PaymentMethod paymentMethod;
     public boolean needsSeparateInvoice;
-    public String managerId; // Добавь это поле!
+    public String managerId;
     public double totalAmount;
     public String createdAt;
     public String androidId;

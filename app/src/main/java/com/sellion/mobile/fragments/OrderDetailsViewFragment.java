@@ -173,6 +173,7 @@ public class OrderDetailsViewFragment extends BaseFragment {
         });
 
         btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
+        setupBackButton(btnBack, false);
         return view;
     }
 }

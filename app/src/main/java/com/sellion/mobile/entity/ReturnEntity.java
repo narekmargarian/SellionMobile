@@ -14,10 +14,10 @@ public class ReturnEntity {
     public Map<Long, Integer> items;
     public ReturnReason returnReason;
     public String returnDate;
-    public String status; // PENDING, SENT
+    public String status;
 
-    public String managerId;   // КТО отправил
-    public double totalAmount; // СУММА возврата
+    public String managerId;
+    public double totalAmount;
     public String createdAt;
     public String androidId;
 }
