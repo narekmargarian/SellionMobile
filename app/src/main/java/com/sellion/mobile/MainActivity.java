@@ -54,6 +54,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         super.onCreate(savedInstanceState);
+
+
         SessionManager.init(this);
 
         EdgeToEdge.enable(this);
@@ -247,36 +249,52 @@ public class MainActivity extends AppCompatActivity {
     private void showIpChangeDialog() {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(50, 20, 50, 0);
+        layout.setPadding(60, 40, 60, 0); // Немного увеличим отступы для красоты
 
-        final EditText ipInput = new EditText(this);
-        ipInput.setHint("IP сервера (напр. 172.20.10.5)");
-        ipInput.setText(getSharedPreferences("SyncSettings", MODE_PRIVATE).getString("server_ip", "172.20.10.5"));
-        layout.addView(ipInput);
+        // 1. Поле Домена (раньше был IP)
+        final TextInputLayout domainInputLayout = new TextInputLayout(this);
+        domainInputLayout.setHint("Домен сервера (напр. sellion.vip)");
+        final EditText domainInput = new EditText(this);
+        domainInput.setText(getSharedPreferences("SyncSettings", MODE_PRIVATE).getString("server_ip", "sellion.vip"));
+        domainInputLayout.addView(domainInput);
+        layout.addView(domainInputLayout);
 
-        final EditText portInput = new EditText(this);
-        portInput.setHint("Порт (напр. 8080)");
-        portInput.setText(getSharedPreferences("SyncSettings", MODE_PRIVATE).getString("server_port", "8080"));
-        portInput.setInputType(InputType.TYPE_CLASS_NUMBER);
-        layout.addView(portInput);
+        // 2. Переключатель рабочей недели (Switch)
+        final com.google.android.material.switchmaterial.SwitchMaterial daySwitch =
+                new com.google.android.material.switchmaterial.SwitchMaterial(this);
+        daySwitch.setText("6-дневная рабочая неделя");
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.setMargins(0, 50, 0, 0);
+        daySwitch.setLayoutParams(params);
+
+        // Загружаем текущий режим (false = 5 дней, true = 6 дней)
+        boolean isSixDay = getSharedPreferences("SyncSettings", MODE_PRIVATE).getBoolean("is_six_day_work", false);
+        daySwitch.setChecked(isSixDay);
+        layout.addView(daySwitch);
 
         new MaterialAlertDialogBuilder(this)
-                .setTitle("Настройка сервера")
+                .setTitle("Системные настройки 2026")
                 .setView(layout)
                 .setPositiveButton("Сохранить", (d, w) -> {
-                    String newIp = ipInput.getText().toString().trim();
-                    String newPort = portInput.getText().toString().trim();
+                    String newDomain = domainInput.getText().toString().trim();
+                    boolean selectedSixDay = daySwitch.isChecked();
 
-                    if (!newIp.isEmpty() && !newPort.isEmpty()) {
+                    if (!newDomain.isEmpty()) {
                         getSharedPreferences("SyncSettings", MODE_PRIVATE).edit()
-                                .putString("server_ip", newIp)
-                                .putString("server_port", newPort)
+                                .putString("server_ip", newDomain) // Сохраняем как домен
+                                .putBoolean("is_six_day_work", selectedSixDay)
                                 .apply();
 
+                        // Сбрасываем клиент, чтобы он пересоздался с новым URL https://...
                         ApiClient.resetClient();
-                        Toast.makeText(this, "Адрес обновлен: " + newIp + ":" + newPort, Toast.LENGTH_SHORT).show();
+
+                        String weekMode = selectedSixDay ? "6 дней" : "5 дней";
+                        Toast.makeText(this, "Настройки обновлены: " + weekMode, Toast.LENGTH_SHORT).show();
                     }
                 })
+                .setNegativeButton("Отмена", null)
                 .show();
     }
 
