@@ -15,8 +15,8 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 
 public class ApiClient {
-    private static final String DEFAULT_IP = "172.20.10.5";
-    private static final String DEFAULT_PORT = "8080"; // Дефолтный порт
+    private static final String DEFAULT_IP = "176.32.193.13";
+    private static final String DEFAULT_PORT = "8081";
     private static Retrofit retrofit = null;
 
     public static Retrofit getClient(Context context) {
