@@ -26,7 +26,7 @@ public class CartManager {
     private final ExecutorService executor = Executors.newFixedThreadPool(2);
 
     private String deliveryDate = "";
-    private PaymentMethod paymentMethod = PaymentMethod.TRANSFER; // По умолчанию наличные
+    private PaymentMethod paymentMethod = PaymentMethod.TRANSFER;
     private boolean isSeparateInvoice = false;
     private ReturnReason returnReason = ReturnReason.OTHER;
     private String returnDate = "";
@@ -106,7 +106,7 @@ public class CartManager {
     public void clearCart() {
         executor.execute(() -> db.cartDao().clearCart());
         deliveryDate = "";
-        paymentMethod = PaymentMethod.CASH;
+        paymentMethod = PaymentMethod.TRANSFER;
         isSeparateInvoice = false;
         returnReason = ReturnReason.OTHER;
         returnDate = "";

@@ -66,6 +66,16 @@
             android:layout_marginTop="12dp">
 
             <RadioButton
+                android:id="@+id/radioTransfer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="Перевод"
+                android:textColor="#000000"
+                android:textSize="16sp"
+                app:buttonTint="#000000" />
+
+            <RadioButton
                 android:id="@+id/radioCash"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -75,15 +85,7 @@
                 android:textSize="16sp"
                 app:buttonTint="#000000" />
 
-            <RadioButton
-                android:id="@+id/radioTransfer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:checked="true"
-                android:text="Перевод"
-                android:textColor="#000000"
-                android:textSize="16sp"
-                app:buttonTint="#000000" />
+
         </RadioGroup>
 
         <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="24dp" android:background="#EEEEEE"/>
