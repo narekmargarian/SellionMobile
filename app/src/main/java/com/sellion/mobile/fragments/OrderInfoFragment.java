@@ -73,6 +73,12 @@ public class OrderInfoFragment extends BaseFragment {
 
         // 2. ВОССТАНОВЛЕНИЕ ОПЛАТЫ
         PaymentMethod savedPayment = CartManager.getInstance().getPaymentMethod();
+
+        if (savedPayment == null) {
+            savedPayment = PaymentMethod.TRANSFER;
+            CartManager.getInstance().setPaymentMethod(PaymentMethod.TRANSFER);
+        }
+
         if (savedPayment == PaymentMethod.TRANSFER) {
             radioGroupPaymentMethod.check(R.id.radioTransfer);
         } else {

@@ -17,7 +17,8 @@ public class OrderEntity {
     public Map<Long, Integer> items;
     public String status; // "PENDING" или "SENT"
     public String deliveryDate;
-    public PaymentMethod paymentMethod;
+
+    public PaymentMethod paymentMethod = PaymentMethod.TRANSFER;;
     public boolean needsSeparateInvoice;
     public String managerId;
     public double totalAmount;
