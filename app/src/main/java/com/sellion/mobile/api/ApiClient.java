@@ -2,40 +2,37 @@ package com.sellion.mobile.api;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-
 import com.sellion.mobile.managers.SessionManager;
-
 import java.util.concurrent.TimeUnit;
-
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
-
 public class ApiClient {
-    private static final String DEFAULT_IP = "176.32.193.13";
-    private static final String DEFAULT_PORT = "8081";
+    // Теперь используем домен и протокол HTTPS по умолчанию
+    private static final String DEFAULT_DOMAIN = "sellion.vip";
     private static Retrofit retrofit = null;
 
     public static Retrofit getClient(Context context) {
         if (retrofit == null) {
             SharedPreferences prefs = context.getSharedPreferences("SyncSettings", Context.MODE_PRIVATE);
 
-            // Читаем IP и Порт отдельно
-            String savedIp = prefs.getString("server_ip", DEFAULT_IP);
-            String savedPort = prefs.getString("server_port", DEFAULT_PORT);
+            // Читаем домен (раньше тут был IP)
+            String savedDomain = prefs.getString("server_ip", DEFAULT_DOMAIN);
 
-            //TODO STEX BDI HTTPS EXNIIIIII
-            String dynamicBaseUrl = "http://" + savedIp + ":" + savedPort + "/";
+            // Теперь формируем URL через HTTPS. Порт больше не нужен,
+            // так как стандартный порт для HTTPS (443) обрабатывается Nginx.
+            String dynamicBaseUrl = "https://" + savedDomain + "/";
 
             HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-            logging.setLevel(HttpLoggingInterceptor.Level.BASIC);
+            logging.setLevel(HttpLoggingInterceptor.Level.BODY); // BODY даст больше инфо при отладке
 
-            OkHttpClient okHttpClient = new OkHttpClient.Builder()
-                    .followRedirects(false)
-                    .followSslRedirects(false)
+            OkHttpClient.Builder httpClientBuilder = new OkHttpClient.Builder()
+                    // Включаем редиректы обратно, так как HTTPS может их использовать
+                    .followRedirects(true)
+                    .followSslRedirects(true)
                     .addInterceptor(logging)
                     .addInterceptor(chain -> {
                         Request original = chain.request();
@@ -51,12 +48,11 @@ public class ApiClient {
                     })
                     .connectTimeout(15, TimeUnit.SECONDS)
                     .readTimeout(15, TimeUnit.SECONDS)
-                    .writeTimeout(15, TimeUnit.SECONDS)
-                    .build();
+                    .writeTimeout(15, TimeUnit.SECONDS);
 
             retrofit = new Retrofit.Builder()
                     .baseUrl(dynamicBaseUrl)
-                    .client(okHttpClient)
+                    .client(httpClientBuilder.build())
                     .addConverterFactory(GsonConverterFactory.create())
                     .build();
         }
