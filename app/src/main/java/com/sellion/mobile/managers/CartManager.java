@@ -31,10 +31,9 @@ public class CartManager {
     private ReturnReason returnReason = ReturnReason.OTHER;
     private String returnDate = "";
 
-    // --- НОВЫЕ ПОЛЯ ДЛЯ СКИДОК И АКЦИЙ ---
-    private BigDecimal clientDefaultPercent = BigDecimal.ZERO; // Процент магазина
-    private Long selectedPromoId = null; // ID выбранной акции
-    private Map<Long, BigDecimal> appliedPromoItems = new HashMap<>(); // Скидки акции по ID товаров
+    private BigDecimal clientDefaultPercent = BigDecimal.ZERO;
+    private Long selectedPromoId = null;
+    private Map<Long, BigDecimal> appliedPromoItems = new HashMap<>();
 
     private CartManager(Context context) {
         db = AppDatabase.getInstance(context.getApplicationContext());
