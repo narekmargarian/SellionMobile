@@ -320,7 +320,12 @@ public class OrderDetailsFragment extends BaseFragment implements BackPressHandl
 
 
 
-
+    public String getStoreName() {
+        if (getArguments() != null) {
+            return getArguments().getString("store_name", "");
+        }
+        return "";
+    }
 
 
 

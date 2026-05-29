@@ -10,6 +10,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.fragment.app.Fragment;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.tabs.TabLayout;
@@ -36,6 +37,19 @@ public class CreateOrderFragment extends BaseFragment {
         if (title != null) title.setText("Выбор клиента (Заказ)");
 
         viewPager.setAdapter(new CreateOrderPagerAdapter(this));
+
+        // Добавляем слушатель для обновления фрагментов при переключении вкладок
+        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                // Находим привязанный фрагмент по тегу, генерируемому FragmentStateAdapter
+                Fragment currentFragment = getChildFragmentManager().findFragmentByTag("f" + position);
+                if (currentFragment != null) {
+                    currentFragment.onResume(); // Принудительно вызываем обновление интерфейса
+                }
+            }
+        });
 
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             tab.setText(position == 0 ? "Маршрут" : "Клиенты");
@@ -113,5 +127,4 @@ public class CreateOrderFragment extends BaseFragment {
                 .commit();
     }
 
-    // ... (CreateOrderPagerAdapter остается без изменений)
 }

@@ -10,6 +10,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.fragment.app.Fragment;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.tabs.TabLayout;
@@ -18,7 +19,6 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.CreateReturnPagerAdapter;
 import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.ReturnEntity;
-
 
 public class CreateReturnFragment extends BaseFragment {
     @Nullable
@@ -36,6 +36,19 @@ public class CreateReturnFragment extends BaseFragment {
 
         // Используем ваш CreateOrderPagerAdapter
         viewPager.setAdapter(new CreateReturnPagerAdapter(this));
+
+        // Добавляем слушатель для обновления фрагментов при переключении вкладок
+        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                // Находим привязанный фрагмент по тегу, генерируемому FragmentStateAdapter
+                Fragment currentFragment = getChildFragmentManager().findFragmentByTag("f" + position);
+                if (currentFragment != null) {
+                    currentFragment.onResume(); // Принудительно вызываем обновление интерфейса
+                }
+            }
+        });
 
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             tab.setText(position == 0 ? "Маршрут" : "Клиенты");

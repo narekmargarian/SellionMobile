@@ -186,6 +186,15 @@ public class ReturnDetailsFragment extends BaseFragment implements BackPressHand
         }).start();
     }
 
+    // Этот метод позволит дочернему фрагменту возврата узнать, какой магазин выбран
+    public String getStoreName() {
+        if (getArguments() != null) {
+            return getArguments().getString("store_name", "");
+        }
+        return "";
+    }
+
+
     private static class ReturnPagerAdapter extends FragmentStateAdapter {
         public ReturnPagerAdapter(@NonNull Fragment fragment) {
             super(fragment);

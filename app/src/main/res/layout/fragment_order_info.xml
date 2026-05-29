@@ -49,6 +49,51 @@
 
         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#EEEEEE"/>
 
+
+        <!-- Полностью кликабельный блок выбранного клиента -->
+        <LinearLayout
+            android:id="@+id/layoutSelectClientOrder"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingVertical="14dp"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Магазин:"
+                android:textColor="#333333"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/tvSelectedClientOrder"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="Не выбран"
+                android:textColor="#000000"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <!-- Стрелочка вправо указывает на возможность перехода -->
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@android:drawable/ic_media_play"
+                android:rotation="0"
+                app:tint="#757575" />
+        </LinearLayout>
+
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#EEEEEE"/>
+
+
+
+
         <!-- Способ оплаты -->
         <TextView
             android:layout_width="wrap_content"
