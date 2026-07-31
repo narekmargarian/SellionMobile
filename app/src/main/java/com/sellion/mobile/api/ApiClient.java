@@ -39,7 +39,13 @@ public class ApiClient {
                         String myKey = SessionManager.getInstance().getApiKey();
                         Request.Builder rb = original.newBuilder()
                                 .header("Content-Type", "application/json")
-                                .header("Accept", "application/json");
+                                .header("Accept", "application/json")
+                                .header("X-Sellion-Platform", "Sellion-Android-App-v1");
+                        ;
+
+
+
+
 
                         if (myKey != null && !myKey.isEmpty()) {
                             rb.header("X-API-Key", myKey);
