@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -28,7 +27,7 @@
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="16dp"
         app:cardCornerRadius="16dp"
         app:cardBackgroundColor="#F1F3F4">
 
@@ -42,15 +41,31 @@
             <TextView android:id="@+id/tvDetailOwnerName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Имя ИП: Армен Галстян" android:layout_marginTop="4dp"/>
             <TextView android:id="@+id/tvDetailINN" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="ИНН/ИП: 12345678" />
 
-            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#D1D1D1" android:layout_marginVertical="12dp"/>
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#D1D1D1" android:layout_marginVertical="8dp"/>
 
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Адрес:" android:textStyle="bold"/>
             <TextView android:id="@+id/tvDetailAddress" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ереван, ул. Абовяна 10" android:layout_marginTop="4dp"/>
 
-            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#D1D1D1" android:layout_marginVertical="12dp"/>
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#D1D1D1" android:layout_marginVertical="8dp"/>
 
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Сумма долга:" android:textColor="#B00020" android:textStyle="bold"/>
-            <TextView android:id="@+id/tvDetailAmount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="50,000 Драм" android:textSize="22sp" android:textColor="#B00020" android:textStyle="bold" />
+            <TextView android:id="@+id/tvDetailAmount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="50,000 Драм" android:textSize="20sp" android:textColor="#B00020" android:textStyle="bold" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Заказы магазина:"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:textColor="#1B1B1F"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerClientOrders"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
 </LinearLayout>

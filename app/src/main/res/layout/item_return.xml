@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
-
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
@@ -36,7 +36,6 @@
                 android:textColor="#1D1B20"
                 android:textSize="15sp" />
 
-
             <TextView
                 android:id="@+id/tvReturnStatus"
                 android:layout_width="wrap_content"
@@ -49,6 +48,16 @@
                 android:textSize="10sp"
                 android:fontFamily="sans-serif-black"
                 android:letterSpacing="0.05" />
+
+            <!-- Дата возврата -->
+            <TextView
+                android:id="@+id/tvReturnDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="#757575"
+                android:textSize="11sp"
+                tools:text="2026-08-03 12:30" />
 
         </LinearLayout>
 

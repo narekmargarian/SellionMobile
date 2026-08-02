@@ -49,7 +49,7 @@
                     android:src="@drawable/ic_add" />
 
                 <ImageButton
-                    android:id="@+id/btnFilterOrders"
+                    android:id="@+id/btnFilterReturns"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
@@ -58,8 +58,43 @@
         </RelativeLayout>
     </androidx.appcompat.widget.Toolbar>
 
+    <!-- RecyclerView теперь занимает оставшееся пространство с android:layout_weight="1" -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerReturns"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Блок с итоговой информацией для возвратов внизу -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="#F3F4F6"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
+        android:gravity="center_vertical"
+        android:elevation="4dp">
+
+        <TextView
+            android:id="@+id/tvReturnsCount"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Всего возвратов: 0"
+            android:textColor="#4B5563"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-medium" />
+
+        <TextView
+            android:id="@+id/tvReturnsTotalSum"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0 ֏"
+            android:textColor="#F44336"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-medium" />
+    </LinearLayout>
+
 </LinearLayout>

@@ -22,6 +22,8 @@ import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.OrderEntity;
 import com.sellion.mobile.helper.NavigationHelper;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -32,6 +34,7 @@ public class OrdersFragment extends BaseFragment {
     private OrderAdapter adapter;
     private TextView tvTitle;
 
+    private TextView tvOrdersCount, tvOrdersTotalSum;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -39,6 +42,8 @@ public class OrdersFragment extends BaseFragment {
 
         recyclerView = view.findViewById(R.id.recyclerOrders);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        tvOrdersCount = view.findViewById(R.id.tvOrdersCount);
+        tvOrdersTotalSum = view.findViewById(R.id.tvOrdersTotalSum);
 
         // Поиск TextView в Toolbar
         Toolbar toolbar = view.findViewById(R.id.toolbarOrders);
@@ -58,7 +63,7 @@ public class OrdersFragment extends BaseFragment {
                 getParentFragmentManager().beginTransaction().replace(R.id.fragment_container, new CreateOrderFragment()).addToBackStack(null).commit()
         );
 
-        view.findViewById(R.id.btnFilterOrders).setOnClickListener(this::showFilterMenu);
+        view.findViewById(R.id.btnFilterReturns).setOnClickListener(this::showFilterMenu);
 
         // При входе показываем заказы за сегодня (2026 год)
         showOrdersToday();
@@ -68,16 +73,17 @@ public class OrdersFragment extends BaseFragment {
 
     private void showOrdersToday() {
         String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-        loadOrders(today + "T00:00:00", today + "T23:59:59", "Заказы сегодня");
+        loadOrders(today + " 00:00:00", today + " 23:59:59", "Заказы сегодня");
     }
+
 
     private void showOrdersThisMonth() {
         Calendar cal = Calendar.getInstance();
         cal.set(Calendar.DAY_OF_MONTH, 1);
-        String start = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(cal.getTime()) + "T00:00:00";
+        String start = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(cal.getTime()) + " 00:00:00";
 
         cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH));
-        String end = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(cal.getTime()) + "T23:59:59";
+        String end = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(cal.getTime()) + " 23:59:59";
 
         loadOrders(start, end, "Заказы за месяц");
     }
@@ -90,13 +96,17 @@ public class OrdersFragment extends BaseFragment {
         picker.addOnPositiveButtonClickListener(selection -> {
             if (selection.first != null && selection.second != null) {
                 SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-                String start = df.format(new Date(selection.first)) + "T00:00:00";
-                String end = df.format(new Date(selection.second)) + "T23:59:59";
-                loadOrders(start, end, "Период: " + df.format(new Date(selection.first)) + " - " + df.format(new Date(selection.second)));
+                String start = df.format(new Date(selection.first)) + " 00:00:00";
+                String end = df.format(new Date(selection.second)) + " 23:59:59";
+                loadOrders(start, end, df.format(new Date(selection.first)) + " | " + df.format(new Date(selection.second)));
             }
         });
         picker.show(getParentFragmentManager(), "RANGE_PICKER");
     }
+
+
+
+
 
     private void loadOrders(String start, String end, String title) {
         if (tvTitle != null) tvTitle.setText(title);
@@ -105,6 +115,29 @@ public class OrdersFragment extends BaseFragment {
                 .observe(getViewLifecycleOwner(), list -> {
                     adapter = new OrderAdapter(list, this::onOrderClick);
                     recyclerView.setAdapter(adapter);
+
+                    // --- РАСЧЕТ ИТОГОВ ДЛЯ ЗАКАЗОВ ---
+                    int totalCount = (list != null) ? list.size() : 0;
+                    double totalSum = 0;
+                    if (list != null) {
+                        for (OrderEntity order : list) {
+                            if (order != null) {
+                                totalSum += order.totalAmount;
+                            }
+                        }
+                    }
+
+                    // Вывод в итоговые TextView (убедитесь, что они объявлены и инициализированы через findViewById)
+                    if (tvOrdersCount != null) {
+                        tvOrdersCount.setText("Всего заказов: " + totalCount);
+                    }
+                    if (tvOrdersTotalSum != null) {
+                        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
+                        symbols.setGroupingSeparator(' ');
+                        DecimalFormat smartFormat = new DecimalFormat("#,###.##", symbols);
+
+                        tvOrdersTotalSum.setText(smartFormat.format(totalSum) + " ֏");
+                    }
                 });
     }
 
@@ -115,9 +148,13 @@ public class OrdersFragment extends BaseFragment {
         popup.getMenu().add("Выбрать период");
         popup.setOnMenuItemClickListener(item -> {
             String title = item.getTitle().toString();
-            if (title.equals("За сегодня")) showOrdersToday();
-            else if (title.equals("За этот месяц")) showOrdersThisMonth();
-            else if (title.equals("Выбрать период")) showDateRangePicker();
+            if (title.equals("За сегодня")) {
+                showOrdersToday();
+            } else if (title.equals("За этот месяц")) {
+                showOrdersThisMonth();
+            } else if (title.equals("Выбрать период")) {
+                showDateRangePicker();
+            }
             return true;
         });
         popup.show();

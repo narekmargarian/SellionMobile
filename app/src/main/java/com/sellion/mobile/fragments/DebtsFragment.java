@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -20,6 +21,7 @@ import com.sellion.mobile.helper.NavigationHelper;
 public class DebtsFragment extends BaseFragment {
     private RecyclerView recyclerView;
     private DebtsAdapter adapter;
+    private TextView tvTotalDebtSum;
 
     @Nullable
     @Override
@@ -28,11 +30,20 @@ public class DebtsFragment extends BaseFragment {
         recyclerView = view.findViewById(R.id.recyclerDebts);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         ImageButton btnBack = view.findViewById(R.id.btnBackDebts);
+        tvTotalDebtSum = view.findViewById(R.id.tvTotalDebtSum);
 
         // НАБЛЮДАЕМ ЗА БАЗОЙ (БЕЗ ИНТЕРНЕТА)
         AppDatabase.getInstance(requireContext()).clientDao().getClientsWithDebtsLive()
                 .observe(getViewLifecycleOwner(), clients -> {
                     if (clients != null) {
+                        double totalDebt = 0;
+                        for (ClientEntity client : clients) {
+                            totalDebt += client.debt;
+                        }
+                        if (tvTotalDebtSum != null) {
+                            tvTotalDebtSum.setText(formatSmart(totalDebt) + " ֏");
+                        }
+
                         // Превращаем ClientEntity обратно в ClientModel для адаптера или обновляем адаптер
                         adapter = new DebtsAdapter(clients, client -> openDetails(client));
                         recyclerView.setAdapter(adapter);
@@ -63,6 +74,4 @@ public class DebtsFragment extends BaseFragment {
                 .addToBackStack(null)
                 .commit();
     }
-
-
 }

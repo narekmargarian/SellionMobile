@@ -32,9 +32,16 @@ public interface OrderDao {
     void insertAll(List<OrderEntity> orders);
 
 
-    @Query("SELECT * FROM orders WHERE createdAt >= :start AND createdAt <= :end ORDER BY id DESC")
+    @Query("SELECT * FROM orders WHERE date(createdAt) >= date(:start) AND date(createdAt) <= date(:end) ORDER BY id DESC")
     LiveData<List<OrderEntity>> getOrdersBetweenDates(String start, String end);
 
     @Query("SELECT * FROM orders WHERE status = :status")
     List<OrderEntity> getOrdersByStatusSync(String status);
+
+    @Query("SELECT * FROM orders WHERE TRIM(shopName) LIKE TRIM(:shopName) COLLATE NOCASE ORDER BY id DESC")
+    LiveData<List<OrderEntity>> getOrdersByShopNameLive(String shopName);
+
+
+
+
 }

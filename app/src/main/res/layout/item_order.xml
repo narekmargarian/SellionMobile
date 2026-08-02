@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
@@ -18,7 +19,7 @@
         android:padding="16dp"
         android:background="@color/white">
 
-        <!-- Информация: Название и статус -->
+        <!-- Информация: Название, статус и дата -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -49,6 +50,16 @@
                 android:textSize="10sp"
                 android:fontFamily="sans-serif-black"
                 android:letterSpacing="0.05" />
+
+            <!-- Дата заказа -->
+            <TextView
+                android:id="@+id/tvOrderDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="#757575"
+                android:textSize="11sp"
+                tools:text="2026-08-03 12:30" />
         </LinearLayout>
 
         <!-- Сумма -->
@@ -63,6 +74,5 @@
             android:textSize="18sp" />
 
     </LinearLayout>
-
 
 </com.google.android.material.card.MaterialCardView>

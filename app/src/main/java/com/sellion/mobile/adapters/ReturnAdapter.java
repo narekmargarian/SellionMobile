@@ -56,13 +56,14 @@ public class ReturnAdapter extends RecyclerView.Adapter<ReturnAdapter.ReturnVH> 
     }
 
     static class ReturnVH extends RecyclerView.ViewHolder {
-        TextView tvShopName, tvTotalAmount, tvStatus;
+        TextView tvShopName, tvTotalAmount, tvStatus, tvDate;
 
         ReturnVH(View v) {
             super(v);
             tvShopName = v.findViewById(R.id.tvReturnShopName);
             tvTotalAmount = v.findViewById(R.id.tvReturnTotalAmount);
             tvStatus = v.findViewById(R.id.tvReturnStatus);
+            tvDate = v.findViewById(R.id.tvReturnDate);
         }
     }
 
@@ -77,6 +78,14 @@ public class ReturnAdapter extends RecyclerView.Adapter<ReturnAdapter.ReturnVH> 
         if (item == null) return;
 
         holder.tvShopName.setText(item.shopName);
+
+        // Установка даты возврата
+        if (item.createdAt != null) {
+            String displayDate = item.createdAt.length() > 16 ? item.createdAt.substring(0, 16).replace("T", " ") : item.createdAt;
+            holder.tvDate.setText(displayDate);
+        } else {
+            holder.tvDate.setText("");
+        }
 
         // Если в Entity уже сохранена сумма (мы добавили расчет при сохранении),
         // берем её сразу, чтобы не нагружать БД в списке.

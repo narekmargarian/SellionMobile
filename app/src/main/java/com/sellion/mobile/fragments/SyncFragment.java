@@ -87,8 +87,7 @@ public class SyncFragment extends BaseFragment {
 
         btnClear.setOnClickListener(v -> clearData());
         btnPhoto.setOnClickListener(v -> takePhotoReport());
-        btnVersion.setOnClickListener(v -> Toast.makeText(getContext(), "Версия 2026.01.12", Toast.LENGTH_SHORT).show());
-
+        btnVersion.setOnClickListener(v -> checkForUpdate());
         btnUploadPhoto.setOnClickListener(v -> {
             Toast.makeText(getContext(), "Фото отправлено!", Toast.LENGTH_SHORT).show();
             ivPreview.setVisibility(View.GONE);
@@ -98,6 +97,117 @@ public class SyncFragment extends BaseFragment {
         return view;
     }
 
+
+    private void checkForUpdate() {
+        Toast.makeText(getContext(), "Проверка обновлений...", Toast.LENGTH_SHORT).show();
+
+        int currentVersionCode = 20260112; // Укажи здесь текущий versionCode из твоего build.gradle (модуля app)
+
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL("http://176.32.193.13/sellion/updates/version.json");
+                java.net.HttpURLConnection connection = (java.net.HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(5000);
+
+                if (connection.getResponseCode() == 200) {
+                    java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(connection.getInputStream()));
+                    StringBuilder builder = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        builder.append(line);
+                    }
+                    reader.close();
+
+                    org.json.JSONObject jsonObject = new org.json.JSONObject(builder.toString());
+                    int serverVersionCode = jsonObject.getInt("versionCode");
+
+                    requireActivity().runOnUiThread(() -> {
+                        if (serverVersionCode > currentVersionCode) {
+                            showUpdateDialog("http://176.32.193.13/sellion/updates/app-release.apk");
+                        } else {
+                            new MaterialAlertDialogBuilder(requireContext())
+                                    .setTitle("Обновление")
+                                    .setMessage("У вас установлена последняя версия программы.")
+                                    .setPositiveButton("ОК", null)
+                                    .show();
+                        }
+                    });
+                } else {
+                    throw new Exception("Сервер недоступен");
+                }
+            } catch (Exception e) {
+                requireActivity().runOnUiThread(() -> {
+                    Toast.makeText(getContext(), "Не удалось проверить обновление", Toast.LENGTH_SHORT).show();
+                });
+            }
+        }).start();
+    }
+
+    private void showUpdateDialog(String apkUrl) {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Доступно обновление")
+                .setMessage("Появилась новая версия приложения. Скачать и установить?")
+                .setPositiveButton("Обновить", (dialog, which) -> downloadAndInstallApk(apkUrl))
+                .setNegativeButton("Позже", null)
+                .show();
+    }
+
+    private void downloadAndInstallApk(String url) {
+        Toast.makeText(getContext(), "Загрузка обновления...", Toast.LENGTH_SHORT).show();
+
+        android.app.DownloadManager.Request request = new android.app.DownloadManager.Request(android.net.Uri.parse(url));
+        request.setTitle("Обновление Sellion Mobile");
+        request.setDescription("Загрузка новой версии...");
+        request.setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+        request.setDestinationInExternalPublicDir(android.os.Environment.DIRECTORY_DOWNLOADS, "sellion_update.apk");
+
+        android.app.DownloadManager manager = (android.app.DownloadManager) requireContext().getSystemService(Context.DOWNLOAD_SERVICE);
+        long downloadId = manager.enqueue(request);
+
+        android.content.BroadcastReceiver onComplete = new android.content.BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                long id = intent.getLongExtra(android.app.DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+                if (downloadId == id) {
+                    try {
+                        android.content.Intent installIntent = new Intent(Intent.ACTION_VIEW);
+                        android.net.Uri apkUri;
+
+                        java.io.File file = new java.io.File(
+                                android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS),
+                                "sellion_update.apk"
+                        );
+
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                            apkUri = androidx.core.content.FileProvider.getUriForFile(
+                                    context,
+                                    context.getPackageName() + ".fileprovider",
+                                    file
+                            );
+                            installIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+                            installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        } else {
+                            apkUri = android.net.Uri.fromFile(file);
+                            installIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+                        }
+
+                        installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        context.startActivity(installIntent);
+                        context.unregisterReceiver(this);
+                    } catch (Exception e) {
+                        Toast.makeText(context, "Ошибка установки: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                }
+            }
+        };
+
+        requireContext().registerReceiver(
+                onComplete,
+                new android.content.IntentFilter(android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+                Context.RECEIVER_EXPORTED
+        );
+    }
     private void updateStatusText() {
         SharedPreferences prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         if (prefs.getBoolean(KEY_IS_LOADED, false)) {

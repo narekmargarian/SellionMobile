@@ -56,6 +56,14 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderVH> {
 
         h.tvShopName.setText(o.shopName);
 
+        // Установка даты заказа
+        if (o.createdAt != null) {
+            String displayDate = o.createdAt.length() > 16 ? o.createdAt.substring(0, 16).replace("T", " ") : o.createdAt;
+            h.tvDate.setText(displayDate);
+        } else {
+            h.tvDate.setText("");
+        }
+
         // ИСПРАВЛЕНО: Используем умный формат вместо String.format(Locale.getDefault(), "%,.1f ֏", ...)
         // Теперь 1540.00 -> 1 540 ֏ | 1540.60 -> 1 540.6 ֏ | 1540.12 -> 1 540.12 ֏
         h.tvTotalAmount.setText(smartFormat.format(o.totalAmount) + " ֏");
@@ -76,15 +84,14 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderVH> {
     }
 
     public static class OrderVH extends RecyclerView.ViewHolder {
-        TextView tvShopName, tvStatus, tvTotalAmount;
+        TextView tvShopName, tvStatus, tvTotalAmount, tvDate;
 
         public OrderVH(View v) {
             super(v);
             tvShopName = v.findViewById(R.id.tvOrderShopName);
             tvStatus = v.findViewById(R.id.tvOrderStatus);
             tvTotalAmount = v.findViewById(R.id.tvOrderTotalAmount);
+            tvDate = v.findViewById(R.id.tvOrderDate);
         }
     }
 }
-
-
