@@ -1,5 +1,6 @@
 package com.sellion.mobile.fragments;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -44,6 +45,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import retrofit2.Call;
+import retrofit2.Callback;
 import retrofit2.Response;
 
 
@@ -101,30 +104,29 @@ public class SyncFragment extends BaseFragment {
     private void checkForUpdate() {
         Toast.makeText(getContext(), "Проверка обновлений...", Toast.LENGTH_SHORT).show();
 
-        int currentVersionCode = 20260112; // Укажи здесь текущий versionCode из твоего build.gradle (модуля app)
+        // Получаем текущий versionCode из package manager
+        int currentVersionCode;
+        try {
+            currentVersionCode = requireContext().getPackageManager()
+                    .getPackageInfo(requireContext().getPackageName(), 0).versionCode;
+        } catch (Exception e) {
+            currentVersionCode = 1;
+        }
 
-        new Thread(() -> {
-            try {
-                java.net.URL url = new java.net.URL("http://176.32.193.13/sellion/updates/version.json");
-                java.net.HttpURLConnection connection = (java.net.HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("GET");
-                connection.setConnectTimeout(5000);
+        final int finalCurrentVersionCode = currentVersionCode;
+        ApiService api = ApiClient.getClient(requireContext()).create(ApiService.class);
 
-                if (connection.getResponseCode() == 200) {
-                    java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(connection.getInputStream()));
-                    StringBuilder builder = new StringBuilder();
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        builder.append(line);
-                    }
-                    reader.close();
+        api.getLatestVersion().enqueue(new Callback<okhttp3.ResponseBody>() {
+            @Override
+            public void onResponse(Call<okhttp3.ResponseBody> call, Response<okhttp3.ResponseBody> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    try {
+                        String jsonString = response.body().string();
+                        org.json.JSONObject jsonObject = new org.json.JSONObject(jsonString);
+                        int serverVersionCode = jsonObject.getInt("versionCode");
 
-                    org.json.JSONObject jsonObject = new org.json.JSONObject(builder.toString());
-                    int serverVersionCode = jsonObject.getInt("versionCode");
-
-                    requireActivity().runOnUiThread(() -> {
-                        if (serverVersionCode > currentVersionCode) {
-                            showUpdateDialog("http://176.32.193.13/sellion/updates/app-release.apk");
+                        if (serverVersionCode > finalCurrentVersionCode) {
+                            showUpdateDialog("https://sellion.vip/sellion/updates/app-release.apk");
                         } else {
                             new MaterialAlertDialogBuilder(requireContext())
                                     .setTitle("Обновление")
@@ -132,16 +134,19 @@ public class SyncFragment extends BaseFragment {
                                     .setPositiveButton("ОК", null)
                                     .show();
                         }
-                    });
+                    } catch (Exception e) {
+                        Toast.makeText(getContext(), "Ошибка обработки ответа", Toast.LENGTH_SHORT).show();
+                    }
                 } else {
-                    throw new Exception("Сервер недоступен");
+                    Toast.makeText(getContext(), "Ошибка сервера: " + response.code(), Toast.LENGTH_SHORT).show();
                 }
-            } catch (Exception e) {
-                requireActivity().runOnUiThread(() -> {
-                    Toast.makeText(getContext(), "Не удалось проверить обновление", Toast.LENGTH_SHORT).show();
-                });
             }
-        }).start();
+
+            @Override
+            public void onFailure(Call<okhttp3.ResponseBody> call, Throwable t) {
+                Toast.makeText(getContext(), "Не удалось проверить обновление: " + t.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void showUpdateDialog(String apkUrl) {
@@ -153,6 +158,7 @@ public class SyncFragment extends BaseFragment {
                 .show();
     }
 
+    @SuppressLint({"UnspecifiedRegisterReceiverFlag", "WrongConstant"})
     private void downloadAndInstallApk(String url) {
         Toast.makeText(getContext(), "Загрузка обновления...", Toast.LENGTH_SHORT).show();
 
@@ -202,12 +208,16 @@ public class SyncFragment extends BaseFragment {
             }
         };
 
-        requireContext().registerReceiver(
-                onComplete,
-                new android.content.IntentFilter(android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                Context.RECEIVER_EXPORTED
-        );
+        android.content.IntentFilter filter = new android.content.IntentFilter(android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            requireContext().registerReceiver(onComplete, filter, 4); // Context.RECEIVER_EXPORTED
+        } else {
+            requireContext().registerReceiver(onComplete, filter);
+        }
     }
+
+
     private void updateStatusText() {
         SharedPreferences prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         if (prefs.getBoolean(KEY_IS_LOADED, false)) {
@@ -287,7 +297,7 @@ public class SyncFragment extends BaseFragment {
                     throw new Exception("Доступ запрещен! Проверьте API-ключ устройства.");
                 }
 
-                // ШАГ 3: КЛИЕНТЫ (ИСПРАВЛЕНО: Добавлен defaultPercent)
+                // ШАГ 3: КЛИЕНТЫ
                 Response<List<ClientModel>> clientResp = api.getClients(currentManagerId).execute();
                 if (clientResp.isSuccessful() && clientResp.body() != null) {
                     List<ClientEntity> entities = new ArrayList<>();
@@ -300,20 +310,18 @@ public class SyncFragment extends BaseFragment {
                         ce.inn = c.inn;
                         ce.ownerName = c.ownerName;
                         ce.routeDay = c.routeDay;
-                        // НОВОЕ ПОЛЕ
                         ce.defaultPercent = c.defaultPercent;
                         entities.add(ce);
                     }
                     db.clientDao().insertAll(entities);
                 }
 
-                // ШАГ 4: ЗАКАЗЫ (Оптимизировано + Инициализация Map)
+                // ШАГ 4: ЗАКАЗЫ
                 Response<List<OrderEntity>> orderResp = api.getOrdersByManager(currentManagerId).execute();
                 if (orderResp.isSuccessful() && orderResp.body() != null) {
                     List<OrderEntity> orders = orderResp.body();
                     for (OrderEntity o : orders) {
                         o.status = "SENT";
-                        // Защита от Null для новых полей скидок
                         if (o.appliedPromoItems == null) o.appliedPromoItems = new HashMap<>();
                     }
                     db.orderDao().insertAll(orders);
@@ -374,7 +382,6 @@ public class SyncFragment extends BaseFragment {
                     final Context appContext = requireContext().getApplicationContext();
                     new Thread(() -> {
                         AppDatabase db = AppDatabase.getInstance(appContext);
-                        // Правильный порядок очистки для Room 2026
                         db.runInTransaction(() -> {
                             db.cartDao().clearCart();
                             db.productDao().deleteAll();
@@ -440,8 +447,6 @@ public class SyncFragment extends BaseFragment {
                 AppDatabase db = AppDatabase.getInstance(appContext);
                 ApiService api = ApiClient.getClient(appContext).create(ApiService.class);
 
-                // 1. Получаем заказы PENDING.
-                // Благодаря Converters, поле appliedPromoItems будет корректно выгружено из БД
                 List<OrderEntity> pendingOrders = db.orderDao().getPendingOrdersSync();
                 List<ReturnEntity> pendingReturns = db.returnDao().getPendingReturnsSync();
 
@@ -457,7 +462,6 @@ public class SyncFragment extends BaseFragment {
                 boolean allOrdersOk = true;
                 boolean allReturnsOk = true;
 
-                // 2. Отправка Заказов (теперь с примененными акциями)
                 if (!pendingOrders.isEmpty()) {
                     Response<okhttp3.ResponseBody> response = api.sendOrders(pendingOrders).execute();
                     if (response.isSuccessful()) {
@@ -468,7 +472,6 @@ public class SyncFragment extends BaseFragment {
                     }
                 }
 
-                // 3. Отправка Возвратов
                 if (!pendingReturns.isEmpty()) {
                     Response<okhttp3.ResponseBody> response = api.sendReturns(pendingReturns).execute();
                     if (response.isSuccessful()) {

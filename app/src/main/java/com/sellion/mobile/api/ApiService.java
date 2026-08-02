@@ -26,6 +26,8 @@ public interface ApiService {
 
 
 
+    @GET("sellion/updates/version.json")
+    Call<okhttp3.ResponseBody> getLatestVersion();
     @GET("api/clients")
     Call<List<ClientModel>> getClients(@Query("managerId") String managerId);
 
