@@ -126,9 +126,7 @@ public class SyncFragment extends BaseFragment {
                         int serverVersionCode = jsonObject.getInt("versionCode");
 
                         if (serverVersionCode > finalCurrentVersionCode) {
-                            // Читаем ссылку на APK из JSON-ответа сервера
-                            String apkUrl = jsonObject.optString("apkUrl", "http://176.32.193.13/sellion/updates/app-release.apk");
-                            showUpdateDialog(apkUrl);
+                            showUpdateDialog("https://sellion.vip/sellion/updates/app-release.apk");
                         } else {
                             new MaterialAlertDialogBuilder(requireContext())
                                     .setTitle("Обновление")
@@ -179,13 +177,13 @@ public class SyncFragment extends BaseFragment {
                 long id = intent.getLongExtra(android.app.DownloadManager.EXTRA_DOWNLOAD_ID, -1);
                 if (downloadId == id) {
                     try {
+                        android.content.Intent installIntent = new Intent(Intent.ACTION_VIEW);
+                        android.net.Uri apkUri;
+
                         java.io.File file = new java.io.File(
                                 android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS),
                                 "sellion_update.apk"
                         );
-
-                        android.content.Intent installIntent = new Intent(Intent.ACTION_VIEW);
-                        android.net.Uri apkUri;
 
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
                             apkUri = androidx.core.content.FileProvider.getUriForFile(
@@ -202,10 +200,6 @@ public class SyncFragment extends BaseFragment {
 
                         installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         context.startActivity(installIntent);
-
-                        // Принудительно показываем подсказку менеджеру
-                        Toast.makeText(context, "Нажмите 'Установить' для завершения", Toast.LENGTH_LONG).show();
-
                         context.unregisterReceiver(this);
                     } catch (Exception e) {
                         Toast.makeText(context, "Ошибка установки: " + e.getMessage(), Toast.LENGTH_LONG).show();

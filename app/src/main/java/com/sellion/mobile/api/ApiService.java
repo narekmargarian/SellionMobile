@@ -17,6 +17,8 @@ import retrofit2.http.Header;
 import retrofit2.http.POST;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
+import retrofit2.http.Streaming;
+import retrofit2.http.Url;
 
 public interface ApiService {
 
@@ -24,6 +26,9 @@ public interface ApiService {
     @GET("api/products/catalog")
     Call<ApiResponse<List<CategoryGroupDto>>> getCatalog();
 
+    @GET
+    @Streaming
+    Call<okhttp3.ResponseBody> downloadFileWithDynamicUrlSync(@Url String fileUrl);
 
 
     @GET("sellion/updates/version.json")
