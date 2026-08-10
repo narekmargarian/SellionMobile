@@ -5,6 +5,27 @@
     android:background="#F8F9FA"
     android:orientation="vertical">
 
+    <!-- Поле поиска для быстрого нахождения магазина -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#FFFFFF"
+        android:padding="12dp"
+        android:elevation="2dp"
+        android:layout_marginBottom="4dp">
+
+        <EditText
+            android:id="@+id/etSearchOrderClient"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:hint="Поиск магазина или ИНН..."
+            android:inputType="text"
+            android:background="@android:drawable/editbox_background"
+            android:padding="10dp"
+            android:textSize="14sp"
+            android:maxLines="1"/>
+    </LinearLayout>
 
     <!-- Список магазинов -->
     <androidx.recyclerview.widget.RecyclerView
