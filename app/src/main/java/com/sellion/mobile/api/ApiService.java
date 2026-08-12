@@ -37,11 +37,11 @@ public interface ApiService {
     Call<List<ClientModel>> getClients(@Query("managerId") String managerId);
 
 
-    @POST("api/orders/sync")
-    Call<okhttp3.ResponseBody> sendOrders(@Body List<OrderEntity> orders);
-
-    @POST("api/returns/sync")
-    Call<okhttp3.ResponseBody> sendReturns(@Body List<ReturnEntity> returns);
+//    @POST("api/orders/sync")
+//    Call<okhttp3.ResponseBody> sendOrders(@Body List<OrderEntity> orders);
+//
+//    @POST("api/returns/sync")
+//    Call<okhttp3.ResponseBody> sendReturns(@Body List<ReturnEntity> returns);
 
     // ИСПРАВЛЕНО: ManagerApiController возвращает чистый List<String>
     @GET("api/public/managers")
@@ -59,4 +59,10 @@ public interface ApiService {
     @POST("api/admin/promos/check-active-for-items")
     Call<List<PromoAction>> checkActiveForItems(@Body List<Long> productIds);
 
+
+    @POST("api/orders/sync")
+    Call<ApiResponse<Map<String, Object>>> sendOrders(@Body List<OrderEntity> orders);
+
+    @POST("api/returns/sync")
+    Call<ApiResponse<Map<String, Object>>> sendReturns(@Body List<ReturnEntity> returns);
 }

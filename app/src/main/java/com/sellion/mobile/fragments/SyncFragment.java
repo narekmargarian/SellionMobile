@@ -44,6 +44,7 @@ import com.sellion.mobile.model.Product;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -458,26 +459,49 @@ public class SyncFragment extends BaseFragment {
                     return;
                 }
 
-                HostActivity.logToFile(appContext, TAG, "Начало отправки документов. Заказов: " + pendingOrders.size());
+                HostActivity.logToFile(appContext, TAG, "Начало отправки документов. Заказов: " + pendingOrders.size() + ", Возвратов: " + pendingReturns.size());
                 boolean allOrdersOk = true;
                 boolean allReturnsOk = true;
 
                 if (!pendingOrders.isEmpty()) {
-                    Response<okhttp3.ResponseBody> response = api.sendOrders(pendingOrders).execute();
-                    if (response.isSuccessful()) {
-                        db.orderDao().markAllAsSent();
+                    Response<ApiResponse<Map<String, Object>>> response = api.sendOrders(pendingOrders).execute();
+                    if (response.isSuccessful() && response.body() != null) {
+                        Map<String, Object> data = response.body().getData();
+                        int errors = 0;
+                        if (data != null && data.get("errors") instanceof Number) {
+                            errors = ((Number) data.get("errors")).intValue();
+                        }
+
+                        if (errors == 0) {
+                            db.orderDao().markAllAsSent();
+                        } else {
+                            allOrdersOk = false;
+                            HostActivity.logToFile(appContext, "API_ERR", "Сервер отклонил заказы. Ошибок: " + errors);
+                        }
                     } else {
                         allOrdersOk = false;
-                        HostActivity.logToFile(appContext, "API_ERR", "Заказы не приняты: " + response.code());
+                        HostActivity.logToFile(appContext, "API_ERR", "Заказы не приняты, код: " + response.code());
                     }
                 }
 
                 if (!pendingReturns.isEmpty()) {
-                    Response<okhttp3.ResponseBody> response = api.sendReturns(pendingReturns).execute();
-                    if (response.isSuccessful()) {
-                        db.returnDao().markAllAsSent();
+                    Response<ApiResponse<Map<String, Object>>> response = api.sendReturns(pendingReturns).execute();
+                    if (response.isSuccessful() && response.body() != null) {
+                        Map<String, Object> data = response.body().getData();
+                        int errors = 0;
+                        if (data != null && data.get("errors") instanceof Number) {
+                            errors = ((Number) data.get("errors")).intValue();
+                        }
+
+                        if (errors == 0) {
+                            db.returnDao().markAllAsSent();
+                        } else {
+                            allReturnsOk = false;
+                            HostActivity.logToFile(appContext, "API_ERR", "Сервер отклонил возвраты. Ошибок: " + errors);
+                        }
                     } else {
                         allReturnsOk = false;
+                        HostActivity.logToFile(appContext, "API_ERR", "Возвраты не приняты, код: " + response.code());
                     }
                 }
 
@@ -495,7 +519,7 @@ public class SyncFragment extends BaseFragment {
                         } else {
                             new MaterialAlertDialogBuilder(requireContext())
                                     .setTitle("Частичная ошибка")
-                                    .setMessage("Некоторые документы не были доставлены. Попробуйте синхронизацию еще раз.")
+                                    .setMessage("Некоторые документы не были доставлены из-за ошибок. Попробуйте синхронизацию еще раз.")
                                     .setPositiveButton("Понятно", null)
                                     .show();
                         }

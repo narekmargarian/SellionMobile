@@ -98,7 +98,7 @@ public class ClientsFragment extends BaseFragment {
             List<ClientModel> filteredModels = new ArrayList<>();
 
             for (ClientEntity e : allEntities) {
-                // 1. Точное совпадение по ИНН (включая дефисы, если они есть в базе)
+                // 1. Точное совпадение по ИНН
                 boolean matchesInn = !inn.isEmpty() && e.inn != null && e.inn.equalsIgnoreCase(inn);
 
                 // 2. Поиск по части имени или владельца (без учета регистра)
