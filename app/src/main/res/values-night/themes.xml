@@ -1,7 +1,18 @@
+
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.SellionMobile" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+        <!-- Автоматические отступы сверху и снизу -->
+        <item name="android:fitsSystemWindows">true</item>
+
+        <!-- СВЕТЛЫЕ иконки статус-бара в тёмной теме -->
+        <item name="android:windowLightStatusBar">false</item>
+
+        <!-- Прозрачные системные полосы -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+
+        <!-- Фикс высоты шторок (BottomSheet) -->
+        <item name="bottomSheetDialogTheme">@style/CustomBottomSheetDialogTheme</item>
     </style>
 </resources>

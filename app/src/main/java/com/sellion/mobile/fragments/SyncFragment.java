@@ -272,36 +272,29 @@ public class SyncFragment extends BaseFragment {
                     throw new Exception("ID менеджера не найден. Перезайдите в систему.");
                 }
 
-                // ШАГ 1: Полная очистка
-                db.runInTransaction(() -> {
-                    db.productDao().deleteAll();
-                    db.clientDao().deleteAll();
-                    db.orderDao().deleteAll();
-                    db.returnDao().deleteAll();
-                });
-
-                // ШАГ 2: КАТАЛОГ
+                // 1. ЗАГРУЖАЕМ КАТАЛОГ С СЕРВЕРА ВО ВРЕМЕННЫЙ СПИСОК (базу пока не очищаем!)
                 Response<ApiResponse<List<CategoryGroupDto>>> catalogResp = api.getCatalog().execute();
+                List<ProductEntity> newProducts = new ArrayList<>();
                 if (catalogResp.isSuccessful() && catalogResp.body() != null) {
                     List<CategoryGroupDto> groups = catalogResp.body().getData();
                     if (groups != null) {
-                        List<ProductEntity> productEntities = new ArrayList<>();
                         for (CategoryGroupDto group : groups) {
                             for (Product p : group.getProducts()) {
-                                productEntities.add(new ProductEntity(p.getId(), p.getName(), p.getPrice(),
+                                newProducts.add(new ProductEntity(p.getId(), p.getName(), p.getPrice(),
                                         p.getItemsPerBox(), p.getBarcode(), group.getCategoryName(), p.getStockQuantity()));
                             }
                         }
-                        db.productDao().insertAll(productEntities);
                     }
                 } else if (catalogResp.code() == 403) {
                     throw new Exception("Доступ запрещен! Проверьте API-ключ устройства.");
+                } else {
+                    throw new Exception("Ошибка загрузки каталога: " + catalogResp.code());
                 }
 
-                // ШАГ 3: КЛИЕНТЫ
+                // 2. ЗАГРУЖАЕМ КЛИЕНТОВ С СЕРВЕРА
                 Response<List<ClientModel>> clientResp = api.getClients(currentManagerId).execute();
+                List<ClientEntity> newClients = new ArrayList<>();
                 if (clientResp.isSuccessful() && clientResp.body() != null) {
-                    List<ClientEntity> entities = new ArrayList<>();
                     for (ClientModel c : clientResp.body()) {
                         ClientEntity ce = new ClientEntity();
                         ce.id = c.id;
@@ -312,28 +305,48 @@ public class SyncFragment extends BaseFragment {
                         ce.ownerName = c.ownerName;
                         ce.routeDay = c.routeDay;
                         ce.defaultPercent = c.defaultPercent;
-                        entities.add(ce);
+                        newClients.add(ce);
                     }
-                    db.clientDao().insertAll(entities);
+                } else {
+                    throw new Exception("Ошибка загрузки клиентов: " + clientResp.code());
                 }
 
-                // ШАГ 4: ЗАКАЗЫ
-                Response<List<OrderEntity>> orderResp = api.getOrdersByManager(currentManagerId).execute();
-                if (orderResp.isSuccessful() && orderResp.body() != null) {
-                    List<OrderEntity> orders = orderResp.body();
-                    for (OrderEntity o : orders) {
-                        o.status = "SENT";
-                        if (o.appliedPromoItems == null) o.appliedPromoItems = new HashMap<>();
+                // 3. БЕЗОПАСНОЕ ОБНОВЛЕНИЕ БАЗЫ ДАННЫХ
+                // Если сеть пропала на этапе скачивания, этот блок не выполнится и старые данные не сотрутся.
+                db.runInTransaction(() -> {
+                    // Обновляем справочники (товары и клиенты)
+                    db.productDao().deleteAll();
+                    db.productDao().insertAll(newProducts);
+
+                    db.clientDao().deleteAll();
+                    db.clientDao().insertAll(newClients);
+                });
+
+                // 4. ЗАГРУЖАЕМ ИСТОРИЮ ЗАКАЗОВ (без удаления локальных неотправленных!)
+                try {
+                    Response<List<OrderEntity>> orderResp = api.getOrdersByManager(currentManagerId).execute();
+                    if (orderResp.isSuccessful() && orderResp.body() != null) {
+                        List<OrderEntity> orders = orderResp.body();
+                        for (OrderEntity o : orders) {
+                            o.status = "SENT";
+                            if (o.appliedPromoItems == null) o.appliedPromoItems = new HashMap<>();
+                        }
+                        db.orderDao().insertAll(orders);
                     }
-                    db.orderDao().insertAll(orders);
+                } catch (Exception ignored) {
+                    // Если история заказов с сервера не загрузилась, не обрываем синхронизацию
                 }
 
-                // ШАГ 5: ВОЗВРАТЫ
-                Response<List<ReturnEntity>> returnResp = api.getReturnsByManager(currentManagerId).execute();
-                if (returnResp.isSuccessful() && returnResp.body() != null) {
-                    List<ReturnEntity> returns = returnResp.body();
-                    for (ReturnEntity r : returns) { r.status = "SENT"; }
-                    db.returnDao().insertAll(returns);
+                // 5. ЗАГРУЖАЕМ ИСТОРИЮ ВОЗВРАТОВ
+                try {
+                    Response<List<ReturnEntity>> returnResp = api.getReturnsByManager(currentManagerId).execute();
+                    if (returnResp.isSuccessful() && returnResp.body() != null) {
+                        List<ReturnEntity> returns = returnResp.body();
+                        for (ReturnEntity r : returns) { r.status = "SENT"; }
+                        db.returnDao().insertAll(returns);
+                    }
+                } catch (Exception ignored) {
+                    // Игнорируем ошибку загрузки истории возвратов
                 }
 
                 // ФИНАЛ
@@ -352,13 +365,12 @@ public class SyncFragment extends BaseFragment {
                 requireActivity().runOnUiThread(() -> {
                     if (isAdded()) {
                         progressDialog.dismiss();
-                        showSyncError("Ошибка с соединением с сервером обратитесь офис");
+                        showSyncError(e.getMessage() != null ? e.getMessage() : "Ошибка соединения с сервером. Обратитесь в офис");
                     }
                 });
             }
         }).start();
     }
-
     private void showSyncError(String message) {
         if (!isAdded()) return;
         requireActivity().runOnUiThread(() -> {

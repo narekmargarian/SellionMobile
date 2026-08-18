@@ -1,14 +1,31 @@
+
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.SellionMobile" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <!-- Автоматические отступы сверху и снизу -->
+        <item name="android:fitsSystemWindows">true</item>
+
+        <!-- ТЁМНЫЕ иконки статус-бара (часы, сеть) для белого фона -->
+        <item name="android:windowLightStatusBar">true</item>
+
+        <!-- Прозрачные системные полосы -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+
+        <!-- Фикс высоты шторок (BottomSheet) -->
+        <item name="bottomSheetDialogTheme">@style/CustomBottomSheetDialogTheme</item>
     </style>
 
     <style name="Theme.SellionMobile" parent="Base.Theme.SellionMobile" />
 
+    <!-- Стиль для всех всплывающих нижних окон без двойного отступа -->
+    <style name="CustomBottomSheetDialogTheme" parent="Theme.Material3.DayNight.BottomSheetDialog">
+        <item name="enableEdgeToEdge">false</item>
+        <item name="paddingBottomSystemWindowInsets">false</item>
+        <item name="bottomSheetStyle">@style/CustomBottomSheetStyle</item>
+    </style>
 
-
-
-
+    <style name="CustomBottomSheetStyle" parent="Widget.Material3.BottomSheet">
+        <item name="paddingBottomSystemWindowInsets">false</item>
+    </style>
 </resources>

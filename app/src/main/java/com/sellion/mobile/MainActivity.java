@@ -64,7 +64,6 @@ public class MainActivity extends AppCompatActivity {
         db = AppDatabase.getInstance(getApplicationContext());
 
 
-
         // 1. ПРИВЯЗКА ГРАДИЕНТА К ЛОГОТИПУ (Как в вебе)
         TextView tvLogo = findViewById(R.id.logoText);
         setupLogoGradient(tvLogo);
@@ -76,12 +75,8 @@ public class MainActivity extends AppCompatActivity {
         cardAuth.animate().alpha(1f).translationY(0f).setDuration(1000).start();
 
 
-
-
         textInputLayout = findViewById(R.id.textInputLayoutManager);
         etManager = findViewById(R.id.editTextManager);
-
-
 
 
         // ШАГ 1: Единый источник данных. UI всегда слушает БД.
@@ -182,7 +177,6 @@ public class MainActivity extends AppCompatActivity {
         textInputLayout.setError("Неверный ID менеджера"); // Красная обводка как в вебе
         textInputLayout.setErrorTextColor(ColorStateList.valueOf(Color.parseColor("#EF4444")));
     }
-
 
 
     private void setupSecretSettings() {
@@ -297,7 +291,6 @@ public class MainActivity extends AppCompatActivity {
                 .setNegativeButton("Отмена", null)
                 .show();
     }
-
 
 
     @Override
