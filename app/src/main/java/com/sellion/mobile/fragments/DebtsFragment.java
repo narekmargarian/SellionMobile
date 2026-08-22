@@ -21,6 +21,7 @@ import com.sellion.mobile.R;
 import com.sellion.mobile.adapters.DebtsAdapter;
 import com.sellion.mobile.database.AppDatabase;
 import com.sellion.mobile.entity.ClientEntity;
+import com.sellion.mobile.helper.NavigationHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,50 +41,48 @@ public class DebtsFragment extends BaseFragment {
         View view = inflater.inflate(R.layout.fragment_debts, container, false);
         recyclerView = view.findViewById(R.id.recyclerDebts);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-
         ImageButton btnBack = view.findViewById(R.id.btnBackDebts);
         tvTotalDebtSum = view.findViewById(R.id.tvTotalDebtSum);
 
+        // Элементы поиска
         ImageButton btnOpenSearch = view.findViewById(R.id.btnOpenSearchDebts);
         ImageButton btnCloseSearch = view.findViewById(R.id.btnCloseSearchDebts);
         layoutSearchFieldsDebts = view.findViewById(R.id.layoutSearchFieldsDebts);
         etSearchNameDebts = view.findViewById(R.id.etSearchNameDebts);
         Button btnExecuteSearch = view.findViewById(R.id.btnExecuteSearchDebts);
 
-        // Управление видимостью панели поиска
-        btnOpenSearch.setOnClickListener(v -> layoutSearchFieldsDebts.setVisibility(View.VISIBLE));
-        btnCloseSearch.setOnClickListener(v -> {
-            layoutSearchFieldsDebts.setVisibility(View.GONE);
-            etSearchNameDebts.setText("");
-            filterList("");
-        });
+        if (btnOpenSearch != null && layoutSearchFieldsDebts != null) {
+            btnOpenSearch.setOnClickListener(v -> layoutSearchFieldsDebts.setVisibility(View.VISIBLE));
+            btnCloseSearch.setOnClickListener(v -> {
+                layoutSearchFieldsDebts.setVisibility(View.GONE);
+                etSearchNameDebts.setText("");
+                filterList("");
+            });
 
-        btnExecuteSearch.setOnClickListener(v -> {
-            String query = etSearchNameDebts.getText().toString().trim();
-            filterList(query);
-        });
+            btnExecuteSearch.setOnClickListener(v -> {
+                String query = etSearchNameDebts.getText().toString().trim();
+                filterList(query);
+            });
 
-        // Живой поиск при вводе текста
-        etSearchNameDebts.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            etSearchNameDebts.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                filterList(s.toString().trim());
-            }
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    filterList(s.toString().trim());
+                }
 
-            @Override
-            public void afterTextChanged(Editable s) {}
-        });
+                @Override
+                public void afterTextChanged(Editable s) {}
+            });
+        }
 
         // НАБЛЮДАЕМ ЗА БАЗОЙ (БЕЗ ИНТЕРНЕТА)
         AppDatabase.getInstance(requireContext()).clientDao().getClientsWithDebtsLive()
                 .observe(getViewLifecycleOwner(), clients -> {
                     if (clients != null) {
                         allDebtsList = clients;
-
-                        // Считаем общий долг по всем клиентам
                         double totalDebt = 0;
                         for (ClientEntity client : clients) {
                             totalDebt += client.debt;
@@ -92,18 +91,19 @@ public class DebtsFragment extends BaseFragment {
                             tvTotalDebtSum.setText(formatSmart(totalDebt) + " ֏");
                         }
 
-                        // Применяем текущий фильтр (если что-то было введено)
-                        filterList(etSearchNameDebts.getText().toString().trim());
+                        // Фильтруем список под текущий поисковый запрос
+                        String currentQuery = etSearchNameDebts != null ? etSearchNameDebts.getText().toString().trim() : "";
+                        filterList(currentQuery);
                     }
                 });
 
-        setupBackButton(btnBack, true);
+        setupBackButton(btnBack, true); // true — значит выход на главный экран
         return view;
     }
 
     private void filterList(String query) {
         List<ClientEntity> filteredList = new ArrayList<>();
-        if (query.isEmpty()) {
+        if (query == null || query.isEmpty()) {
             filteredList.addAll(allDebtsList);
         } else {
             String lowerQuery = query.toLowerCase();
@@ -121,8 +121,10 @@ public class DebtsFragment extends BaseFragment {
     }
 
     private void openDetails(ClientEntity client) {
+        // 1. Создаем фрагмент деталей (убедитесь, что класс DebtDetailsFragment существует)
         DebtDetailsFragment detailsFragment = new DebtDetailsFragment();
 
+        // 2. Упаковываем данные из базы (ID, Имя, Долг) для передачи
         Bundle bundle = new Bundle();
         bundle.putInt("CLIENT_ID", client.id);
         bundle.putString("SHOP_NAME", client.name);
@@ -133,6 +135,7 @@ public class DebtsFragment extends BaseFragment {
 
         detailsFragment.setArguments(bundle);
 
+        // 3. Выполняем переход
         getParentFragmentManager().beginTransaction()
                 .replace(R.id.fragment_container, detailsFragment)
                 .addToBackStack(null)
