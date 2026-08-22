@@ -1,28 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="#F8F9FA">
 
+    <!-- Верхняя панель (Toolbar) -->
     <androidx.appcompat.widget.Toolbar
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="#FFFFFF"
         android:elevation="4dp">
-        <ImageButton
-            android:id="@+id/btnBackDebts"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_back" />
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Задолженности"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:layout_gravity="center" />
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <ImageButton
+                android:id="@+id/btnBackDebts"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_back" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:text="Задолженности"
+                android:textColor="#1B1B1F"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <!-- Кнопка поиска в правом углу -->
+            <ImageButton
+                android:id="@+id/btnOpenSearchDebts"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_search"
+                app:tint="#1B1B1F" />
+
+        </RelativeLayout>
     </androidx.appcompat.widget.Toolbar>
+
+    <!-- Выпадающая панель поиска (Скрыта по умолчанию) -->
+    <LinearLayout
+        android:id="@+id/layoutSearchFieldsDebts"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#FFFFFF"
+        android:padding="12dp"
+        android:elevation="2dp"
+        android:visibility="gone">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Поиск задолженности"
+                android:textStyle="bold"
+                android:textColor="#757575"/>
+
+            <ImageButton
+                android:id="@+id/btnCloseSearchDebts"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_alignParentEnd="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                app:tint="#FF5252" />
+        </RelativeLayout>
+
+        <EditText
+            android:id="@+id/etSearchNameDebts"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:hint="Имя магазина или Владелец"
+            android:inputType="text"
+            android:background="@android:drawable/editbox_background"
+            android:padding="10dp"
+            android:textSize="14sp"
+            android:layout_marginBottom="12dp"/>
+
+        <Button
+            android:id="@+id/btnExecuteSearchDebts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Найти"
+            android:backgroundTint="#1B1B1F"
+            android:textColor="#FFFFFF" />
+    </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerDebts"
