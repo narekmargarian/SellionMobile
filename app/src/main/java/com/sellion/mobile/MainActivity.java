@@ -55,8 +55,17 @@ public class MainActivity extends AppCompatActivity {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         super.onCreate(savedInstanceState);
 
-
         SessionManager.init(this);
+
+        // ПРОВЕРКА СЕССИИ: Если пользователь уже залогинен, сразу пускаем в систему
+        String savedManagerId = SessionManager.getInstance().getManagerId();
+        if (savedManagerId != null && !savedManagerId.trim().isEmpty()) {
+            Intent intent = new Intent(MainActivity.this, HostActivity.class);
+            intent.putExtra("MANAGER_ID", savedManagerId);
+            startActivity(intent);
+            finish();
+            return;
+        }
 
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
@@ -301,4 +310,3 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 }
-

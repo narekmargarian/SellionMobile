@@ -37,13 +37,6 @@ public interface ApiService {
     Call<List<ClientModel>> getClients(@Query("managerId") String managerId);
 
 
-//    @POST("api/orders/sync")
-//    Call<okhttp3.ResponseBody> sendOrders(@Body List<OrderEntity> orders);
-//
-//    @POST("api/returns/sync")
-//    Call<okhttp3.ResponseBody> sendReturns(@Body List<ReturnEntity> returns);
-
-    // ИСПРАВЛЕНО: ManagerApiController возвращает чистый List<String>
     @GET("api/public/managers")
     Call<List<String>> getManagersList();
 

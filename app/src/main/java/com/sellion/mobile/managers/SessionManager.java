@@ -32,19 +32,22 @@ public class SessionManager {
         return instance;
     }
 
-    // --- ЛОГИКА СОХРАНЕНИЯ (Ваша структура сохранена) ---
 
     public void setManagerId(String id) {
-        prefs.edit().putString(KEY_MANAGER_ID, id).apply();
+        prefs.edit().putString(KEY_MANAGER_ID, id).commit(); // commit вместо apply
     }
+
+    public void setApiKey(String key) {
+        prefs.edit().putString(KEY_API_KEY, key).commit(); // commit вместо apply
+    }
+
+    // --- ЛОГИКА СОХРАНЕНИЯ (Ваша структура сохранена) ---
+
 
     public String getManagerId() {
         return prefs.getString(KEY_MANAGER_ID, null);
     }
 
-    public void setApiKey(String key) {
-        prefs.edit().putString(KEY_API_KEY, key).apply();
-    }
 
     public String getApiKey() {
         return prefs.getString(KEY_API_KEY, null);
